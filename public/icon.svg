@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+    <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <!-- Moon -->
+  <path d="M 320 160 C 220 160 160 220 160 320 C 160 370 180 410 210 440 C 140 420 100 350 100 280 C 100 170 190 80 300 80 C 330 80 360 90 380 110 C 360 140 340 160 320 160 Z" fill="url(#moonGrad)" opacity="0.85" />
+  <!-- Star -->
+  <polygon points="320,180 340,230 390,230 350,265 365,315 320,285 275,315 290,265 250,230 300,230" fill="url(#starGrad)" filter="url(#glow)" />
+  <!-- Dots / Sparkles -->
+  <circle cx="180" cy="180" r="6" fill="#ffffff" opacity="0.6" />
+  <circle cx="400" cy="360" r="8" fill="#ffffff" opacity="0.7" />
+  <circle cx="250" cy="120" r="4" fill="#ffffff" opacity="0.5" />
+  <circle cx="120" cy="340" r="5" fill="#ffffff" opacity="0.4" />
+</svg>
