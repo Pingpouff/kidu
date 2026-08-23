@@ -51,7 +51,7 @@ export async function seedDatabase() {
   // 1. Settings seeding
   const settingsCount = await db.settings.count();
   if (settingsCount === 0) {
-    await db.settings.put({ ...defaultSettings, id: 'current' } as any);
+    await db.settings.put({ ...defaultSettings, id: 'current' });
   }
 
   // 2. Tasks seeding
@@ -97,5 +97,5 @@ export async function getSettings(): Promise<ParentSettings> {
  * Helper to save settings.
  */
 export async function saveSettings(settings: ParentSettings) {
-  await db.settings.put({ ...settings, id: 'current' } as any);
+  await db.settings.put({ ...settings, id: 'current' });
 }

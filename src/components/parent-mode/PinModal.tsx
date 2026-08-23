@@ -21,8 +21,8 @@ export const PinModal: React.FC<PinModalProps> = ({
   // Hold-to-unlock gesture states
   const [isHolding, setIsHolding] = useState<boolean>(false);
   const [holdProgress, setHoldProgress] = useState<number>(0);
-  const holdTimer = useRef<any>(null);
-  const progressTimer = useRef<any>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleKeyPress = (num: string) => {
     setError(false);

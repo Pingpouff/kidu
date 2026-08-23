@@ -15,7 +15,10 @@ class ReminderService {
     if (typeof window === 'undefined') return null;
     if (!this.ctx) {
       // Create context on demand (since browsers require user interaction)
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioWindow = window as Window & typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioCtx = audioWindow.AudioContext || audioWindow.webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
       }
