@@ -167,6 +167,6 @@ export type TranslationKey = keyof typeof translations['fr'];
  * Returns localized string for a key based on the settings language.
  */
 export function translate(key: string, lang: Language): string {
-  const dict = translations[lang] || translations['fr'];
-  return (dict as any)[key] || key;
+  const dict: Record<string, string> = translations[lang] || translations['fr'];
+  return dict[key] || key;
 }
