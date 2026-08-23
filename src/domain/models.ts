@@ -51,6 +51,7 @@ export interface RewardSettings {
 }
 
 export interface ParentSettings {
+  id?: 'current';
   parentPin: string; // 4-digit code, default "1234"
   language: 'fr' | 'en';
   rewards: RewardSettings;
