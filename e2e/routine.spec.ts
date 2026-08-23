@@ -69,7 +69,7 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     await expect(page.locator('body')).toContainText('Habiller le doudou');
   });
 
-  test('should allow parent to reorder tasks using drag handles', async ({ page }) => {
+  test('should persist task reordering after a page reload', async ({ page }) => {
     await page.goto('/');
 
     // 1. Enter Parent Mode
@@ -86,11 +86,51 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     const dragHandles = page.locator('button[aria-label="drag task"]');
     const firstHandle = dragHandles.nth(0);
     const secondHandle = dragHandles.nth(1);
+    const firstTaskRow = firstHandle.locator('xpath=../..');
+    const secondTaskRow = secondHandle.locator('xpath=../..');
+    const firstTaskLabel = await firstTaskRow.locator('p').textContent();
+    const secondTaskLabel = await secondTaskRow.locator('p').textContent();
 
-    // Perform drag and drop
-    await firstHandle.dragTo(secondHandle);
+    expect(firstTaskLabel).toBeTruthy();
+    expect(secondTaskLabel).toBeTruthy();
 
-    // Verify that the task order has been successfully modified in the list
-    await expect(dragHandles).toHaveCount(await dragHandles.count());
+    // Drive dnd-kit's pointer sensor with a real mouse gesture.
+    const firstHandleBox = await firstHandle.boundingBox();
+    const secondHandleBox = await secondHandle.boundingBox();
+
+    expect(firstHandleBox).not.toBeNull();
+    expect(secondHandleBox).not.toBeNull();
+
+    await page.mouse.move(
+      firstHandleBox!.x + firstHandleBox!.width / 2,
+      firstHandleBox!.y + firstHandleBox!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      firstHandleBox!.x + firstHandleBox!.width / 2 + 10,
+      firstHandleBox!.y + firstHandleBox!.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(100);
+    await page.mouse.move(
+      secondHandleBox!.x + secondHandleBox!.width / 2,
+      secondHandleBox!.y + secondHandleBox!.height * 0.75,
+      { steps: 10 },
+    );
+    await page.mouse.up();
+
+    await expect(dragHandles.nth(0).locator('xpath=../..').locator('p')).toHaveText(secondTaskLabel!);
+
+    // Reload from IndexedDB and verify that the new order was persisted.
+    await page.reload();
+    await page.locator('button[aria-label="Mode Parent"]').click();
+    await page.getByRole('button', { name: '1', exact: true }).click();
+    await page.getByRole('button', { name: '2', exact: true }).click();
+    await page.getByRole('button', { name: '3', exact: true }).click();
+    await page.getByRole('button', { name: '4', exact: true }).click();
+
+    const reorderedHandles = page.locator('button[aria-label="drag task"]');
+    await expect(reorderedHandles.nth(0).locator('xpath=../..').locator('p')).toHaveText(secondTaskLabel!);
+    await expect(reorderedHandles.nth(1).locator('xpath=../..').locator('p')).toHaveText(firstTaskLabel!);
   });
 });
