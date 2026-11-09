@@ -187,6 +187,17 @@ class ReminderService {
     this.playTone(2093.0, 0.6, 'sine', 0.32, { gain: 0.1 });
   }
 
+  /** Referee whistle: a short trill (yellow card), twice for a red card. */
+  public playWhistleSound(blasts = 1) {
+    for (let b = 0; b < blasts; b++) {
+      const start = b * 0.45;
+      // Fast alternation between two pitches sounds like the pea in a whistle
+      for (let i = 0; i < 8; i++) {
+        this.playTone(i % 2 ? 2900 : 2600, 0.05, 'sine', start + i * 0.035, { gain: 0.07 });
+      }
+    }
+  }
+
   /** Treasure chest opens: wooden creak, then a magical rising sparkle. */
   public playChestOpenSound() {
     this.playTone(140, 0.35, 'sawtooth', 0, { gain: 0.05, slideTo: 260 });

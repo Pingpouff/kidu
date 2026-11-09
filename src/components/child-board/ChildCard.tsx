@@ -145,6 +145,16 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
                 🐷 {summary.piggyBadges}
               </Pill>
             )}
+            {summary.cards.yellow > 0 && (
+              <Pill className="bg-yellow-400/90 text-yellow-950" data-testid="home-card-yellow" title={translate('cards.tonight', language)}>
+                🟨 {summary.cards.yellow}
+              </Pill>
+            )}
+            {summary.cards.red > 0 && (
+              <Pill className="bg-red-500/90 text-white" data-testid="home-card-red" title={translate('cards.tonight', language)}>
+                🟥 {summary.cards.red}
+              </Pill>
+            )}
             {summary.pendingBadgeChoices > 0 && (
               <Pill className="bg-yellow-400 text-amber-950 animate-pulse" data-testid="home-badge-pending">
                 🎁 {translate('home.badge_to_choose', language)}

@@ -14,6 +14,27 @@ export interface ChildProfile {
   badgeOffers?: string[][]; // Medals waiting for the child to pick a badge (3 badge ids each)
   badges?: OwnedBadge[]; // Piggy bank + album
   trophies?: EarnedTrophy[]; // Unlocked trophies, never removed
+  cards?: BehaviorCard[]; // Yellow / red cards given by a parent (whole history)
+}
+
+export type CardColor = 'yellow' | 'red';
+
+/**
+ * A card given by a parent for inappropriate behavior. Cards count per
+ * evening (`date`): a second yellow the same evening becomes a red. A red
+ * card resets the stars collected toward the next medal (`lostProgress`
+ * keeps them so a card given by mistake can be withdrawn).
+ */
+export interface BehaviorCard {
+  id: string;
+  color: CardColor;
+  date: string; // YYYY-MM-DD evening it counts for
+  givenAt: number; // epoch
+  reason?: string;
+  /** Red card triggered automatically by a second yellow */
+  fromYellows?: boolean;
+  /** Stars toward the next medal taken away by this red card */
+  lostProgress?: number;
 }
 
 /**

@@ -2,6 +2,7 @@ import { TROPHY_IDS, TrophyId, EarnedTrophy } from './trophies';
 import { isBadgeId } from './badges';
 import { isValidDueTime } from './reminders';
 import {
+  BehaviorCard,
   ChildProfile,
   TaskDefinition,
   ParentSettings,
@@ -248,6 +249,28 @@ function parseProfiles(raw: unknown): ChildProfile[] {
       }
     );
 
+    const cards = p.cards === undefined ? undefined : (Array.isArray(p.cards) ? p.cards : fail()).map(
+      (c: unknown): BehaviorCard => {
+        if (
+          !isObject(c) || !isString(c.id) || (c.color !== 'yellow' && c.color !== 'red') ||
+          !isString(c.date) || !isNumber(c.givenAt) ||
+          (c.reason !== undefined && !isString(c.reason)) ||
+          (c.lostProgress !== undefined && !isNumber(c.lostProgress))
+        ) {
+          return fail();
+        }
+        return {
+          id: c.id,
+          color: c.color,
+          date: c.date,
+          givenAt: c.givenAt,
+          ...(isString(c.reason) ? { reason: c.reason } : {}),
+          ...(c.fromYellows === true ? { fromYellows: true } : {}),
+          ...(isNumber(c.lostProgress) ? { lostProgress: c.lostProgress } : {}),
+        };
+      }
+    );
+
     return {
       id: p.id,
       name: p.name,
@@ -260,6 +283,7 @@ function parseProfiles(raw: unknown): ChildProfile[] {
       ...(badgeOffers ? { badgeOffers } : {}),
       ...(badges ? { badges } : {}),
       ...(trophies ? { trophies } : {}),
+      ...(cards ? { cards } : {}),
     };
   });
   if (new Set(profiles.map((p) => p.id)).size !== profiles.length) throw new BackupError('invalid_profiles');
