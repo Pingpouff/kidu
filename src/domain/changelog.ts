@@ -16,6 +16,28 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Mode Parent mieux protégé : plus de raccourci « maintenir 3 secondes ». En cas d\'oubli du code, une question de calcul pour adulte le remplace.',
+        'Après 3 codes faux, le clavier se bloque 30 secondes.',
+        'Le Mode Parent invite à remplacer le code 1234 ; le code est masqué dans Paramètres.',
+        'Salutation selon l\'heure (Bonjour, Bon après-midi, Bonsoir) et textes adaptés à toute la journée (« jours de suite », « aujourd\'hui »).',
+        'Le trophée « Lève-tôt » récompense maintenant l\'étape Matin finie avant 8 h.',
+        'Tous les textes de l\'app sont traduits en anglais.',
+      ],
+      en: [
+        'Parent Mode is better protected: no more "hold for 3 seconds" shortcut. If the PIN is forgotten, a grown-up math question replaces it.',
+        'After 3 wrong PINs, the keypad locks for 30 seconds.',
+        'Parent Mode asks to replace the 1234 PIN; the PIN is hidden in Settings.',
+        'Greeting depends on the time of day (Good morning, Good afternoon, Good evening) and texts fit the whole day ("days in a row", "today").',
+        'The "Early bird" trophy now rewards finishing the Morning step before 8 am.',
+        'Every text of the app is translated into English.',
+      ],
+    },
+  },
+  {
     version: '1.1.0',
     date: '2026-11-09',
     changes: {

@@ -182,3 +182,10 @@ export function upcomingDeadlines(
   }
   return [...groups.values()].sort((a, b) => a.at - b.at).slice(0, limit);
 }
+
+/** Home screen greeting for the hour of the day (0–23). */
+export function greetingKey(hour: number): 'home.greeting.morning' | 'home.greeting.afternoon' | 'home.greeting.evening' {
+  if (hour >= 5 && hour < 12) return 'home.greeting.morning';
+  if (hour >= 12 && hour < 18) return 'home.greeting.afternoon';
+  return 'home.greeting.evening';
+}

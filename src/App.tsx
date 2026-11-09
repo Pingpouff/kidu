@@ -112,12 +112,12 @@ export default function App() {
   if (!dbSeeded || !profiles || !tasks || !settings) {
     return (
       <div className="w-full h-screen bg-slate-950 flex flex-col justify-center items-center gap-4 text-white">
-        <div className="text-7xl animate-bounce">🌙</div>
+        <div className="text-7xl animate-bounce">🌟</div>
         <div className="h-2 w-32 bg-white/10 rounded-full overflow-hidden relative">
           <div className="h-full bg-indigo-500 w-1/2 rounded-full absolute left-0 top-0 animate-pulse" />
         </div>
         <p className="text-sm text-indigo-300 font-bold tracking-wider uppercase animate-pulse">
-          Chargement...
+          {translate('app.loading', settings?.language ?? 'fr')}
         </p>
       </div>
     );
@@ -321,12 +321,10 @@ export default function App() {
           }
           spoken={
             currentReveal.kind === 'medal'
-              ? activeLang === 'fr'
-                ? `Bravo ${revealChild?.name ?? ''} ! Tu as gagné une médaille !`
-                : `Well done ${revealChild?.name ?? ''}! You won a medal!`
-              : activeLang === 'fr'
-                ? `Nouveau trophée : ${translate(`trophy.${currentReveal.id}.name`, activeLang)} !`
-                : `New trophy: ${translate(`trophy.${currentReveal.id}.name`, activeLang)}!`
+              ? translate('reveal.new_medal_spoken', activeLang, { name: revealChild?.name ?? '' })
+              : translate('reveal.new_trophy_spoken', activeLang, {
+                  trophy: translate(`trophy.${currentReveal.id}.name`, activeLang),
+                })
           }
           language={activeLang}
           position={revealPosition}
@@ -363,6 +361,7 @@ export default function App() {
       {pinPrompt && (
         <PinModal
           correctPin={settings.parentPin}
+          allowForgotPin
           language={activeLang}
           onSuccess={() => {
             setPinPrompt(false);

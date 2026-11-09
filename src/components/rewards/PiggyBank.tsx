@@ -54,7 +54,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
     setBought(item);
     reminderService.playPurchaseSound();
     reminderService.triggerVoiceReminder(
-      language === 'fr' ? `Youpi ! ${item.label} !` : `Hooray! ${item.label}!`,
+      translate('piggy.bought_spoken', language, { item: item.label }),
       language === 'fr' ? 'fr-FR' : 'en-US'
     );
     fireConfetti({ particleCount: 90, spread: 110, origin: { x: 0.5, y: 0.5 }, zIndex: CONFETTI_Z.overlay });
@@ -242,7 +242,6 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
         <PinModal
           correctPin={parentPin}
           language={language}
-          allowHoldBypass={false}
           title={`${buying.icon} ${buying.label}`}
           instruction={translate('piggy.parent_approval', language)}
           onSuccess={handleApproved}

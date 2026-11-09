@@ -4,7 +4,7 @@ import { buttonClass, chipClass, fieldClass } from '../../ui/styles';
 import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { isValidTimeWindow } from '../../domain/reminders';
-import { translate, Language } from '../../i18n/dictionary';
+import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
 import {
@@ -103,7 +103,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const startEdit = (task: TaskDefinition) => {
     setEditingId(task.id);
     setEditIcon(task.icon);
-    setEditLabel(task.labelKey ? translate(task.labelKey, language) : task.defaultLabel);
+    setEditLabel(taskLabel(task, language));
     setEditOrder(task.order);
     setEditCategory(getTaskCategory(task));
     setEditDueTime(task.dueTime ?? '');
@@ -518,7 +518,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
             {...attributes}
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white/80 transition-colors touch-none"
-            aria-label="drag task"
+            aria-label={translate('parent.tasks.drag', language)}
           >
             <GripVertical className="w-5 h-5" />
           </button>
@@ -585,7 +585,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-white text-sm md:text-base line-clamp-2 break-words">
-                {task.labelKey ? translate(task.labelKey, language) : task.defaultLabel}
+                {taskLabel(task, language)}
               </p>
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
                 {task.startTime && <span className="mr-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}

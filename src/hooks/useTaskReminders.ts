@@ -13,7 +13,7 @@ import {
 import { ReminderQueue } from '../services/ReminderQueue';
 import { reminderService } from '../services/ReminderService';
 import { showSystemNotification } from '../services/notifications';
-import { Language, taskLabel } from '../i18n/dictionary';
+import { Language, taskLabel, translate } from '../i18n/dictionary';
 
 export interface ReminderAnnouncement {
   childId: string;
@@ -44,7 +44,7 @@ const saveLog = (log: ReminderLog) => {
 const joinLabels = (labels: string[], language: Language) =>
   labels.length === 1
     ? labels[0]
-    : `${labels.slice(0, -1).join(', ')} ${language === 'fr' ? 'et' : 'and'} ${labels[labels.length - 1]}`;
+    : `${labels.slice(0, -1).join(', ')} ${translate('list.and', language)} ${labels[labels.length - 1]}`;
 
 /**
  * Sentence spoken / shown for a child's reminder: late tasks (`labels`)

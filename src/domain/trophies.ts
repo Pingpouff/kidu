@@ -40,8 +40,8 @@ export const TROPHY_ICONS: Record<TrophyId, string> = {
 
 /** Three tasks finished within this window earn the "lightning" medal. */
 export const LIGHTNING_WINDOW_MS = 5 * 60 * 1000;
-/** Routine finished before this local hour earns the "early bird" trophy. */
-export const EARLY_BIRD_HOUR = 20;
+/** Morning step finished before this local hour earns the "early bird" trophy. */
+export const EARLY_BIRD_HOUR = 8;
 
 export interface TrophyStats {
   completedRoutines: number;
@@ -96,10 +96,16 @@ export function computeTrophyStats(
 ): TrophyStats {
   const completed = sessions.filter((s) => s.isCompleted);
   const phaseCompletions: Record<TaskCategory, number> = { morning: 0, after_school: 0, meal: 0, bedtime: 0 };
+  let hadEarlyBird = false;
 
   for (const session of sessions) {
     for (const phase of getRoutinePhases(session, definitions)) {
-      if (phase.isCompleted) phaseCompletions[phase.category]++;
+      if (!phase.isCompleted) continue;
+      phaseCompletions[phase.category]++;
+      if (phase.category === 'morning') {
+        const finishedAt = Math.max(...phase.tasks.map((t) => t.completedAt ?? Infinity));
+        if (Number.isFinite(finishedAt) && new Date(finishedAt).getHours() < EARLY_BIRD_HOUR) hadEarlyBird = true;
+      }
     }
   }
 
@@ -108,9 +114,7 @@ export function computeTrophyStats(
     currentStreak: currentStreak(completed.map((s) => s.date)),
     phaseCompletions,
     hadLightning: sessions.some(hasLightning),
-    hadEarlyBird: completed.some(
-      (s) => s.completedAt !== undefined && new Date(s.completedAt).getHours() < EARLY_BIRD_HOUR
-    ),
+    hadEarlyBird,
   };
 }
 

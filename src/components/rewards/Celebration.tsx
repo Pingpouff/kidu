@@ -104,9 +104,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
 
         {/* Success description */}
         <p className="text-xl md:text-2xl font-bold text-white/90 leading-relaxed px-4">
-          {language === 'fr' 
-            ? `Bravo ${profile.name} ! Tu as fini toute ta routine du soir !`
-            : `Great job ${profile.name}! You completed your entire routine!`}
+          {translate('celebration.day_done', language, { name: profile.name })}
         </p>
 
         {/* Stars earned tonight */}
@@ -120,7 +118,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
         {/* Bedtime song lyrics, highlighted line by line */}
         {songPlaying && (
           <div className="flex flex-col gap-1 text-center" data-testid="bedtime-song">
-            <span className="text-xs uppercase tracking-widest text-white/40 font-bold">🎵 {language === 'fr' ? 'La chanson du dodo' : 'The bedtime song'}</span>
+            <span className="text-xs uppercase tracking-widest text-white/40 font-bold">🎵 {translate('celebration.song', language)}</span>
             {lyrics.map((line, i) => (
               <span
                 key={i}
@@ -138,7 +136,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
 
       {/* Tapping anywhere action instruction */}
       <div className="mt-12 text-white/50 text-base md:text-lg font-bold tracking-wide animate-pulse pointer-events-none uppercase">
-        {language === 'fr' ? 'Tapote l\'écran pour continuer' : 'Tap screen to continue'}
+        {translate('celebration.tap', language)}
       </div>
     </Overlay>
   );

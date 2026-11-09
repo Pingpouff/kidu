@@ -48,9 +48,37 @@ export const translations = {
     'task.clear_plate': 'Débarrasser son assiette',
 
     // Routine phases
-    'home.tonight': 'Ce soir',
+    'home.tonight': 'Aujourd\'hui',
+    'home.greeting.morning': 'Bonjour ! Qui se prépare ? 🌟',
+    'home.greeting.afternoon': 'Bon après-midi ! Qui se prépare ? 🌟',
+    'home.greeting.evening': 'Bonsoir ! Qui se prépare ? 🌟',
+    'home.footer': 'Kidu, le compagnon des routines',
+    'app.loading': 'Chargement…',
+    'board.one_star_left': 'Plus qu\'une étoile pour gagner une médaille !',
+    'board.next_phase_spoken': 'Bravo {name} ! Maintenant : {phase} !',
+    'board.day_done_spoken': 'Félicitations {name} ! Tu as terminé ta journée !',
+    'board.day_done_spoken_night': 'Félicitations {name} ! Tu as terminé ta journée. Bonne nuit !',
+    'board.reset': 'Recommencer la routine',
+    'board.reset_confirm': 'Sûr ?',
+    'celebration.day_done': 'Bravo {name} ! Tu as terminé toute ta journée !',
+    'celebration.song': 'La chanson du dodo',
+    'celebration.tap': 'Tapote l\'écran pour continuer',
+    'reveal.new_medal_spoken': 'Bravo {name} ! Tu as gagné une médaille !',
+    'reveal.new_trophy_spoken': 'Nouveau trophée : {trophy} !',
+    'badge.choose_spoken': '{name}, choisis ton badge !',
+    'badge.chosen_spoken': 'Super choix ! {badge} !',
+    'piggy.bought_spoken': 'Youpi ! {item} !',
+    'emoji.title': 'Choisir un emoji',
+    'emoji.search': 'Rechercher…',
+    'emoji.none': 'Aucun emoji trouvé',
+    'parent.profiles.years': 'ans',
+    'parent.tasks.drag': 'Déplacer la tâche',
+    'parent.settings.saved': 'Paramètres sauvegardés !',
+    'parent.danger.title': 'Zone de danger',
+    'parent.danger.confirm': 'Confirmer la suppression',
+    'list.and': 'et',
     'home.next_deadlines': 'Prochains horaires',
-    'home.no_deadline': 'Plus d\'horaire prévu ce soir.',
+    'home.no_deadline': 'Plus d\'horaire prévu aujourd\'hui.',
     'home.reminders_off': 'Rappels désactivés',
     'home.all_done': 'Tout le monde a fini, bonne nuit ! 🌙',
     'home.not_started': 'Pas encore commencé',
@@ -64,7 +92,7 @@ export const translations = {
     'home.starts_at': 'Commence à',
     'home.medal_in': 'Médaille dans',
     'home.badge_to_choose': 'Badge à choisir !',
-    'home.streak': 'soirs de suite',
+    'home.streak': 'jours de suite',
     'home.piggy': 'Badges dans la tirelire',
     'category.morning': 'Matin',
     'category.after_school': 'Après l\'école',
@@ -94,20 +122,20 @@ export const translations = {
     'badges.choose': 'Choisis ton badge !',
     'badges.choose_hint': 'Il ira dans ta tirelire',
     'badges.waiting': 'badges à choisir',
-    'cards.banner_yellow': 'Carton jaune ce soir',
-    'cards.banner_red': 'Carton rouge ce soir',
+    'cards.banner_yellow': 'Carton jaune aujourd\'hui',
+    'cards.banner_red': 'Carton rouge aujourd\'hui',
     'cards.reset_short': 'étoiles remises à zéro',
-    'cards.reminder_title_yellow': 'Rappel : carton jaune ce soir',
-    'cards.reminder_title_red': 'Rappel : carton rouge ce soir',
-    'cards.spoken_reminder_yellow': '{name}, rappel : tu as eu un carton jaune ce soir.',
-    'cards.spoken_reminder_red': '{name}, rappel : tu as eu un carton rouge ce soir.',
+    'cards.reminder_title_yellow': 'Rappel : carton jaune aujourd\'hui',
+    'cards.reminder_title_red': 'Rappel : carton rouge aujourd\'hui',
+    'cards.spoken_reminder_yellow': '{name}, rappel : tu as eu un carton jaune aujourd\'hui.',
+    'cards.spoken_reminder_red': '{name}, rappel : tu as eu un carton rouge aujourd\'hui.',
     'cards.give': 'Donner un carton',
     'cards.give_to': 'Carton pour',
     'cards.yellow': 'Carton jaune',
     'cards.red': 'Carton rouge',
     'cards.yellow_hint': 'Avertissement, sans conséquence',
     'cards.red_hint': 'Les étoiles vers la prochaine médaille repartent à zéro',
-    'cards.second_yellow_warning': 'Déjà un carton jaune ce soir : un 2e jaune donnera un carton rouge.',
+    'cards.second_yellow_warning': 'Déjà un carton jaune aujourd\'hui : un 2e jaune donnera un carton rouge.',
     'cards.reason': 'Motif (facultatif)',
     'cards.reason_placeholder': 'Autre motif…',
     'cards.validate': 'Valider avec le code parent',
@@ -116,7 +144,7 @@ export const translations = {
     'cards.lost_progress': 'La progression vers la médaille repart à zéro',
     'cards.kept': 'Tes médailles et tes badges restent à toi.',
     'cards.warning': 'Attention, c\'est un avertissement.',
-    'cards.tonight': 'Cartons ce soir',
+    'cards.tonight': 'Cartons du jour',
     'cards.history': 'Cartons',
     'cards.history_empty': 'Aucun carton pour l\'instant. 👏',
     'cards.withdraw': 'Retirer ce carton',
@@ -224,9 +252,9 @@ export const translations = {
     'trophy.first_routine.name': 'Première routine',
     'trophy.first_routine.hint': 'Termine toute ta routine une première fois',
     'trophy.streak_3.name': 'En feu',
-    'trophy.streak_3.hint': 'Termine ta routine 3 soirs de suite',
+    'trophy.streak_3.hint': 'Termine ta routine 3 jours de suite',
     'trophy.streak_7.name': 'Semaine arc-en-ciel',
-    'trophy.streak_7.hint': 'Termine ta routine 7 soirs de suite',
+    'trophy.streak_7.hint': 'Termine ta routine 7 jours de suite',
     'trophy.routines_10.name': 'Champion',
     'trophy.routines_10.hint': 'Termine 10 routines',
     'trophy.routines_30.name': 'Super-héros',
@@ -241,14 +269,22 @@ export const translations = {
     'trophy.bedtime_10.hint': 'Termine 10 fois l\'étape Coucher',
     'trophy.lightning.name': 'Éclair',
     'trophy.lightning.hint': 'Termine 3 tâches en moins de 5 minutes',
-    'trophy.early_bird.name': 'Lève-tôt du soir',
-    'trophy.early_bird.hint': 'Termine ta routine avant 20h',
+    'trophy.early_bird.name': 'Lève-tôt',
+    'trophy.early_bird.hint': 'Termine l\'étape Matin avant 8 h',
 
     // Parent PIN pad
     'pin.title': 'Accès Parent',
-    'pin.instruction': 'Saisir le code ou maintenir le bouton rouage 3 secondes',
+    'pin.instruction': 'Saisis le code parent',
     'pin.error': 'Code incorrect !',
     'pin.clear': 'Effacer',
+    'pin.backspace': 'Effacer le dernier chiffre',
+    'pin.forgot': 'Code oublié ?',
+    'pin.challenge': 'Question pour un adulte : combien font',
+    'pin.challenge_answer': 'Réponse',
+    'pin.challenge_ok': 'Valider',
+    'pin.challenge_wrong': 'Mauvaise réponse, voici une autre question.',
+    'pin.back_to_pin': 'Revenir au code',
+    'pin.locked': 'Trop d\'essais. Réessaie dans {s} s.',
 
     // Parent Mode Navigation
     'parent.title': 'Tableau de bord Parent',
@@ -285,6 +321,10 @@ export const translations = {
     // Parent - Settings Panel
     'parent.settings.title': 'Paramètres de l\'application',
     'parent.settings.pin_label': 'Code PIN Parent',
+    'parent.settings.pin_invalid': 'Le code doit faire 4 chiffres.',
+    'parent.default_pin_warning': 'Le code parent est encore 1234 : choisis ton propre code pour que les enfants ne puissent pas entrer.',
+    'parent.default_pin_action': 'Changer le code',
+    'parent.subtitle': 'Réglages de la famille',
     'parent.settings.language': 'Langue',
     'parent.settings.stars_per_completion': 'Étoiles par routine finie',
     'parent.settings.weekly_goal': 'Objectif hebdomadaire (étoiles)',
@@ -372,9 +412,37 @@ export const translations = {
     'task.clear_plate': 'Clear your plate',
 
     // Routine phases
-    'home.tonight': 'Tonight',
+    'home.tonight': 'Today',
+    'home.greeting.morning': 'Good morning! Who is getting ready? 🌟',
+    'home.greeting.afternoon': 'Good afternoon! Who is getting ready? 🌟',
+    'home.greeting.evening': 'Good evening! Who is getting ready? 🌟',
+    'home.footer': 'Kidu, the routine companion',
+    'app.loading': 'Loading…',
+    'board.one_star_left': 'Just one more star to win a medal!',
+    'board.next_phase_spoken': 'Well done {name}! Now: {phase}!',
+    'board.day_done_spoken': 'Congratulations {name}! You finished your day!',
+    'board.day_done_spoken_night': 'Congratulations {name}! You finished your day. Good night!',
+    'board.reset': 'Restart the routine',
+    'board.reset_confirm': 'Sure?',
+    'celebration.day_done': 'Great job {name}! You finished your whole day!',
+    'celebration.song': 'The bedtime song',
+    'celebration.tap': 'Tap the screen to continue',
+    'reveal.new_medal_spoken': 'Well done {name}! You won a medal!',
+    'reveal.new_trophy_spoken': 'New trophy: {trophy}!',
+    'badge.choose_spoken': '{name}, pick your badge!',
+    'badge.chosen_spoken': 'Great choice! {badge}!',
+    'piggy.bought_spoken': 'Hooray! {item}!',
+    'emoji.title': 'Choose an emoji',
+    'emoji.search': 'Search…',
+    'emoji.none': 'No emoji found',
+    'parent.profiles.years': 'years old',
+    'parent.tasks.drag': 'Move the task',
+    'parent.settings.saved': 'Settings saved!',
+    'parent.danger.title': 'Danger zone',
+    'parent.danger.confirm': 'Confirm deletion',
+    'list.and': 'and',
     'home.next_deadlines': 'Coming up',
-    'home.no_deadline': 'Nothing scheduled anymore tonight.',
+    'home.no_deadline': 'Nothing scheduled anymore today.',
     'home.reminders_off': 'Reminders off',
     'home.all_done': 'Everyone is done, good night! 🌙',
     'home.not_started': 'Not started yet',
@@ -388,7 +456,7 @@ export const translations = {
     'home.starts_at': 'Starts at',
     'home.medal_in': 'Medal in',
     'home.badge_to_choose': 'Badge to pick!',
-    'home.streak': 'evenings in a row',
+    'home.streak': 'days in a row',
     'home.piggy': 'Badges in the piggy bank',
     'category.morning': 'Morning',
     'category.after_school': 'After school',
@@ -418,20 +486,20 @@ export const translations = {
     'badges.choose': 'Pick your badge!',
     'badges.choose_hint': 'It goes into your piggy bank',
     'badges.waiting': 'badges to pick',
-    'cards.banner_yellow': 'Yellow card tonight',
-    'cards.banner_red': 'Red card tonight',
+    'cards.banner_yellow': 'Yellow card today',
+    'cards.banner_red': 'Red card today',
     'cards.reset_short': 'stars back to zero',
-    'cards.reminder_title_yellow': 'Reminder: yellow card tonight',
-    'cards.reminder_title_red': 'Reminder: red card tonight',
-    'cards.spoken_reminder_yellow': '{name}, reminder: you got a yellow card tonight.',
-    'cards.spoken_reminder_red': '{name}, reminder: you got a red card tonight.',
+    'cards.reminder_title_yellow': 'Reminder: yellow card today',
+    'cards.reminder_title_red': 'Reminder: red card today',
+    'cards.spoken_reminder_yellow': '{name}, reminder: you got a yellow card today.',
+    'cards.spoken_reminder_red': '{name}, reminder: you got a red card today.',
     'cards.give': 'Give a card',
     'cards.give_to': 'Card for',
     'cards.yellow': 'Yellow card',
     'cards.red': 'Red card',
     'cards.yellow_hint': 'A warning, no consequence',
     'cards.red_hint': 'Stars toward the next medal go back to zero',
-    'cards.second_yellow_warning': 'Already one yellow card tonight: a 2nd yellow becomes a red card.',
+    'cards.second_yellow_warning': 'Already one yellow card today: a 2nd yellow becomes a red card.',
     'cards.reason': 'Reason (optional)',
     'cards.reason_placeholder': 'Other reason…',
     'cards.validate': 'Confirm with the parent PIN',
@@ -440,7 +508,7 @@ export const translations = {
     'cards.lost_progress': 'Progress toward the medal goes back to zero',
     'cards.kept': 'Your medals and badges stay yours.',
     'cards.warning': 'Careful, this is a warning.',
-    'cards.tonight': 'Cards tonight',
+    'cards.tonight': 'Today\'s cards',
     'cards.history': 'Cards',
     'cards.history_empty': 'No card so far. 👏',
     'cards.withdraw': 'Withdraw this card',
@@ -548,9 +616,9 @@ export const translations = {
     'trophy.first_routine.name': 'First routine',
     'trophy.first_routine.hint': 'Finish your whole routine for the first time',
     'trophy.streak_3.name': 'On fire',
-    'trophy.streak_3.hint': 'Finish your routine 3 evenings in a row',
+    'trophy.streak_3.hint': 'Finish your routine 3 days in a row',
     'trophy.streak_7.name': 'Rainbow week',
-    'trophy.streak_7.hint': 'Finish your routine 7 evenings in a row',
+    'trophy.streak_7.hint': 'Finish your routine 7 days in a row',
     'trophy.routines_10.name': 'Champion',
     'trophy.routines_10.hint': 'Finish 10 routines',
     'trophy.routines_30.name': 'Superhero',
@@ -566,13 +634,21 @@ export const translations = {
     'trophy.lightning.name': 'Lightning',
     'trophy.lightning.hint': 'Finish 3 tasks in under 5 minutes',
     'trophy.early_bird.name': 'Early bird',
-    'trophy.early_bird.hint': 'Finish your routine before 8 pm',
+    'trophy.early_bird.hint': 'Finish the Morning step before 8 am',
 
     // Parent PIN pad
     'pin.title': 'Parent Access',
-    'pin.instruction': 'Enter PIN or hold the gear button for 3 seconds',
+    'pin.instruction': 'Enter the parent PIN',
     'pin.error': 'Incorrect PIN!',
     'pin.clear': 'Clear',
+    'pin.backspace': 'Delete last digit',
+    'pin.forgot': 'Forgot the PIN?',
+    'pin.challenge': 'Grown-up question: what is',
+    'pin.challenge_answer': 'Answer',
+    'pin.challenge_ok': 'Confirm',
+    'pin.challenge_wrong': 'Wrong answer, here is another one.',
+    'pin.back_to_pin': 'Back to the PIN',
+    'pin.locked': 'Too many attempts. Try again in {s} s.',
 
     // Parent Mode Navigation
     'parent.title': 'Parent Dashboard',
@@ -609,6 +685,10 @@ export const translations = {
     // Parent - Settings Panel
     'parent.settings.title': 'App Settings',
     'parent.settings.pin_label': 'Parent PIN Code',
+    'parent.settings.pin_invalid': 'The PIN must be 4 digits.',
+    'parent.default_pin_warning': 'The parent PIN is still 1234: choose your own so children can\'t get in.',
+    'parent.default_pin_action': 'Change the PIN',
+    'parent.subtitle': 'Family settings',
     'parent.settings.language': 'Language',
     'parent.settings.stars_per_completion': 'Stars per completed routine',
     'parent.settings.weekly_goal': 'Weekly star goal',
@@ -653,12 +733,26 @@ export const translations = {
 
 export type TranslationKey = keyof typeof translations['fr'];
 
-/**
- * Returns localized string for a key based on the settings language.
- */
-export function translate(key: string, lang: Language): string {
+/** Values for `{placeholder}`s in a translation, e.g. `{ name: 'Léo' }`. */
+export type TranslationVars = Record<string, string | number>;
+
+function lookup(key: string, lang: Language, vars?: TranslationVars): string {
   const dict: Record<string, string> = translations[lang] || translations['fr'];
-  return dict[key] || key;
+  const text = dict[key] ?? key;
+  return vars ? text.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match)) : text;
+}
+
+/**
+ * Localized string for a key. Keys are type-checked, so a typo doesn't compile;
+ * use `translateDynamic` for keys built at runtime.
+ */
+export function translate(key: TranslationKey, lang: Language, vars?: TranslationVars): string {
+  return lookup(key, lang, vars);
+}
+
+/** Same as `translate` for keys built at runtime (`category.${c}`, `trophy.${id}.name`…). Falls back to the key. */
+export function translateDynamic(key: string, lang: Language, vars?: TranslationVars): string {
+  return lookup(key, lang, vars);
 }
 
 /**
@@ -666,5 +760,5 @@ export function translate(key: string, lang: Language): string {
  */
 export function taskLabel(definition: { labelKey?: string; defaultLabel: string } | undefined, lang: Language): string {
   if (!definition) return '';
-  return definition.labelKey ? translate(definition.labelKey, lang) : definition.defaultLabel;
+  return definition.labelKey ? translateDynamic(definition.labelKey, lang) : definition.defaultLabel;
 }

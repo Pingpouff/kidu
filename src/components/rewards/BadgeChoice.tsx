@@ -54,7 +54,7 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
   useEffect(() => {
     setChosen(null);
     reminderService.triggerVoiceReminder(
-      language === 'fr' ? `${childName}, choisis ton badge !` : `${childName}, pick your badge!`,
+      translate('badge.choose_spoken', language, { name: childName }),
       language === 'fr' ? 'fr-FR' : 'en-US'
     );
   }, [offerKey, childName, language]);
@@ -66,7 +66,7 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
     const badge = getBadge(badgeId);
     if (badge) {
       reminderService.triggerVoiceReminder(
-        language === 'fr' ? `Super choix ! ${badge.name.fr} !` : `Great choice! ${badge.name.en}!`,
+        translate('badge.chosen_spoken', language, { badge: badge.name[language] }),
         language === 'fr' ? 'fr-FR' : 'en-US'
       );
     }

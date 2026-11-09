@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
 import { getRoutinePhases, getCurrentPhaseIndex } from '../../domain/routine';
-import { translate, Language } from '../../i18n/dictionary';
+import { translate, translateDynamic, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
@@ -263,7 +263,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
       (t) => t.status === 'done' && session.tasks.find((old) => old.id === t.id)?.status !== 'done'
     );
     if (newlyDone) {
-      const cheer = translate(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
+      const cheer = translateDynamic(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
       setCelebration({ taskId: newlyDone.id, cheer, key: Date.now() });
       if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
       celebrationTimer.current = setTimeout(() => setCelebration(null), 1300);
@@ -291,7 +291,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         setNearMedalHint(oneLeft);
         if (oneLeft) {
           reminderService.triggerVoiceReminder(
-            language === 'fr' ? 'Plus qu\'une étoile pour gagner une médaille !' : 'Just one more star to win a medal!',
+            translate('board.one_star_left', language),
             language === 'fr' ? 'fr-FR' : 'en-US'
           );
         } else if (progress < starsPerMedal && !isCompleted) {
@@ -310,9 +310,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
       reminderService.playPhaseCompleteSound();
       const nextLabel = translate(`category.${upcoming.category}`, language);
       reminderService.triggerVoiceReminder(
-        language === 'fr'
-          ? `Bravo ${profile.name} ! Maintenant : ${nextLabel} !`
-          : `Well done ${profile.name}! Now: ${nextLabel}!`,
+        translate('board.next_phase_spoken', language, { name: profile.name, phase: nextLabel }),
         language === 'fr' ? 'fr-FR' : 'en-US'
       );
       setPhaseBanner(justCompletedPhase.category);
@@ -324,10 +322,11 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     if (isCompleted && !wasCompleted) {
       reminderService.playRoutineSuccessSound();
       
-      // Localized voice prompt praise
-      const speechMsg = language === 'fr' 
-        ? `Félicitations ${profile.name} ! Tu as terminé ta routine du soir. Bonne nuit !`
-        : `Congratulations ${profile.name}! You finished your evening routine. Good night!`;
+      // Localized voice praise; "good night" only when the day ends with bedtime
+      const endsWithBedtime = phases[phases.length - 1]?.category === 'bedtime';
+      const speechMsg = translate(endsWithBedtime ? 'board.day_done_spoken_night' : 'board.day_done_spoken', language, {
+        name: profile.name,
+      });
       reminderService.triggerVoiceReminder(speechMsg, language === 'fr' ? 'fr-FR' : 'en-US');
 
       // Trigger celebration view
@@ -513,7 +512,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </button>
             <button
               onClick={handleResetClick}
-              aria-label="reset routine"
+              aria-label={translate('board.reset', language)}
               className={`flex items-center gap-2 px-3 py-2 border rounded-full transition-all duration-300 active:scale-95 text-xs font-bold ${
                 confirmReset
                   ? 'bg-amber-600/30 border-amber-500/50 text-amber-200 hover:bg-amber-600/40 animate-pulse'
@@ -522,7 +521,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             >
               <RotateCcw className="w-4 h-4" />
               {confirmReset && (
-                <span>{language === 'fr' ? 'Sûr ?' : 'Sure?'}</span>
+                <span>{translate('board.reset_confirm', language)}</span>
               )}
             </button>
 
