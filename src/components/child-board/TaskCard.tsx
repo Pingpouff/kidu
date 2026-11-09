@@ -8,13 +8,45 @@ interface TaskCardProps {
   definition: TaskDefinition;
   language: Language;
   onTap: (task: RoutineTask) => void;
+  /** Set right after the task is completed: plays the burst + cheer animation */
+  celebration?: { cheer: string; key: number };
 }
+
+const PARTICLES = ['⭐', '✨', '🌟', '💫', '⭐', '✨', '🌟', '💫'];
+
+/* Stars flying out of the card, with a floating cheer word */
+const CompletionBurst: React.FC<{ cheer: string }> = ({ cheer }) => (
+  <div className="absolute inset-0 pointer-events-none z-30" aria-hidden="true">
+    {PARTICLES.map((emoji, i) => {
+      const angle = (i / PARTICLES.length) * 2 * Math.PI;
+      const distance = 70 + (i % 2) * 30;
+      return (
+        <span
+          key={i}
+          className="particle text-xl md:text-2xl"
+          style={{
+            '--dx': `${Math.round(Math.cos(angle) * distance)}px`,
+            '--dy': `${Math.round(Math.sin(angle) * distance)}px`,
+            '--rot': `${i % 2 ? 180 : -180}deg`,
+            animationDelay: `${(i % 3) * 40}ms`,
+          } as React.CSSProperties}
+        >
+          {emoji}
+        </span>
+      );
+    })}
+    <span className="cheer text-lg md:text-2xl font-black text-yellow-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+      {cheer}
+    </span>
+  </div>
+);
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   definition,
   language,
   onTap,
+  celebration,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -79,10 +111,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
         )}
 
+        {celebration && <CompletionBurst key={celebration.key} cheer={celebration.cheer} />}
+
         {/* Massive emoji icon */}
         <span
+          key={celebration?.key}
           style={emojiStyle}
-          className="drop-shadow select-none group-hover:scale-110 transition-transform duration-200"
+          className={`${celebration ? 'animate-task-pop inline-block' : ''} drop-shadow select-none group-hover:scale-110 transition-transform duration-200`}
         >
           {definition?.icon || '⭐'}
         </span>

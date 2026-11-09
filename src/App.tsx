@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedDatabase, saveSettings } from './persistence/db';
 import { routineRepository } from './persistence/routineRepository';
-import { ChildProfile, TaskDefinition, ParentSettings, RoutineSession } from './domain/models';
+import { ChildProfile, TaskDefinition, ParentSettings, RoutineSession, ShopItem } from './domain/models';
 import { ProfileSelector } from './components/child-board/ProfileSelector';
 import { RoutineBoard } from './components/child-board/RoutineBoard';
 import { Celebration } from './components/rewards/Celebration';
@@ -10,6 +10,16 @@ import { PinModal } from './components/parent-mode/PinModal';
 import { Dashboard as ParentDashboard } from './components/parent-mode/Dashboard';
 import { reminderService } from './services/ReminderService';
 import { backupFileName, parseBackup } from './domain/backup';
+import { TrophyId, TROPHY_ICONS } from './domain/trophies';
+import { shopItems, starsPerMedal } from './domain/rewards';
+import { translate } from './i18n/dictionary';
+import { RewardReveal } from './components/rewards/RewardReveal';
+import { BadgeChoice } from './components/rewards/BadgeChoice';
+
+/** Rewards waiting to be revealed, one full-screen reveal at a time */
+type Reveal =
+  | { kind: 'medal'; childId: string; key: string }
+  | { kind: 'trophy'; childId: string; id: TrophyId; key: string };
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
@@ -17,6 +27,8 @@ export default function App() {
   const [parentMode, setParentMode] = useState(false);
   const [pinPrompt, setPinPrompt] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
+  const [reveals, setReveals] = useState<Reveal[]>([]);
+  const [revealsShown, setRevealsShown] = useState(0); // in the current batch
 
   // Seed DB on mount
   useEffect(() => {
@@ -28,6 +40,13 @@ export default function App() {
   const tasks = useLiveQuery(() => db.tasks.toArray());
   const history = useLiveQuery(() => db.history.toArray());
   const settings = useLiveQuery(() => db.settings.get('current'));
+
+  // Apply the parent's sound / voice / song / animation preferences
+  const feedback = settings?.feedback;
+  useEffect(() => {
+    reminderService.configure(feedback);
+    document.documentElement.classList.toggle('reduce-motion', feedback?.animations === 'reduced');
+  }, [feedback]);
 
   // Get current date string (YYYY-MM-DD local timezone)
   const getTodayStr = () => {
@@ -76,17 +95,37 @@ export default function App() {
 
   // Handle active session updates
   const handleUpdateSession = async (updatedSession: RoutineSession) => {
-    await routineRepository.saveActiveSession(updatedSession);
-    
-    // Check if session has been completed to record history & award stars
+    const childId = updatedSession.childId;
+    // One star per newly completed task, a medal every N stars
+    const { medalsGained } = await routineRepository.saveSessionWithRewards(updatedSession);
+
     if (updatedSession.isCompleted) {
-      await routineRepository.recordHistoryAndAwardStars(
-        updatedSession,
-        activeProfile?.name || '',
-        settings.rewards.starsPerCompletion
-      );
+      await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
+    }
+
+    const newTrophies = await routineRepository.awardNewTrophies(childId);
+
+    const queued: Reveal[] = [
+      ...Array.from({ length: medalsGained }, (_, i): Reveal => ({ kind: 'medal', childId, key: `medal_${Date.now()}_${i}` })),
+      ...newTrophies.map((id): Reveal => ({ kind: 'trophy', childId, id, key: `trophy_${id}` })),
+    ];
+    if (queued.length > 0) {
+      setReveals((current) => [...current, ...queued]);
     }
   };
+
+  const currentReveal = reveals[0];
+  const revealChild = currentReveal ? profiles.find((p) => p.id === currentReveal.childId) : undefined;
+  const revealTotal = revealsShown + reveals.length;
+  const revealPosition = revealTotal > 1 ? `${revealsShown + 1}/${revealTotal}` : undefined;
+  const dismissReveal = () => {
+    setRevealsShown((n) => (reveals.length <= 1 ? 0 : n + 1));
+    setReveals((queue) => queue.slice(1));
+  };
+  // Once the reveals are over, the child picks a badge for each pending medal
+  const pendingOffers = activeProfile?.badgeOffers ?? [];
+  const showBadgeChoice = !currentReveal && activeProfile !== null && pendingOffers.length > 0;
+  const starsTonight = activeSession?.tasks.filter((t) => t.rewarded).length ?? 0;
 
   // Reset active session callback
   const handleResetSession = async () => {
@@ -149,6 +188,10 @@ export default function App() {
     await saveSettings(updatedSettings);
   };
 
+  const handleSaveShop = async (shop: ShopItem[]) => {
+    await saveSettings({ ...settings, shop });
+  };
+
   const handleResetAllData = async () => {
     await routineRepository.clearAllData();
   };
@@ -197,6 +240,7 @@ export default function App() {
         onResetAllData={handleResetAllData}
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
+        onSaveShop={handleSaveShop}
       />
     );
   }
@@ -208,10 +252,55 @@ export default function App() {
         <Celebration
           profile={activeProfile}
           language={activeLang}
-          starsEarned={settings.rewards.starsPerCompletion}
+          starsEarned={starsTonight}
           onDismiss={() => {
             setCelebrationActive(false);
             setActiveProfileId(null); // return to select child screen
+          }}
+        />
+      )}
+
+      {/* Medal / trophy reveal, above the routine celebration */}
+      {currentReveal && (
+        <RewardReveal
+          key={currentReveal.key}
+          icon={currentReveal.kind === 'medal' ? '🏅' : TROPHY_ICONS[currentReveal.id]}
+          heading={translate(currentReveal.kind === 'medal' ? 'medal.new' : 'trophies.new', activeLang)}
+          title={
+            currentReveal.kind === 'medal'
+              ? translate('medal.title', activeLang)
+              : translate(`trophy.${currentReveal.id}.name`, activeLang)
+          }
+          subtitle={
+            currentReveal.kind === 'medal'
+              ? translate('medal.subtitle', activeLang)
+              : translate(`trophy.${currentReveal.id}.hint`, activeLang)
+          }
+          spoken={
+            currentReveal.kind === 'medal'
+              ? activeLang === 'fr'
+                ? `Bravo ${revealChild?.name ?? ''} ! Tu as gagné une médaille !`
+                : `Well done ${revealChild?.name ?? ''}! You won a medal!`
+              : activeLang === 'fr'
+                ? `Nouveau trophée : ${translate(`trophy.${currentReveal.id}.name`, activeLang)} !`
+                : `New trophy: ${translate(`trophy.${currentReveal.id}.name`, activeLang)}!`
+          }
+          language={activeLang}
+          position={revealPosition}
+          onDismiss={dismissReveal}
+        />
+      )}
+
+      {/* Badge choice for each medal waiting */}
+      {showBadgeChoice && activeProfile && (
+        <BadgeChoice
+          key={pendingOffers[0].join('|')}
+          childName={activeProfile.name}
+          offer={pendingOffers[0]}
+          pendingCount={pendingOffers.length}
+          language={activeLang}
+          onChoose={async (badgeId) => {
+            await routineRepository.chooseBadge(activeProfile.id, badgeId);
           }}
         />
       )}
@@ -241,6 +330,12 @@ export default function App() {
           onEnterParentMode={() => setPinPrompt(true)}
           onRoutineComplete={() => setCelebrationActive(true)}
           onResetSession={handleResetSession}
+          starsPerMedal={starsPerMedal(settings)}
+          shop={shopItems(settings)}
+          parentPin={settings.parentPin}
+          onBuyShopItem={async (itemId) => {
+            await routineRepository.buyShopItem(activeProfile.id, itemId);
+          }}
         />
       ) : (
         <ProfileSelector

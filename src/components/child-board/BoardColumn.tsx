@@ -61,6 +61,7 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
   return (
     <div
       ref={setNodeRef}
+      data-column={id}
       className={`flex-1 flex flex-col min-w-[200px] h-full rounded-3xl border bg-black/20 ${overlayClass} ${theme.glow} transition-all duration-300`}
     >
       {/* Column Header */}

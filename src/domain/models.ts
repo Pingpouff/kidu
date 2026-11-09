@@ -1,3 +1,5 @@
+import type { EarnedTrophy } from './trophies';
+
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
 export interface ChildProfile {
@@ -6,7 +8,34 @@ export interface ChildProfile {
   avatar: string; // Emoji character or icon name, e.g. "🦊", "🐼", "🦁"
   color: 'indigo' | 'purple' | 'rose' | 'emerald' | 'amber'; // Custom themes
   age?: number;
-  stars: number; // Cumulative star balance
+  stars: number; // Total stars ever earned (one per completed task)
+  starProgress?: number; // Stars collected toward the next medal (0 .. starsPerMedal - 1)
+  medalCount?: number; // Total medals ever earned
+  badgeOffers?: string[][]; // Medals waiting for the child to pick a badge (3 badge ids each)
+  badges?: OwnedBadge[]; // Piggy bank + album
+  trophies?: EarnedTrophy[]; // Unlocked trophies, never removed
+}
+
+/**
+ * A badge won by a child. Unspent badges are in the piggy bank;
+ * spent ones stay in the album as a souvenir.
+ */
+export interface OwnedBadge {
+  uid: string;
+  badgeId: string; // see domain/badges.ts
+  earnedAt: number;
+  spentAt?: number;
+  spentOn?: string; // Label of the shop reward it was exchanged for
+}
+
+/**
+ * A real-life reward defined by the parent, bought with badges.
+ */
+export interface ShopItem {
+  id: string;
+  label: string;
+  icon: string;
+  cost: number; // in badges
 }
 
 /**
@@ -36,6 +65,7 @@ export interface RoutineTask {
   definitionId: string;
   status: TaskStatus;
   completedAt?: number; // Epoch timestamp
+  rewarded?: boolean; // Star already given for this task today (no farming by undo/redo)
 }
 
 export interface RoutineSession {
@@ -59,13 +89,35 @@ export interface HistoryEntry {
 }
 
 export interface RewardSettings {
-  starsPerCompletion: number; // e.g. 1
-  weeklyGoal: number; // e.g. 5 stars
+  starsPerCompletion: number; // Legacy (stars used to be given per routine), unused
+  weeklyGoal: number; // Legacy, unused
+  starsPerMedal?: number; // Stars needed for a medal, default 3
 }
+
+/**
+ * What the app is allowed to play/show; parents can tone it down.
+ */
+export interface FeedbackSettings {
+  sounds: boolean; // Short chimes and jingles
+  voice: boolean; // Spoken encouragements and announcements
+  songs: boolean; // Longer songs (bedtime song)
+  volume: number; // 0 .. 1
+  animations: 'full' | 'reduced'; // reduced: no confetti, particles or spinning rays
+}
+
+export const DEFAULT_FEEDBACK: FeedbackSettings = {
+  sounds: true,
+  voice: true,
+  songs: true,
+  volume: 0.7,
+  animations: 'full',
+};
 
 export interface ParentSettings {
   id?: 'current';
   parentPin: string; // 4-digit code, default "1234"
   language: 'fr' | 'en';
   rewards: RewardSettings;
+  feedback?: FeedbackSettings; // default: DEFAULT_FEEDBACK
+  shop?: ShopItem[]; // Real-life rewards bought with badges
 }
