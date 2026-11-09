@@ -190,7 +190,7 @@ Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: Behavior
 - A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
 - `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
 - Parent Mode → History lists recent cards (`CardHistory`); `withdrawCard` removes a card given by mistake (with the red it triggered) and gives the stars back, up to just below a medal.
-- The selection screen shows tonight's cards on each child's card (`ChildSummary.cards`).
+- **Visible all evening** (`tonightCardState(profile, date)`: level `none`/`yellow`/`red`, counts, last reason, stars lost): a colored frame around the board (`card-frame-*`), a `CardBanner` under the step indicator (tap → `CardReveal` again), a red card stuck on the star counter with "stars back to zero" after a red, and `CardReveal mode="reminder"` (no whistle, short voice, closes after 5 s) every time the board opens. On the selection screen, the card is stuck on the child's avatar, the child card gets a yellow/red ring and shows the reason (`ChildSummary.cards`). Everything disappears the next evening.
 
 ## Reminders
 

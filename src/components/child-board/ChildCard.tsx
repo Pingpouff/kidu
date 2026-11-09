@@ -4,6 +4,7 @@ import { ChildSummary } from '../../domain/summary';
 import { translate, Language } from '../../i18n/dictionary';
 import { childTheme } from '../../ui/theme';
 import { Pill } from '../../ui/Pill';
+import { cx } from '../../ui/cx';
 import { ChildAvatar } from '../common/ChildAvatar';
 
 /**
@@ -22,6 +23,7 @@ export interface ChildCardProps {
 
 export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCount, language, label, formatTime, onSelect }) => {
   const theme = childTheme(profile.color).card;
+  const cardLevel = summary?.cards.level ?? 'none';
   const percent = summary && summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
   const isDone = summary?.status === 'completed';
   const sep = language === 'fr' ? ' :' : ':';
@@ -48,7 +50,13 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
     <button
       onClick={onSelect}
       data-testid={`child-card-${profile.id}`}
-      className={`relative w-full sm:w-[22rem] rounded-3xl border bg-gradient-to-b ${theme} backdrop-blur-md shadow-xl flex flex-col p-5 gap-3 text-left transform active:scale-95 transition-all duration-300 group`}
+      data-card-level={cardLevel}
+      className={cx(
+        'relative w-full sm:w-[22rem] rounded-3xl border bg-gradient-to-b backdrop-blur-md shadow-xl flex flex-col p-5 gap-3 text-left transform active:scale-95 transition-all duration-300 group',
+        theme,
+        cardLevel === 'yellow' && 'ring-4 ring-yellow-400 shadow-yellow-500/30',
+        cardLevel === 'red' && 'ring-4 ring-red-500 shadow-red-500/40'
+      )}
     >
       {/* Late tasks badge */}
       {lateCount > 0 && (
@@ -62,7 +70,25 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
 
       {/* Avatar, name, stars */}
       <div className="flex items-center gap-4">
-        <ChildAvatar avatar={profile.avatar} className="group-hover:scale-110 transition-transform duration-300" />
+        <div className="relative shrink-0">
+          <ChildAvatar avatar={profile.avatar} className="group-hover:scale-110 transition-transform duration-300" />
+          {/* Tonight's card, stuck on the avatar */}
+          {summary && cardLevel !== 'none' && (
+            <span
+              data-testid="home-card"
+              data-level={cardLevel}
+              data-yellow={summary.cards.yellow}
+              data-red={summary.cards.red}
+              title={translate('cards.tonight', language)}
+              className="absolute -bottom-1 -right-2 flex items-end"
+            >
+              <span className={cx('referee-card size-md rotate-12 animate-card-sticker ring-2 ring-white/70', cardLevel === 'red' ? 'is-red' : 'is-yellow')} />
+              {cardLevel === 'yellow' && summary.cards.yellow > 1 && (
+                <span className="ml-0.5 text-xs font-black text-yellow-300 drop-shadow">×{summary.cards.yellow}</span>
+              )}
+            </span>
+          )}
+        </div>
         <div className="flex flex-col gap-1 min-w-0">
           <span className="text-2xl md:text-3xl font-extrabold tracking-wide drop-shadow text-white group-hover:text-yellow-200 transition-colors duration-300 truncate">
             {profile.name}
@@ -84,6 +110,19 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
 
       {summary && (
         <>
+          {cardLevel !== 'none' && (
+            <p
+              data-testid="home-card-reason"
+              className={cx(
+                'px-3 py-1.5 rounded-xl text-sm font-black truncate',
+                cardLevel === 'red' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-yellow-950'
+              )}
+            >
+              {cardLevel === 'red' ? '🟥' : '🟨'} {translate(cardLevel === 'red' ? 'cards.banner_red' : 'cards.banner_yellow', language)}
+              {summary.cards.lastReason && ` · ${summary.cards.lastReason}`}
+            </p>
+          )}
+
           {/* Progress */}
           <div className="flex flex-col gap-1.5" data-testid="home-progress">
             <div className="flex items-center justify-between gap-2 text-sm font-bold">
@@ -143,16 +182,6 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
             {summary.piggyBadges > 0 && (
               <Pill className="text-pink-200" title={translate('home.piggy', language)}>
                 🐷 {summary.piggyBadges}
-              </Pill>
-            )}
-            {summary.cards.yellow > 0 && (
-              <Pill className="bg-yellow-400/90 text-yellow-950" data-testid="home-card-yellow" title={translate('cards.tonight', language)}>
-                🟨 {summary.cards.yellow}
-              </Pill>
-            )}
-            {summary.cards.red > 0 && (
-              <Pill className="bg-red-500/90 text-white" data-testid="home-card-red" title={translate('cards.tonight', language)}>
-                🟥 {summary.cards.red}
               </Pill>
             )}
             {summary.pendingBadgeChoices > 0 && (

@@ -9,7 +9,7 @@ import { PinModal } from '../parent-mode/PinModal';
 
 interface CardGiverProps {
   profile: ChildProfile;
-  tonight: CardsTonight;
+  tonight: Pick<CardsTonight, 'yellow' | 'red'>;
   parentPin: string;
   language: Language;
   onGive: (color: CardColor, reason?: string) => void;
