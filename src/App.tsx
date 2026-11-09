@@ -41,6 +41,7 @@ export default function App() {
   const profiles = useLiveQuery(() => db.profiles.toArray());
   const tasks = useLiveQuery(() => db.tasks.toArray());
   const history = useLiveQuery(() => db.history.toArray());
+  const allSessions = useLiveQuery(() => db.sessions.toArray());
   const settings = useLiveQuery(() => db.settings.get('current'));
 
   // Apply the parent's sound / voice / song / animation preferences
@@ -189,7 +190,8 @@ export default function App() {
   };
 
   const handleDeleteProfile = async (id: string) => {
-    await db.profiles.delete(id);
+    await routineRepository.deleteProfile(id);
+    await routineRepository.syncAllActiveSessionsForToday(todayStr);
     if (activeProfileId === id) {
       setActiveProfileId(null);
     }
@@ -373,6 +375,10 @@ export default function App() {
           onEnterParentMode={() => setPinPrompt(true)}
           language={activeLang}
           lateCounts={lateCounts}
+          tasks={tasks}
+          sessions={allSessions ?? []}
+          settings={settings}
+          today={todayStr}
         />
       )}
     </>

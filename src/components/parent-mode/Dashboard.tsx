@@ -135,6 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {activeTab === 'tasks' && (
               <TaskManager
                 tasks={tasks}
+                profiles={profiles}
                 language={language}
                 onAddTask={onAddTask}
                 onUpdateTask={onUpdateTask}

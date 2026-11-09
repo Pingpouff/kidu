@@ -7,6 +7,7 @@ import { TROPHY_IDS, TROPHY_ICONS } from '../../domain/trophies';
 import { translate, Language } from '../../i18n/dictionary';
 import { PinModal } from '../parent-mode/PinModal';
 import { BadgeDisc } from './BadgeChoice';
+import { TreasureView } from './TreasureView';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti } from '../../services/effects';
 
@@ -36,6 +37,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
   const [tab, setTab] = useState<Tab>('bank');
   const [buying, setBuying] = useState<ShopItem | null>(null);
   const [bought, setBought] = useState<ShopItem | null>(null);
+  const [showTreasure, setShowTreasure] = useState(false);
 
   const available = unspentBadges(profile);
   const allBadges = [...(profile.badges ?? [])].sort((a, b) => b.earnedAt - a.earnedAt);
@@ -85,6 +87,17 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
           <span className="text-4xl animate-wiggle inline-block">🐷</span>
           <span>{translate('piggy.title', language)} {profile.name}</span>
         </h2>
+
+        <button
+          onClick={() => setShowTreasure(true)}
+          data-testid="open-treasure"
+          className="group relative overflow-hidden flex items-center justify-center gap-3 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-950 font-black text-xl md:text-2xl shadow-lg shadow-amber-500/30 active:scale-95 transition-transform"
+        >
+          <span className="text-3xl group-hover:animate-wiggle inline-block">💎</span>
+          {translate('treasure.open', language)}
+          <span className="text-3xl group-hover:animate-wiggle inline-block">✨</span>
+          <span className="treasure-shine" aria-hidden="true" />
+        </button>
 
         <div className="flex gap-2 flex-wrap" role="tablist">
           {tabs.map((t) => (
@@ -227,6 +240,8 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
           </div>
         )}
       </div>
+
+      {showTreasure && <TreasureView profile={profile} language={language} onClose={() => setShowTreasure(false)} />}
 
       {buying && (
         <div onClick={(e) => e.stopPropagation()}>

@@ -28,7 +28,8 @@ export const defaultTasks: TaskDefinition[] = [
   // After school
   { id: 'unpack_bag', labelKey: 'task.unpack_bag', defaultLabel: 'Empty school bag', icon: '🎒', order: 1, category: 'after_school' },
   { id: 'snack', labelKey: 'task.snack', defaultLabel: 'Afternoon snack', icon: '🍎', order: 2, category: 'after_school' },
-  { id: 'homework', labelKey: 'task.homework', defaultLabel: 'Homework', icon: '✏️', order: 3, category: 'after_school' },
+  // Example of a personal task: only Léo (5) has homework, not Emma (3)
+  { id: 'homework', labelKey: 'task.homework', defaultLabel: 'Homework', icon: '✏️', order: 3, category: 'after_school', assignedTo: ['leo'] },
   { id: 'bath', labelKey: 'task.bath', defaultLabel: 'Take a bath', icon: '🛁', order: 4, category: 'after_school' },
   // Meal
   { id: 'wash_hands', labelKey: 'task.wash_hands', defaultLabel: 'Wash hands', icon: '🧼', order: 5, category: 'meal' },
