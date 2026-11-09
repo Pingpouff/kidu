@@ -10,6 +10,7 @@ import { BadgeDisc } from './BadgeChoice';
 import { TreasureView } from './TreasureView';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti } from '../../services/effects';
+import { CONFETTI_Z } from '../../ui/layers';
 
 interface PiggyBankProps {
   profile: ChildProfile;
@@ -56,7 +57,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
       language === 'fr' ? `Youpi ! ${item.label} !` : `Hooray! ${item.label}!`,
       language === 'fr' ? 'fr-FR' : 'en-US'
     );
-    fireConfetti({ particleCount: 90, spread: 110, origin: { x: 0.5, y: 0.5 }, zIndex: 120 });
+    fireConfetti({ particleCount: 90, spread: 110, origin: { x: 0.5, y: 0.5 }, zIndex: CONFETTI_Z.overlay });
     setTimeout(() => setBought(null), 2500);
   };
 
@@ -67,7 +68,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-overlay flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-label={translate('piggy.title', language)}

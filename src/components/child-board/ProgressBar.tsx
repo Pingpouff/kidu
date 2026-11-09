@@ -1,9 +1,10 @@
 import React from 'react';
+import { childTheme, ChildColor } from '../../ui/theme';
 
 interface ProgressBarProps {
   progress: number; // 0 to 100
   avatar: string; // Emoji character of the active child
-  colorTheme: 'indigo' | 'purple' | 'rose' | 'emerald' | 'amber';
+  colorTheme: ChildColor;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -12,15 +13,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   colorTheme,
 }) => {
   // Theme gradients for progress fill
-  const gradients = {
-    indigo: 'from-indigo-500 to-cyan-400 shadow-cyan-500/20',
-    purple: 'from-purple-500 to-pink-400 shadow-pink-500/20',
-    rose: 'from-rose-500 to-orange-400 shadow-orange-500/20',
-    emerald: 'from-emerald-500 to-teal-300 shadow-teal-500/20',
-    amber: 'from-amber-500 to-yellow-300 shadow-yellow-500/20',
-  };
 
-  const fillGradient = gradients[colorTheme] || gradients.indigo;
+  const fillGradient = childTheme(colorTheme).progress;
 
   // Safe percentage bounded [0, 100]
   const pct = Math.min(100, Math.max(0, progress));

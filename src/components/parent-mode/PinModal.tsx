@@ -93,7 +93,7 @@ export const PinModal: React.FC<PinModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm select-none p-4">
+    <div className="fixed inset-0 w-screen h-screen z-dialog flex items-center justify-center bg-black/80 backdrop-blur-sm select-none p-4">
       <div className="w-full max-w-sm glass-panel p-6 border-white/10 flex flex-col items-center gap-6 relative">
         
         {/* Close Button */}

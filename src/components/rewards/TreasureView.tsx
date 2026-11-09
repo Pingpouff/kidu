@@ -14,6 +14,7 @@ import {
 import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
+import { CONFETTI_Z } from '../../ui/layers';
 
 interface TreasureViewProps {
   profile: ChildProfile;
@@ -81,7 +82,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
         origin: { x: 0.5, y: 0.55 },
         colors: ['#facc15', '#fde047', '#f59e0b', '#fbbf24', '#ffffff'],
         shapes: ['circle'],
-        zIndex: 130,
+        zIndex: CONFETTI_Z.top,
       });
     }
   };
@@ -107,7 +108,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
     setSpin((s) => s + 1);
     reminderService.playTreasureTapSound();
     reminderService.triggerVoiceReminder(itemName(current), voiceLang(language));
-    fireConfetti({ particleCount: 35, spread: 60, startVelocity: 25, origin: { x: 0.5, y: 0.4 }, zIndex: 130 });
+    fireConfetti({ particleCount: 35, spread: 60, startVelocity: 25, origin: { x: 0.5, y: 0.4 }, zIndex: CONFETTI_Z.top });
   };
 
   useEffect(() => {
@@ -145,7 +146,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
       aria-label={`${translate('treasure.title', language)} ${profile.name}`}
       data-testid="treasure-view"
       ref={scroller}
-      className="fixed inset-0 z-[60] treasure-bg overflow-y-auto overflow-x-hidden select-none"
+      className="fixed inset-0 z-treasure treasure-bg overflow-y-auto overflow-x-hidden select-none"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Twinkling sparkles in the background */}

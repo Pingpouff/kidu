@@ -3,6 +3,7 @@ import { ChildProfile, CATEGORY_ICONS, ParentSettings, RoutineSession, TaskDefin
 import { childSummary, ChildSummary, upcomingDeadlines } from '../../domain/summary';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Settings } from 'lucide-react';
+import { childTheme } from '../../ui/theme';
 
 interface ProfileSelectorProps {
   profiles: ChildProfile[];
@@ -17,22 +18,6 @@ interface ProfileSelectorProps {
   settings?: ParentSettings;
   today?: string;
 }
-
-const COLOR_THEMES: Record<ChildProfile['color'], string> = {
-  indigo: 'from-indigo-500/30 to-indigo-900/40 border-indigo-500/40 hover:border-indigo-400 hover:shadow-indigo-500/20',
-  purple: 'from-purple-500/30 to-purple-900/40 border-purple-500/40 hover:border-purple-400 hover:shadow-purple-500/20',
-  rose: 'from-rose-500/30 to-rose-900/40 border-rose-500/40 hover:border-rose-400 hover:shadow-rose-500/20',
-  emerald: 'from-emerald-500/30 to-emerald-900/40 border-emerald-500/40 hover:border-emerald-400 hover:shadow-emerald-500/20',
-  amber: 'from-amber-500/30 to-amber-900/40 border-amber-500/40 hover:border-amber-400 hover:shadow-amber-500/20',
-};
-
-const BAR_COLORS: Record<ChildProfile['color'], string> = {
-  indigo: 'bg-indigo-400',
-  purple: 'bg-purple-400',
-  rose: 'bg-rose-400',
-  emerald: 'bg-emerald-400',
-  amber: 'bg-amber-400',
-};
 
 /** Re-renders every 30 s so late / upcoming tasks stay up to date. */
 function useNow(intervalMs = 30_000): number {
@@ -202,7 +187,7 @@ interface ChildCardProps {
 }
 
 const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCount, language, label, formatTime, onSelect }) => {
-  const theme = COLOR_THEMES[profile.color] || COLOR_THEMES.indigo;
+  const theme = childTheme(profile.color).card;
   const percent = summary && summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
   const isDone = summary?.status === 'completed';
   const sep = language === 'fr' ? ' :' : ':';
@@ -282,7 +267,7 @@ const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCount, lang
             {summary.total > 0 && (
               <div className="h-2.5 w-full rounded-full bg-black/30 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${isDone ? 'bg-emerald-400' : BAR_COLORS[profile.color] ?? 'bg-indigo-400'}`}
+                  className={`h-full rounded-full transition-all duration-700 ${isDone ? 'bg-emerald-400' : childTheme(profile.color).bar}`}
                   style={{ width: `${percent}%` }}
                 />
               </div>

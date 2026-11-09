@@ -21,6 +21,8 @@ import { ShopItem } from '../../domain/models';
 import { unspentBadges } from '../../domain/rewards';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
+import { childTheme } from '../../ui/theme';
+import { CONFETTI_Z } from '../../ui/layers';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -66,7 +68,7 @@ const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> =
     <span
       ref={ref}
       aria-hidden="true"
-      className="fixed z-[70] text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
+      className="fixed z-flying text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
       style={{ left: from.left + from.width / 2, top: from.top + from.height / 3 }}
     >
       ⭐
@@ -143,16 +145,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     if (bannerTimer.current) clearTimeout(bannerTimer.current);
   }, []);
 
-  // Background style based on child color theme
-  const backgrounds = {
-    indigo: 'theme-indigo',
-    purple: 'theme-purple',
-    rose: 'theme-rose',
-    emerald: 'theme-emerald',
-    amber: 'theme-amber',
-  };
-
-  const bgTheme = backgrounds[profile.color] || backgrounds.indigo;
+  const bgTheme = childTheme(profile.color).board;
 
   // Split the routine into phases; only the current phase is shown on the board
   const phases = getRoutinePhases(session, tasksDefinitions);
@@ -271,7 +264,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         startVelocity: 28,
         ticks: 60,
         origin: { x: 0.83, y: 0.4 },
-        zIndex: 60,
+        zIndex: CONFETTI_Z.board,
       });
 
       // A star is earned only the first time the task is done today

@@ -3,6 +3,8 @@ import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { ChildProfile } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
+import { childTheme } from '../../ui/theme';
+import { CONFETTI_Z } from '../../ui/layers';
 
 interface CelebrationProps {
   profile: ChildProfile;
@@ -41,7 +43,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
     // Fire confetti bursts
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 25, spread: 360, ticks: 50, zIndex: 100 };
+    const defaults = { startVelocity: 25, spread: 360, ticks: 50, zIndex: CONFETTI_Z.celebration };
 
     const randomInRange = (min: number, max: number) => {
       return Math.random() * (max - min) + min;
@@ -72,20 +74,12 @@ export const Celebration: React.FC<CelebrationProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const bgGradients = {
-    indigo: 'from-indigo-950 via-slate-900 to-indigo-950',
-    purple: 'from-purple-950 via-slate-900 to-purple-950',
-    rose: 'from-rose-950 via-slate-900 to-rose-950',
-    emerald: 'from-emerald-950 via-slate-900 to-emerald-950',
-    amber: 'from-amber-950 via-slate-900 to-amber-950',
-  };
-
-  const bgGradient = bgGradients[profile.color] || bgGradients.indigo;
+  const bgGradient = childTheme(profile.color).celebration;
 
   return (
     <div
       onClick={onDismiss}
-      className={`fixed inset-0 w-screen h-screen z-50 flex flex-col justify-center items-center bg-gradient-to-b ${bgGradient} cursor-pointer p-6 select-none`}
+      className={`fixed inset-0 w-screen h-[100dvh] z-overlay flex flex-col justify-center items-center bg-gradient-to-b ${bgGradient} cursor-pointer p-6 select-none`}
     >
       {/* Floating sparkles */}
       <div className="absolute top-1/4 left-1/4 text-6xl animate-bounce pointer-events-none">✨</div>

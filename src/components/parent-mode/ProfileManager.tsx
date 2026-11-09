@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChildProfile } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, Star } from 'lucide-react';
+import { CHILD_COLORS, childTheme } from '../../ui/theme';
 
 interface ProfileManagerProps {
   profiles: ChildProfile[];
@@ -32,7 +33,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
   const [editAge, setEditAge] = useState<string>('');
   const [editStars, setEditStars] = useState<number>(0);
 
-  const colorsList: ChildProfile['color'][] = ['indigo', 'purple', 'rose', 'emerald', 'amber'];
+  const colorsList = CHILD_COLORS;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,16 +140,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         {profiles.map((profile) => {
           const isEditing = editingId === profile.id;
 
-          // Border color based on child theme selection
-          const borderColors = {
-            indigo: 'border-indigo-500/30 hover:bg-indigo-950/10',
-            purple: 'border-purple-500/30 hover:bg-purple-950/10',
-            rose: 'border-rose-500/30 hover:bg-rose-950/10',
-            emerald: 'border-emerald-500/30 hover:bg-emerald-950/10',
-            amber: 'border-amber-500/30 hover:bg-amber-950/10',
-          };
-
-          const themeBorder = borderColors[profile.color] || borderColors.indigo;
+          const themeBorder = childTheme(profile.color).managerRow;
 
           return (
             <div
