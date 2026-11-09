@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { completeTask, enterParentMode } from './helpers';
+import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 const typePin = async (page: Page) => {
   for (const digit of ['1', '2', '3', '4']) await page.getByRole('button', { name: digit, exact: true }).click();
@@ -18,6 +18,7 @@ const giveCard = async (page: Page, color: 'yellow' | 'red', reason?: string) =>
 test.describe('Yellow and red cards', () => {
   test('yellow warns, a second yellow becomes red and resets the medal progress; parents can withdraw', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     await page.getByTestId('child-card-leo').click();
     await completeTask(page, 'Vider son cartable');
     await completeTask(page, 'Prendre son goûter');
