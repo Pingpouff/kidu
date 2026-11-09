@@ -9,6 +9,9 @@ interface BoardColumnProps {
   children: React.ReactNode;
   count: number;
   isDragging?: boolean;
+  /** Shown in the empty drop area */
+  emptyHint?: string;
+  className?: string;
 }
 
 export const BoardColumn: React.FC<BoardColumnProps> = ({
@@ -19,6 +22,8 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
   children,
   count,
   isDragging = false,
+  emptyHint = '✨',
+  className = '',
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
@@ -62,30 +67,34 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
     <div
       ref={setNodeRef}
       data-column={id}
-      className={`flex-1 flex flex-col min-w-[200px] h-full rounded-3xl border bg-black/20 ${overlayClass} ${theme.glow} transition-all duration-300`}
+      className={`flex-none sm:flex-1 flex flex-col min-w-0 sm:min-w-[200px] sm:h-full rounded-3xl border bg-black/20 ${overlayClass} ${theme.glow} transition-all duration-300 ${className}`}
     >
       {/* Column Header */}
-      <div className={`flex items-center justify-between p-4 border-b ${theme.border} rounded-t-3xl bg-black/10`}>
-        <div className="flex items-center gap-3">
-          <span className="text-3xl select-none leading-none">{icon}</span>
-          <h2 className="text-lg md:text-xl font-extrabold tracking-wide text-white drop-shadow-sm uppercase">
+      <div className={`flex items-center justify-between gap-2 px-3 py-2 sm:p-4 border-b ${theme.border} rounded-t-3xl bg-black/10`}>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <span className="text-2xl sm:text-3xl select-none leading-none">{icon}</span>
+          <h2 className="text-base lg:text-xl font-extrabold tracking-wide text-white drop-shadow-sm uppercase whitespace-nowrap truncate">
             {title}
           </h2>
         </div>
-        <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm bg-white/10 text-white/80 border border-white/10`}>
+        <span className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-sm bg-white/10 text-white/80 border border-white/10`}>
           {count}
         </span>
       </div>
 
       {/* Droppable Card Area */}
-      <div className={`flex-1 overflow-y-auto p-4 scrollbar-thin ${
-        id === 'done' 
-          ? 'grid grid-cols-3 gap-2.5 content-start' 
-          : 'flex flex-col gap-4'
+      <div className={`sm:flex-1 sm:overflow-y-auto p-2.5 sm:p-4 scrollbar-thin ${
+        count === 0
+          ? 'flex'
+          : id === 'done'
+            ? 'grid grid-cols-5 sm:grid-cols-3 gap-2 sm:gap-2.5 content-start'
+            : 'grid grid-cols-2 sm:grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3 content-start'
       }`}>
         {count === 0 ? (
-          <div className="flex-1 flex items-center justify-center border border-dashed border-white/5 rounded-2xl p-6 text-center">
-            <span className="text-white/10 text-4xl select-none">✨</span>
+          <div className="flex-1 flex items-center justify-center border border-dashed border-white/10 rounded-2xl p-3 sm:p-6 text-center min-h-[3.5rem]">
+            <span className={`select-none ${emptyHint === '✨' ? 'text-white/10 text-3xl sm:text-4xl' : 'text-white/45 text-sm sm:text-base font-bold'}`}>
+              {emptyHint}
+            </span>
           </div>
         ) : (
           children

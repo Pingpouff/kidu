@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { isValidTimeWindow } from '../../domain/reminders';
@@ -49,6 +49,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newDueTime, setNewDueTime] = useState('');
   const [newStartTime, setNewStartTime] = useState('');
   const [newAssigned, setNewAssigned] = useState<string[]>([]); // empty = every child
+  const [showForm, setShowForm] = useState(false);
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -168,17 +169,37 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     .filter((g) => g.tasks.length > 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-slate-100">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex justify-between items-center gap-3">
+        <h3 className="text-lg sm:text-xl font-bold text-slate-100">
           {translate('parent.tasks.title', language)}
         </h3>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            data-testid="open-task-form"
+            className="shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm active:scale-95 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            {translate('parent.tasks.add', language)}
+          </button>
+        )}
       </div>
 
-      {/* Task Creation Form */}
-      <form onSubmit={handleAdd} className="flex flex-col gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
-        <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative sm:w-28">
+      {/* Task Creation Form (folded by default so the list comes first) */}
+      {showForm && (
+      <form onSubmit={handleAdd} className="relative flex flex-col gap-3 bg-white/5 p-3 sm:p-4 rounded-2xl border border-indigo-500/30">
+        <button
+          type="button"
+          onClick={() => setShowForm(false)}
+          aria-label={translate('btn.close', language)}
+          className="absolute -top-3 -right-2 w-8 h-8 rounded-full bg-slate-800 border border-white/15 text-white/70 hover:text-white flex items-center justify-center"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="relative w-20 sm:w-24">
           <input
             type="text"
             maxLength={4}
@@ -201,7 +222,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder={translate('parent.tasks.label_placeholder', language)}
-          className="flex-1 px-4 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
+          className="flex-1 min-w-[10rem] px-4 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
         />
         <CategorySelect
           value={newCategory}
@@ -229,6 +250,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
         </div>
       </form>
+      )}
 
       {/* Task list list with DndContext */}
       <DndContext
@@ -236,7 +258,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex flex-col gap-5 max-h-[460px] overflow-y-auto scrollbar-thin pr-1">
+        <div className="flex flex-col gap-5">
           {groups.map((group) => (
             <section key={group.category} className="flex flex-col gap-3" data-testid={`task-group-${group.category}`}>
               <h4 className="flex items-center gap-2 text-xs font-extrabold text-slate-400 uppercase tracking-wider">
@@ -451,6 +473,13 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   onDeleteTask,
 }) => {
   const isEditing = editingId === task.id;
+  // Deleting takes a second tap (easy to hit by mistake on a touch screen)
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
 
   const {
     attributes,
@@ -485,11 +514,11 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
       ref={setNodeRef}
       style={style}
       data-testid="task-row"
-      className={`flex items-center justify-between p-3 bg-white/5 rounded-2xl border transition-all ${
+      className={`flex items-center justify-between p-2 sm:p-3 bg-white/5 rounded-2xl border transition-all ${
         isEditing ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5 hover:bg-white/10'
       }`}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
         {/* Dedicated Grip Handle on the left */}
         {!isEditing && (
           <button
@@ -558,18 +587,17 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
           </div>
         ) : (
           /* Display Mode Row */
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-2xl shadow-inner select-none">
+          <div className="flex items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-2xl shadow-inner select-none">
               {task.icon}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-white text-sm md:text-base truncate">
+              <p className="font-bold text-white text-sm md:text-base line-clamp-2 break-words">
                 {task.labelKey ? translate(task.labelKey, language) : task.defaultLabel}
               </p>
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
-                # {task.order}
-                {task.startTime && <span className="ml-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
-                {task.dueTime && <span className="ml-2 text-amber-300">⏰ {task.dueTime}</span>}
+                {task.startTime && <span className="mr-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
+                {task.dueTime && <span className="mr-2 text-amber-300">⏰ {task.dueTime}</span>}
               </span>
               {(() => {
                 const assignees = profiles.filter((p) => task.assignedTo?.includes(p.id));
@@ -589,7 +617,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 ml-4">
+      <div className="flex items-center gap-1.5 sm:gap-2 ml-2 sm:ml-4 shrink-0">
         {isEditing ? (
           <>
             <button
@@ -612,16 +640,22 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
             <button
               onClick={() => startEdit(task)}
               aria-label="edit task"
-              className="p-2 bg-white/5 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-500/30 rounded-xl text-white/50 hover:text-indigo-200 transition-colors"
+              className="p-2.5 sm:p-2 bg-white/5 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-500/30 rounded-xl text-white/50 hover:text-indigo-200 transition-colors"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onDeleteTask(task.id)}
+              onClick={() => (confirmDelete ? onDeleteTask(task.id) : setConfirmDelete(true))}
               aria-label="delete task"
-              className="p-2 bg-white/5 hover:bg-rose-600 border border-white/10 hover:border-rose-500 rounded-xl text-rose-400 hover:text-white transition-colors"
+              data-confirm={confirmDelete}
+              className={`flex items-center gap-1 p-2.5 sm:p-2 border rounded-xl transition-colors text-xs font-bold ${
+                confirmDelete
+                  ? 'bg-rose-600 border-rose-400 text-white'
+                  : 'bg-white/5 hover:bg-rose-600/30 border-white/10 hover:border-rose-500 text-rose-400 hover:text-white'
+              }`}
             >
               <Trash2 className="w-4 h-4" />
+              {confirmDelete && <span>{translate('btn.confirm_delete', language)}</span>}
             </button>
           </>
         )}

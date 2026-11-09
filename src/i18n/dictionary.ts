@@ -3,13 +3,17 @@ export type Language = 'fr' | 'en';
 export const translations = {
   fr: {
     // Child UI Columns
-    'col.todo': 'À faire 🟡',
-    'col.doing': 'En cours 🟠',
-    'col.done': 'Terminé ! 🟢',
+    'col.todo': 'À faire',
+    'board.tap_hint': 'Touche une tâche pour la commencer',
+    'col.doing': 'En cours',
+    'col.done': 'Terminé !',
 
     // Core buttons
     'btn.parent_mode': 'Mode Parent',
     'btn.exit_parent': 'Quitter le Mode Parent',
+    'btn.exit_short': 'Quitter',
+    'btn.back': 'Retour',
+    'btn.confirm_delete': 'Supprimer ?',
     'btn.close': 'Fermer',
     'btn.save': 'Sauvegarder',
     'btn.delete': 'Supprimer',
@@ -202,6 +206,8 @@ export const translations = {
     // Parent Mode Navigation
     'parent.title': 'Tableau de bord Parent',
     'parent.tab.tasks': 'Routine & Tâches',
+    'parent.tab.tasks_short': 'Tâches',
+    'parent.tab.settings_short': 'Réglages',
     'parent.tab.children': 'Enfants',
     'parent.tab.history': 'Historique',
     'parent.tab.settings': 'Paramètres',
@@ -260,13 +266,17 @@ export const translations = {
   },
   en: {
     // Child UI Columns
-    'col.todo': 'To Do 🟡',
-    'col.doing': 'Doing 🟠',
-    'col.done': 'Done ! 🟢',
+    'col.todo': 'To Do',
+    'board.tap_hint': 'Tap a task to start it',
+    'col.doing': 'Doing',
+    'col.done': 'Done!',
 
     // Core buttons
     'btn.parent_mode': 'Parent Mode',
     'btn.exit_parent': 'Exit Parent Mode',
+    'btn.exit_short': 'Exit',
+    'btn.back': 'Back',
+    'btn.confirm_delete': 'Delete?',
     'btn.close': 'Close',
     'btn.save': 'Save',
     'btn.delete': 'Delete',
@@ -459,6 +469,8 @@ export const translations = {
     // Parent Mode Navigation
     'parent.title': 'Parent Dashboard',
     'parent.tab.tasks': 'Routine & Tasks',
+    'parent.tab.tasks_short': 'Tasks',
+    'parent.tab.settings_short': 'Settings',
     'parent.tab.children': 'Children',
     'parent.tab.history': 'History',
     'parent.tab.settings': 'Settings',

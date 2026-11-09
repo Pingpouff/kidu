@@ -76,14 +76,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const cardTheme = statusStyles[task.status] || statusStyles.todo;
   const baseHoverClass = task.status === 'done' ? '' : 'hover:scale-[1.03]';
   const innerAnimClass = task.status === 'done' && !isDragging ? 'animate-pop-shrink' : '';
-  const cardAspectClass = task.status === 'done' ? 'w-full aspect-square rounded-2xl p-1' : 'w-full aspect-[3/2] md:aspect-[16/10] rounded-3xl p-2.5';
-
-  const emojiStyle = {
-    fontSize: task.status === 'done'
-      ? 'clamp(32px, 4.5vw, 75px)'
-      : 'clamp(64px, 12vw, 220px)',
-    lineHeight: '1',
-  };
+  const cardAspectClass =
+    task.status === 'done'
+      ? 'w-full aspect-square rounded-2xl p-1'
+      : 'w-full aspect-square sm:aspect-[4/3] lg:aspect-square xl:aspect-[4/3] rounded-3xl p-2 sm:p-2.5';
+  // Sized per breakpoint to fit the card: 2 per row on phones and large tablets, 1 per column in between
+  const emojiClass =
+    task.status === 'done'
+      ? 'text-[28px] sm:text-[36px] lg:text-[44px]'
+      : 'text-[56px] sm:text-[64px] md:text-[80px] lg:text-[64px] xl:text-[88px]';
 
   // Simple handler to ensure clicking works on desktop/touch
   const handleClick = () => {
@@ -114,8 +115,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {(definition?.dueTime || definition?.startTime) && task.status !== 'done' && (
           <span
             data-testid={isLate ? 'task-late' : definition.dueTime ? 'task-due' : 'task-start'}
-            className={`absolute top-1.5 left-1.5 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 ${
-              isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-black/30 text-white/70'
+            className={`absolute top-1.5 left-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow ${
+              isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-slate-900/85 text-white/80'
             }`}
           >
             {definition.startTime && definition.dueTime && !isLate
@@ -134,15 +135,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Massive emoji icon */}
         <span
           key={celebration?.key}
-          style={emojiStyle}
-          className={`${celebration ? 'animate-task-pop inline-block' : ''} drop-shadow select-none group-hover:scale-110 transition-transform duration-200`}
+          className={`${emojiClass} leading-none ${celebration ? 'animate-task-pop inline-block' : ''} drop-shadow select-none group-hover:scale-110 transition-transform duration-200`}
         >
           {definition?.icon || '⭐'}
         </span>
 
         {/* Small helper text label */}
         {task.status !== 'done' && (
-          <span className="text-xs md:text-base lg:text-lg font-extrabold opacity-80 tracking-wider mt-3 text-center uppercase truncate w-full px-1">
+          <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
             {definition?.labelKey ? translate(definition.labelKey, language) : (definition?.defaultLabel || '')}
           </span>
         )}

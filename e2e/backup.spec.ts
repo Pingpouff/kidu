@@ -33,6 +33,8 @@ test.describe('Configuration backup', () => {
     const count = await deleteButtons.count();
     expect(count).toBeGreaterThan(0);
     for (let remaining = count; remaining > 0; remaining--) {
+      await deleteButtons.first().click(); // asks for confirmation
+      await expect(deleteButtons.first()).toHaveAttribute('data-confirm', 'true');
       await deleteButtons.first().click();
       await expect(deleteButtons).toHaveCount(remaining - 1);
     }

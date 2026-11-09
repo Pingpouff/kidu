@@ -82,7 +82,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col gap-6 p-4 sm:p-8 theme-indigo relative overflow-x-hidden select-none">
+    <div className="min-h-[100dvh] flex flex-col gap-6 p-4 sm:p-8 theme-indigo relative overflow-x-hidden select-none">
       {/* Background stars / sparkles */}
       <div className="absolute top-10 left-10 text-white/10 text-6xl animate-pulse pointer-events-none">★</div>
       <div className="absolute bottom-20 right-10 text-white/5 text-8xl animate-pulse-slow pointer-events-none">★</div>
