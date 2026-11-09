@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ChildProfile } from '../domain/models';
-import { cardsOn, giveCard, recentCards, withdrawCard } from '../domain/cards';
+import { cardsOn, giveCard, recentCards, tonightCardState, withdrawCard } from '../domain/cards';
 import { parseBackup } from '../domain/backup';
 
 const DATE = '2026-11-09';
@@ -62,6 +62,16 @@ describe('Yellow and red cards', () => {
     const red = giveCard(leo, 'red', DATE, 1000).profile;
     const meanwhile = { ...red, starProgress: 2 }; // stars earned again since
     expect(withdrawCard(meanwhile, red.cards![0].id, 3).starProgress).toBe(2);
+  });
+
+  it('sums up tonight for the on-screen reminders', () => {
+    expect(tonightCardState(leo, DATE)).toEqual({ level: 'none', yellow: 0, red: 0, lostProgress: 0 });
+    const yellow = giveCard(leo, 'yellow', DATE, 1000, 'Dispute').profile;
+    expect(tonightCardState(yellow, DATE)).toEqual({ level: 'yellow', yellow: 1, red: 0, lastReason: 'Dispute', lostProgress: 0 });
+    const red = giveCard(yellow, 'yellow', DATE, 2000, 'Gros mots').profile;
+    expect(tonightCardState(red, DATE)).toEqual({ level: 'red', yellow: 2, red: 1, lastReason: 'Gros mots', lostProgress: 2 });
+    // The next evening starts clean
+    expect(tonightCardState(red, '2026-11-10').level).toBe('none');
   });
 
   it('lists recent cards of every child, newest first, and keeps them in backups', () => {

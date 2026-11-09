@@ -25,7 +25,8 @@ import { childTheme } from '../../ui/theme';
 import { CONFETTI_Z } from '../../ui/layers';
 import { useConfirmTap } from '../../ui/useConfirmTap';
 import { CardColor } from '../../domain/models';
-import { CardOutcome, cardsOn } from '../../domain/cards';
+import { CardOutcome, tonightCardState } from '../../domain/cards';
+import { CardBanner } from '../cards/CardBanner';
 import { CardGiver } from '../cards/CardGiver';
 import { CardReveal } from '../cards/CardReveal';
 
@@ -129,7 +130,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   const [showPiggy, setShowPiggy] = useState(false);
   const [showCardGiver, setShowCardGiver] = useState(false);
   const [cardReveal, setCardReveal] = useState<{ outcome: CardOutcome; lostProgress: number; reason?: string } | null>(null);
-  const tonightCards = cardsOn(profile, session.date);
+  const tonightCards = tonightCardState(profile, session.date);
+  // Every time the board opens with a card tonight, the card is shown again first
+  const [cardReminder, setCardReminder] = useState(() => tonightCards.level !== 'none');
 
   const handleGiveCard = async (color: CardColor, reason?: string) => {
     setShowCardGiver(false);
@@ -363,6 +366,28 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           />
         )}
 
+        {/* Colored frame around the whole board while the child has a card tonight */}
+        {tonightCards.level !== 'none' && (
+          <div
+            aria-hidden="true"
+            data-testid="card-frame"
+            data-level={tonightCards.level}
+            className={`absolute inset-0 z-20 pointer-events-none animate-card-frame card-frame-${tonightCards.level}`}
+          />
+        )}
+
+        {cardReminder && !cardReveal && tonightCards.level !== 'none' && (
+          <CardReveal
+            mode="reminder"
+            profile={profile}
+            outcome={tonightCards.level === 'red' ? 'red' : 'yellow'}
+            reason={tonightCards.lastReason}
+            lostProgress={tonightCards.lostProgress}
+            language={language}
+            onDismiss={() => setCardReminder(false)}
+          />
+        )}
+
         {cardReveal && (
           <CardReveal
             profile={profile}
@@ -423,8 +448,15 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 ref={starMeterRef}
                 data-testid="star-meter"
                 aria-label={translate('stars.meter', language)}
-                className="flex items-center gap-1 sm:gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg"
+                className="relative flex items-center gap-1 sm:gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg"
               >
+                {tonightCards.level === 'red' && (
+                  <span
+                    data-testid="star-meter-card"
+                    aria-hidden="true"
+                    className="referee-card size-sm is-red absolute -bottom-2 -right-2 rotate-12 animate-card-sticker ring-1 ring-white/60"
+                  />
+                )}
                 {Array.from({ length: starsPerMedal }, (_, i) => (
                   <span
                     key={i}
@@ -450,10 +482,17 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 <span data-testid="piggy-header-count">{unspentBadges(profile).length}</span>
               </button>
             </div>
-            {nearMedalHint && (
-              <span className="text-xs md:text-sm font-bold text-yellow-200 animate-fade-up [animation-delay:0s]">
-                {translate('stars.one_left', language)}
+            {tonightCards.level === 'red' ? (
+              <span data-testid="card-reset-hint" className="text-xs md:text-sm font-black text-red-300">
+                🟥 {translate('cards.reset_short', language)}
+                {tonightCards.lostProgress > 0 && ` (−${tonightCards.lostProgress} ⭐)`}
               </span>
+            ) : (
+              nearMedalHint && (
+                <span className="text-xs md:text-sm font-bold text-yellow-200 animate-fade-up [animation-delay:0s]">
+                  {translate('stars.one_left', language)}
+                </span>
+              )
             )}
           </div>
 
@@ -468,9 +507,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
               data-red={tonightCards.red}
               className="flex items-center gap-1 px-2.5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full transition-all active:scale-95"
             >
-              <span className={`w-2.5 h-3.5 sm:w-3 sm:h-4 rounded-[3px] ${tonightCards.yellow > 0 ? 'bg-yellow-400 shadow shadow-yellow-500/50' : 'border border-yellow-300/40'}`} />
+              <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.yellow > 0 ? 'bg-yellow-400 shadow shadow-yellow-500/50' : 'border border-yellow-300/40'}`} />
               {tonightCards.yellow > 1 && <span className="text-[10px] font-black text-yellow-300">×{tonightCards.yellow}</span>}
-              <span className={`w-2.5 h-3.5 sm:w-3 sm:h-4 rounded-[3px] ${tonightCards.red > 0 ? 'bg-red-500 shadow shadow-red-500/50' : 'border border-red-400/40'}`} />
+              <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.red > 0 ? 'bg-red-500 shadow shadow-red-500/50' : 'border border-red-400/40'}`} />
             </button>
             <button
               onClick={handleResetClick}
@@ -526,6 +565,12 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </div>
           </div>
         )}
+
+        <CardBanner
+          state={tonightCards}
+          language={language}
+          onOpen={() => setCardReminder(true)}
+        />
 
         {/* Phones: one scrolling column, "doing" first. Tablets and up: three columns side by side */}
         <main className="flex-1 min-h-0 my-1 sm:my-4 flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 overflow-y-auto sm:overflow-y-hidden overflow-x-hidden sm:justify-center items-stretch py-1 sm:py-2 scrollbar-thin">

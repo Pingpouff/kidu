@@ -3,7 +3,7 @@ import { getCurrentPhaseIndex, getRoutinePhases, initSession, isTaskForChild, so
 import { dueTimeToEpoch, findOverdueTasks, isValidDueTime } from './reminders';
 import { starsPerMedal, unspentBadges } from './rewards';
 import { currentStreak, dayDiff } from './trophies';
-import { cardsOn } from './cards';
+import { tonightCardState, TonightCardState } from './cards';
 
 /**
  * Overview shown on the child selection screen: where each child is in
@@ -34,7 +34,7 @@ export interface ChildSummary {
   /** Evenings in a row with a completed routine, still alive (last one today or yesterday) */
   streak: number;
   /** Yellow / red cards given tonight */
-  cards: { yellow: number; red: number };
+  cards: TonightCardState;
 }
 
 /**
@@ -148,7 +148,7 @@ export function childSummary(
     pendingBadgeChoices: profile.badgeOffers?.length ?? 0,
     piggyBadges: unspentBadges(profile).length,
     streak: liveStreak(completedDates, date),
-    cards: (({ yellow, red }) => ({ yellow, red }))(cardsOn(profile, date)),
+    cards: tonightCardState(profile, date),
   };
 }
 
