@@ -102,11 +102,40 @@ describe('Selection screen summary', () => {
   it('lists the next deadlines of the evening, children grouped', () => {
     const leoSession = withStatus(initSession('leo', DATE, defs), { bath: 'done' });
     const next = upcomingDeadlines(at('18:00'), DATE, [leo, emma], [leoSession], defs);
-    expect(next.map((d) => [d.dueTime, d.definitionId, d.childIds])).toEqual([
+    expect(next.map((d) => [d.time, d.definitionId, d.childIds])).toEqual([
       ['18:30', 'homework', ['leo']],
       ['19:00', 'bath', ['emma']],
       ['20:00', 'teeth', ['leo', 'emma']],
     ]);
     expect(upcomingDeadlines(at('20:01'), DATE, [leo, emma], [], defs)).toEqual([]);
+  });
+
+  it('announces the start of a task not started yet, then its end', () => {
+    const windowed = defs.map((d) => (d.id === 'bath' ? { ...d, startTime: '18:40' } : d));
+    const notStarted = childSummary(at('18:35'), DATE, emma, [], windowed);
+    expect(notStarted.upcoming).toMatchObject({ definitionId: 'bath', kind: 'start', time: '18:40', startTime: '18:40', dueTime: '19:00' });
+
+    // Léo already started his bath: only its end is ahead
+    const leoSession = withStatus(initSession('leo', DATE, windowed), { bath: 'doing' });
+    const next = upcomingDeadlines(at('18:35'), DATE, [leo, emma], [leoSession], windowed);
+    expect(next.map((d) => [d.kind, d.time, d.definitionId, d.childIds])).toEqual([
+      ['start', '18:40', 'bath', ['emma']],
+      ['due', '19:00', 'bath', ['leo']],
+      ['due', '20:00', 'teeth', ['leo', 'emma']],
+    ]);
+  });
+
+  it('keeps start times in backups', () => {
+    const file = JSON.stringify({
+      app: 'kidu',
+      version: 1,
+      data: {
+        settings: { parentPin: '1234', language: 'fr', rewards: { starsPerCompletion: 1, weeklyGoal: 5 } },
+        tasks: [{ ...defs[2], startTime: '18:40' }],
+        profiles: [leo],
+      },
+    });
+    expect(parseBackup(file).data.tasks[0]).toMatchObject({ startTime: '18:40', dueTime: '19:00' });
+    expect(() => parseBackup(file.replace('"18:40"', '"6:40pm"'))).toThrow();
   });
 });

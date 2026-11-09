@@ -39,7 +39,9 @@ export const ReminderBanner: React.FC<ReminderBannerProps> = ({
             <span key={task.key} className="flex items-center gap-2 font-bold text-base md:text-lg">
               <span className="text-2xl">{def?.icon}</span>
               <span className="truncate">{taskLabel(def, language)}</span>
-              <span className="ml-auto text-sm font-black bg-amber-950/15 rounded-full px-2 py-0.5">{task.dueTime}</span>
+              <span className="ml-auto shrink-0 text-sm font-black bg-amber-950/15 rounded-full px-2 py-0.5" data-testid={`reminder-${task.kind ?? 'late'}`}>
+                {task.kind === 'start' ? `🚀 ${translate('reminders.start', language)} ${task.dueTime}` : `⏰ ${task.dueTime}`}
+              </span>
             </span>
           );
         })}

@@ -175,6 +175,7 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       (t.labelKey !== undefined && !isString(t.labelKey)) ||
       (t.category !== undefined && !TASK_CATEGORIES.includes(t.category as TaskCategory)) ||
       (t.dueTime !== undefined && !isValidDueTime(t.dueTime)) ||
+      (t.startTime !== undefined && !isValidDueTime(t.startTime)) ||
       (t.assignedTo !== undefined && (!Array.isArray(t.assignedTo) || !t.assignedTo.every(isString)))
     ) {
       throw new BackupError('invalid_tasks');
@@ -187,6 +188,7 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       order: t.order,
       ...(isString(t.helperTextKey) ? { helperTextKey: t.helperTextKey } : {}),
       ...(t.category !== undefined ? { category: t.category as TaskCategory } : {}),
+      ...(isValidDueTime(t.startTime) ? { startTime: t.startTime } : {}),
       ...(isValidDueTime(t.dueTime) ? { dueTime: t.dueTime } : {}),
       ...(Array.isArray(t.assignedTo) && t.assignedTo.length > 0 ? { assignedTo: [...new Set(t.assignedTo as string[])] } : {}),
     };
