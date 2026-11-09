@@ -73,7 +73,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   );
   const allDone =
     profiles.length > 0 && [...summaries.values()].every((s) => s.status === 'completed' || s.status === 'no_tasks');
-  const hasDueTimes = tasks.some((t) => t.dueTime);
+  const hasDueTimes = tasks.some((t) => t.dueTime || t.startTime);
   const remindersOff = hasDueTimes && settings?.reminders?.enabled === false;
 
   const label = (id: string) => {
@@ -152,12 +152,24 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
               <ul className="flex flex-col gap-2">
                 {deadlines.map((d) => (
                   <li
-                    key={`${d.dueTime}_${d.definitionId}`}
+                    key={`${d.kind}_${d.definitionId}`}
                     data-testid="home-deadline"
                     className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10"
                   >
-                    <span className="font-black text-amber-300 tabular-nums w-14">{d.dueTime}</span>
-                    <span className="flex-1 min-w-0 truncate font-bold text-white">{label(d.definitionId)}</span>
+                    <span
+                      className={`font-black tabular-nums w-20 shrink-0 ${d.kind === 'start' ? 'text-sky-300' : 'text-amber-300'}`}
+                      title={translate(d.kind === 'start' ? 'parent.tasks.start_time' : 'parent.tasks.due_time', language)}
+                    >
+                      {d.kind === 'start' ? '🚀' : '⏰'} {d.time}
+                    </span>
+                    <span className="flex-1 min-w-0 truncate font-bold text-white">
+                      {label(d.definitionId)}
+                      {d.startTime && d.dueTime && (
+                        <span className="ml-2 text-xs font-semibold text-white/40">
+                          {d.startTime}–{d.dueTime}
+                        </span>
+                      )}
+                    </span>
                     <span className="flex -space-x-1 text-xl" title={d.childIds.map((id) => profiles.find((p) => p.id === id)?.name).join(', ')}>
                       {d.childIds.map((id) => (
                         <span key={id}>{profiles.find((p) => p.id === id)?.avatar}</span>
@@ -299,7 +311,10 @@ const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCount, lang
               )}
               {summary.upcoming && (
                 <p className="text-amber-200/90 font-semibold truncate" data-testid="home-upcoming">
-                  🔔 {translate('home.due', language)} {summary.upcoming.dueTime}{sep} {label(summary.upcoming.definitionId)}
+                  {summary.upcoming.kind === 'start'
+                    ? `🚀 ${translate('home.starts_at', language)} ${summary.upcoming.time}`
+                    : `🔔 ${translate('home.due', language)} ${summary.upcoming.time}`}
+                  {sep} {label(summary.upcoming.definitionId)}
                 </p>
               )}
             </div>

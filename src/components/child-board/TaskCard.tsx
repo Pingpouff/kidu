@@ -110,15 +110,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {task.status === 'done' && (
           <span className="absolute top-0 right-0 text-sm md:text-base lg:text-lg animate-bounce">✨</span>
         )}
-        {/* Due time: discreet when upcoming, red and wiggling when late */}
-        {definition?.dueTime && task.status !== 'done' && (
+        {/* Expected times: discreet when upcoming, red and wiggling when late */}
+        {(definition?.dueTime || definition?.startTime) && task.status !== 'done' && (
           <span
-            data-testid={isLate ? 'task-late' : 'task-due'}
+            data-testid={isLate ? 'task-late' : definition.dueTime ? 'task-due' : 'task-start'}
             className={`absolute top-1.5 left-1.5 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 ${
               isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-black/30 text-white/70'
             }`}
           >
-            ⏰ {definition.dueTime}
+            {definition.startTime && definition.dueTime && !isLate
+              ? `🕒 ${definition.startTime}–${definition.dueTime}`
+              : definition.dueTime
+                ? `⏰ ${definition.dueTime}`
+                : `🚀 ${definition.startTime}`}
           </span>
         )}
         {task.status === 'doing' && (

@@ -24,8 +24,8 @@ export interface ChildSummary {
   next?: string;
   /** Late tasks (past due time, not done) */
   late: string[];
-  /** Next task with a due time still ahead */
-  upcoming?: { definitionId: string; dueTime: string; dueAt: number };
+  /** Next expected start or end time still ahead */
+  upcoming?: UpcomingEvent;
   completedAt?: number;
   starsToMedal: number;
   pendingBadgeChoices: number;
@@ -34,11 +34,39 @@ export interface ChildSummary {
   streak: number;
 }
 
-export interface UpcomingDeadline {
-  dueTime: string;
-  dueAt: number;
+/**
+ * Next moment of a task that is still ahead: its start (task not started yet)
+ * or its end (task not done yet).
+ */
+export interface UpcomingEvent {
   definitionId: string;
+  kind: 'start' | 'due';
+  at: number; // epoch of that moment
+  time: string; // "HH:MM" of that moment
+  startTime?: string;
+  dueTime?: string;
+}
+
+export interface UpcomingDeadline extends UpcomingEvent {
   childIds: string[];
+}
+
+/** Next event of a task for a child, given its current status. */
+function nextEvent(def: TaskDefinition, status: string, date: string, now: number): UpcomingEvent | undefined {
+  if (status === 'done') return undefined;
+  const window = {
+    ...(isValidDueTime(def.startTime) ? { startTime: def.startTime } : {}),
+    ...(isValidDueTime(def.dueTime) ? { dueTime: def.dueTime } : {}),
+  };
+  if (window.startTime && status === 'todo') {
+    const at = dueTimeToEpoch(date, window.startTime);
+    if (at > now) return { definitionId: def.id, kind: 'start', at, time: window.startTime, ...window };
+  }
+  if (window.dueTime) {
+    const at = dueTimeToEpoch(date, window.dueTime);
+    if (at > now) return { definitionId: def.id, kind: 'due', at, time: window.dueTime, ...window };
+  }
+  return undefined;
 }
 
 /** Today's session of a child, or the one they would get if they started now. */
@@ -82,12 +110,12 @@ export function childSummary(
 
   const late = findOverdueTasks(now, date, [profile], started ? [session] : [], definitions).map((t) => t.definitionId);
 
-  const notDone = new Set(tasks.filter((t) => t.status !== 'done').map((t) => t.definitionId));
+  const statusOf = new Map(tasks.map((t) => [t.definitionId, t.status]));
   const upcoming = sortDefinitions(definitions)
-    .filter((d) => notDone.has(d.id) && isValidDueTime(d.dueTime))
-    .map((d) => ({ definitionId: d.id, dueTime: d.dueTime!, dueAt: dueTimeToEpoch(date, d.dueTime!) }))
-    .filter((d) => d.dueAt > now)
-    .sort((a, b) => a.dueAt - b.dueAt)[0];
+    .filter((d) => statusOf.has(d.id))
+    .map((d) => nextEvent(d, statusOf.get(d.id)!, date, now))
+    .filter((e): e is UpcomingEvent => e !== undefined)
+    .sort((a, b) => a.at - b.at)[0];
 
   const perMedal = starsPerMedal(settings);
   const completedDates = sessions.filter((s) => s.childId === profile.id && s.isCompleted).map((s) => s.date);
@@ -121,8 +149,8 @@ export function childSummary(
 }
 
 /**
- * Next due times of the evening, across all children: tasks not done yet whose
- * due time is still ahead, grouped by task and time (children listed together).
+ * Next start / end times of the evening, across all children, grouped by task
+ * and moment (children listed together).
  */
 export function upcomingDeadlines(
   now: number,
@@ -134,19 +162,19 @@ export function upcomingDeadlines(
 ): UpcomingDeadline[] {
   const groups = new Map<string, UpcomingDeadline>();
   for (const def of sortDefinitions(definitions)) {
-    if (!isValidDueTime(def.dueTime)) continue;
-    const dueAt = dueTimeToEpoch(date, def.dueTime);
-    if (dueAt <= now) continue;
+    if (!isValidDueTime(def.dueTime) && !isValidDueTime(def.startTime)) continue;
     for (const profile of profiles) {
       if (!isTaskForChild(def, profile.id)) continue;
       const { session } = sessionOrPreview(profile.id, date, sessions, definitions);
       const task = session.tasks.find((t) => t.definitionId === def.id);
-      if (!task || task.status === 'done') continue;
-      const key = `${def.dueTime}_${def.id}`;
-      const group = groups.get(key) ?? { dueTime: def.dueTime, dueAt, definitionId: def.id, childIds: [] };
+      if (!task) continue;
+      const event = nextEvent(def, task.status, date, now);
+      if (!event) continue;
+      const key = `${event.kind}_${def.id}`;
+      const group = groups.get(key) ?? { ...event, childIds: [] };
       group.childIds.push(profile.id);
       groups.set(key, group);
     }
   }
-  return [...groups.values()].sort((a, b) => a.dueAt - b.dueAt).slice(0, limit);
+  return [...groups.values()].sort((a, b) => a.at - b.at).slice(0, limit);
 }

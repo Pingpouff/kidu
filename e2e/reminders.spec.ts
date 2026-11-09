@@ -5,7 +5,7 @@ import { completeTask, enterParentMode } from './helpers';
 const setDueTime = async (page: Page, taskLabel: string, time: string) => {
   const row = page.locator('[data-testid^="task-group-"] > div > div').filter({ hasText: taskLabel }).first();
   await row.getByRole('button', { name: 'edit task' }).click();
-  await page.getByLabel('Heure limite').last().fill(time);
+  await page.getByLabel('Heure de fin').last().fill(time);
   await page.getByRole('button', { name: 'save task' }).click();
   await expect(page.getByTestId('task-group-after_school')).toContainText(`⏰ ${time}`);
 };
@@ -62,5 +62,43 @@ test.describe('Reminders for late tasks', () => {
     await expect(page.getByTestId('profile-late')).toHaveCount(2);
     await page.waitForTimeout(1500);
     await expect(page.getByTestId('reminder-banner')).toHaveCount(0);
+  });
+});
+
+test.describe('Start and end times', () => {
+  test('a task can have a start and an end time, with a "time to start" reminder', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-09T18:20:00'));
+    await page.goto('/');
+    await enterParentMode(page);
+
+    const row = page.locator('[data-testid="task-row"]').filter({ hasText: 'Vider son cartable' });
+    await row.getByRole('button', { name: 'edit task' }).click();
+
+    // Start after end: refused
+    await page.getByLabel('Heure de début').last().fill('19:00');
+    await page.getByLabel('Heure de fin').last().fill('18:30');
+    await expect(page.getByTestId('time-window-error')).toBeVisible();
+    await page.getByRole('button', { name: 'save task' }).click();
+    await expect(page.getByRole('button', { name: 'save task' })).toBeVisible(); // still editing
+
+    await page.getByLabel('Heure de début').last().fill('18:00');
+    await page.getByLabel('Heure de fin').last().fill('19:00');
+    await expect(page.getByTestId('time-window-error')).toHaveCount(0);
+    await page.getByRole('button', { name: 'save task' }).click();
+    await expect(row.getByTestId('task-start-time')).toContainText('18:00');
+    await expect(row).toContainText('⏰ 19:00');
+    await page.getByRole('button', { name: 'Quitter le Mode Parent' }).click();
+
+    // 18:20: started time passed, not started yet → "time to start" (not late)
+    const banner = page.getByTestId('reminder-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('Vider son cartable');
+    await expect(banner.getByTestId('reminder-start')).toContainText('18:00');
+    await expect(page.getByTestId('profile-late')).toHaveCount(0);
+
+    // The board shows the time window
+    await page.getByTestId('child-card-leo').click();
+    const card = page.locator('main').getByRole('button').filter({ hasText: 'Vider son cartable' });
+    await expect(card.getByTestId('task-due')).toContainText('18:00–19:00');
   });
 });

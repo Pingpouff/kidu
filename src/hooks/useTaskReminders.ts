@@ -6,6 +6,7 @@ import {
   OverdueTask,
   ReminderLog,
   findOverdueTasks,
+  findReminderTasks,
   planReminders,
   pruneReminderLog,
 } from '../domain/reminders';
@@ -40,20 +41,33 @@ const saveLog = (log: ReminderLog) => {
   }
 };
 
-/** Sentence spoken / shown for a child's overdue tasks. */
-export function reminderText(childName: string, labels: string[], language: Language): string {
-  const list =
-    labels.length === 1
-      ? labels[0]
-      : `${labels.slice(0, -1).join(', ')} ${language === 'fr' ? 'et' : 'and'} ${labels[labels.length - 1]}`;
-  if (language === 'fr') {
-    return labels.length === 1
-      ? `${childName}, c'est l'heure : ${list} !`
-      : `${childName}, il reste ${labels.length} tâches en retard : ${list}.`;
+const joinLabels = (labels: string[], language: Language) =>
+  labels.length === 1
+    ? labels[0]
+    : `${labels.slice(0, -1).join(', ')} ${language === 'fr' ? 'et' : 'and'} ${labels[labels.length - 1]}`;
+
+/**
+ * Sentence spoken / shown for a child's reminder: late tasks (`labels`)
+ * and tasks whose start time has come (`startLabels`).
+ */
+export function reminderText(childName: string, labels: string[], language: Language, startLabels: string[] = []): string {
+  const fr = language === 'fr';
+  const parts: string[] = [];
+  if (labels.length > 0) {
+    const list = joinLabels(labels, language);
+    if (fr) {
+      parts.push(labels.length === 1 ? `c'est l'heure : ${list} !` : `il reste ${labels.length} tâches en retard : ${list}.`);
+    } else {
+      parts.push(labels.length === 1 ? `it's time: ${list}!` : `${labels.length} tasks are late: ${list}.`);
+    }
   }
-  return labels.length === 1
-    ? `${childName}, it's time: ${list}!`
-    : `${childName}, ${labels.length} tasks are late: ${list}.`;
+  if (startLabels.length > 0) {
+    const list = joinLabels(startLabels, language);
+    const prefix = labels.length > 0 ? (fr ? 'Et ' : 'And ') : '';
+    parts.push(fr ? `${prefix}c'est le moment de commencer : ${list} !` : `${prefix}time to start: ${list}!`);
+  }
+  // "Léo, c'est l'heure…" — the first part follows the name in lower case
+  return `${childName}, ${parts.join(' ')}`;
 }
 
 /**
@@ -88,8 +102,13 @@ export function useTaskReminders({
     return () => clearInterval(timer);
   }, []);
 
+  // Late tasks (for badges) and everything to announce (late + time to start)
   const overdue = useMemo(
     () => (profiles && tasks && sessions ? findOverdueTasks(now, today, profiles, sessions, tasks) : []),
+    [now, today, profiles, tasks, sessions]
+  );
+  const toAnnounce = useMemo(
+    () => (profiles && tasks && sessions ? findReminderTasks(now, today, profiles, sessions, tasks) : []),
     [now, today, profiles, tasks, sessions]
   );
 
@@ -112,7 +131,7 @@ export function useTaskReminders({
           db.tasks.toArray(),
           db.sessions.where('date').equals(today).toArray(),
         ]);
-        const stillLate = findOverdueTasks(Date.now(), today, allProfiles, todaySessions, definitions)
+        const stillLate = findReminderTasks(Date.now(), today, allProfiles, todaySessions, definitions)
           .filter((t) => announcement.taskKeys.includes(t.key));
         return stillLate.length > 0
           ? { childId: announcement.childId, tasks: stillLate, taskKeys: stillLate.map((t) => t.key) }
@@ -121,8 +140,10 @@ export function useTaskReminders({
       play: async (announcement) => {
         const { language: lang, profiles: kids, tasks: defs, notify } = latest.current;
         const child = kids?.find((p) => p.id === announcement.childId);
-        const labels = announcement.tasks.map((t) => taskLabel(defs?.find((d) => d.id === t.definitionId), lang));
-        const text = reminderText(child?.name ?? '', labels, lang);
+        const labelOf = (definitionId: string) => taskLabel(defs?.find((d) => d.id === definitionId), lang);
+        const late = announcement.tasks.filter((t) => t.kind !== 'start').map((t) => labelOf(t.definitionId));
+        const toStart = announcement.tasks.filter((t) => t.kind === 'start').map((t) => labelOf(t.definitionId));
+        const text = reminderText(child?.name ?? '', late, lang, toStart);
         const shownAt = Date.now();
 
         if (notify && typeof document !== 'undefined' && document.hidden) {
@@ -155,13 +176,13 @@ export function useTaskReminders({
       queueRef.current?.clear();
       return;
     }
-    const { batches, log } = planReminders(overdue, pruneReminderLog(logRef.current, today), now, JSON.parse(settingsKey));
+    const { batches, log } = planReminders(toAnnounce, pruneReminderLog(logRef.current, today), now, JSON.parse(settingsKey));
     logRef.current = log;
     if (batches.length > 0) saveLog(log);
     for (const batch of batches) {
       queueRef.current?.enqueue({ childId: batch.childId, tasks: batch.tasks, taskKeys: batch.tasks.map((t) => t.key) });
     }
-  }, [overdue, now, today, settingsKey, paused]);
+  }, [toAnnounce, now, today, settingsKey, paused]);
 
   return {
     current,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
+import { isValidTimeWindow } from '../../domain/reminders';
 import { translate, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
@@ -46,6 +47,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [showNewPicker, setShowNewPicker] = useState(false);
   const [newCategory, setNewCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
   const [newDueTime, setNewDueTime] = useState('');
+  const [newStartTime, setNewStartTime] = useState('');
   const [newAssigned, setNewAssigned] = useState<string[]>([]); // empty = every child
 
   // Editing state
@@ -55,6 +57,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editOrder, setEditOrder] = useState<number>(1);
   const [editCategory, setEditCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
   const [editDueTime, setEditDueTime] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
   const [editAssigned, setEditAssigned] = useState<string[]>([]);
   const [showEditPicker, setShowEditPicker] = useState(false);
 
@@ -76,6 +79,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIcon.trim() || !newLabel.trim()) return;
+    if (!isValidTimeWindow(newStartTime || undefined, newDueTime || undefined)) return;
 
     await onAddTask({
       icon: newIcon.trim(),
@@ -83,6 +87,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       defaultLabel: newLabel.trim(),
       order: tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) + 1 : 1,
       category: newCategory,
+      ...(newStartTime ? { startTime: newStartTime } : {}),
       ...(newDueTime ? { dueTime: newDueTime } : {}),
       ...(newAssigned.length ? { assignedTo: newAssigned } : {}),
     });
@@ -98,6 +103,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditOrder(task.order);
     setEditCategory(getTaskCategory(task));
     setEditDueTime(task.dueTime ?? '');
+    setEditStartTime(task.startTime ?? '');
     setEditAssigned(task.assignedTo ?? []);
   };
 
@@ -107,13 +113,16 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
   const saveEdit = async (task: TaskDefinition) => {
     if (!editIcon.trim() || !editLabel.trim()) return;
+    if (!isValidTimeWindow(editStartTime || undefined, editDueTime || undefined)) return;
 
     // Without a due time / assignment, the field is removed (no reminder / common task)
     const rest = { ...task };
     delete rest.dueTime;
+    delete rest.startTime;
     delete rest.assignedTo;
     await onUpdateTask({
       ...rest,
+      ...(editStartTime ? { startTime: editStartTime } : {}),
       ...(editDueTime ? { dueTime: editDueTime } : {}),
       ...(editAssigned.length ? { assignedTo: editAssigned } : {}),
       icon: editIcon.trim(),
@@ -200,14 +209,6 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           language={language}
           className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
         />
-        <input
-          type="time"
-          value={newDueTime}
-          onChange={(e) => setNewDueTime(e.target.value)}
-          aria-label={translate('parent.tasks.due_time', language)}
-          title={translate('parent.tasks.due_time_hint', language)}
-          className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm [color-scheme:dark]"
-        />
         <button
           type="submit"
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -216,7 +217,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           <span>{translate('btn.add', language)}</span>
         </button>
         </div>
-        <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <TimeWindowInputs
+            start={newStartTime}
+            end={newDueTime}
+            onStart={setNewStartTime}
+            onEnd={setNewDueTime}
+            language={language}
+            inputClassName="px-2 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm [color-scheme:dark]"
+          />
+          <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
+        </div>
       </form>
 
       {/* Task list list with DndContext */}
@@ -253,6 +264,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                       editCategory={editCategory}
                       editDueTime={editDueTime}
                       setEditDueTime={setEditDueTime}
+                      editStartTime={editStartTime}
+                      setEditStartTime={setEditStartTime}
                       setEditCategory={setEditCategory}
                       setShowEditPicker={setShowEditPicker}
                       setEditIcon={setEditIcon}
@@ -296,6 +309,54 @@ const CategorySelect: React.FC<CategorySelectProps> = ({ value, onChange, langua
     ))}
   </select>
 );
+
+/** Expected start and end times, with a warning when the start is not before the end. */
+interface TimeWindowInputsProps {
+  start: string;
+  end: string;
+  onStart: (value: string) => void;
+  onEnd: (value: string) => void;
+  language: Language;
+  inputClassName: string;
+}
+
+const TimeWindowInputs: React.FC<TimeWindowInputsProps> = ({ start, end, onStart, onEnd, language, inputClassName }) => {
+  const invalid = !isValidTimeWindow(start || undefined, end || undefined);
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5">
+        <label className="flex flex-col text-[10px] font-bold text-sky-300/80 uppercase tracking-wide" title={translate('parent.tasks.start_time_hint', language)}>
+          🚀 {translate('parent.tasks.start_short', language)}
+          <input
+            type="time"
+            value={start}
+            onChange={(e) => onStart(e.target.value)}
+            aria-label={translate('parent.tasks.start_time', language)}
+            aria-invalid={invalid}
+            className={`${inputClassName} ${invalid ? '!border-rose-500' : ''}`}
+          />
+        </label>
+        <span className="text-white/30 pt-4">→</span>
+        <label className="flex flex-col text-[10px] font-bold text-amber-300/80 uppercase tracking-wide" title={translate('parent.tasks.due_time_hint', language)}>
+          ⏰ {translate('parent.tasks.end_short', language)}
+          <input
+            type="time"
+            value={end}
+            onChange={(e) => onEnd(e.target.value)}
+            aria-label={translate('parent.tasks.due_time', language)}
+            aria-invalid={invalid}
+            className={`${inputClassName} ${invalid ? '!border-rose-500' : ''}`}
+          />
+        </label>
+      </div>
+      {invalid && (
+        <p className="text-xs font-bold text-rose-300" role="alert" data-testid="time-window-error">
+          {translate('parent.tasks.window_invalid', language)}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /**
  * Who does the task: every child (default) or only some of them.
@@ -350,6 +411,8 @@ interface SortableTaskRowProps {
   editCategory: TaskCategory;
   editDueTime: string;
   setEditDueTime: (val: string) => void;
+  editStartTime: string;
+  setEditStartTime: (val: string) => void;
   setEditCategory: (val: TaskCategory) => void;
   setShowEditPicker: (show: boolean) => void;
   setEditIcon: (val: string) => void;
@@ -375,6 +438,8 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   editCategory,
   editDueTime,
   setEditDueTime,
+  editStartTime,
+  setEditStartTime,
   setEditCategory,
   setShowEditPicker,
   setEditIcon,
@@ -440,7 +505,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
 
         {isEditing ? (
           /* Edit Mode Inputs */
-          <div className="flex-1 flex flex-wrap sm:flex-nowrap gap-3 items-center">
+          <div className="flex-1 min-w-0 flex flex-wrap gap-3 items-center">
             <div className="relative">
               <input
                 type="text"
@@ -470,13 +535,6 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               language={language}
               className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
             />
-            <input
-              type="time"
-              value={editDueTime}
-              onChange={(e) => setEditDueTime(e.target.value)}
-              aria-label={translate('parent.tasks.due_time', language)}
-              className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm [color-scheme:dark]"
-            />
             <div className="flex items-center gap-1.5 text-xs text-white/50">
               <span>{translate('parent.tasks.order', language)}:</span>
               <input
@@ -486,7 +544,15 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 className="w-12 px-1 py-1 bg-slate-900 border border-indigo-500/30 rounded text-center text-white"
               />
             </div>
-            <div className="basis-full">
+            <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2">
+              <TimeWindowInputs
+                start={editStartTime}
+                end={editDueTime}
+                onStart={setEditStartTime}
+                onEnd={setEditDueTime}
+                language={language}
+                inputClassName="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm [color-scheme:dark]"
+              />
               <AssigneePicker profiles={profiles} value={editAssigned} onChange={setEditAssigned} language={language} compact />
             </div>
           </div>
@@ -502,6 +568,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               </p>
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
                 # {task.order}
+                {task.startTime && <span className="ml-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
                 {task.dueTime && <span className="ml-2 text-amber-300">⏰ {task.dueTime}</span>}
               </span>
               {(() => {
