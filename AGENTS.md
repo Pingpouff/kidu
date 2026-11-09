@@ -22,6 +22,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── routine.ts      # Pure business rules (stateless)
     │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
     │   ├── badges.ts       # Badge catalog (universes) and offer drawing
+    │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
     │   └── backup.ts       # Backup file format, creation and validation
@@ -148,6 +149,7 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **Badges**: each medal queues an offer of 3 badges from distinct universes (`profile.badgeOffers`, drawn by `drawBadgeOffer`, preferring badges not owned yet). The child picks one (`chooseBadge`) → `profile.badges`.
 - **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the hold bypass). Spent badges stay in the album with `spentAt`/`spentOn`.
 - **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
+- **My treasure** (`components/rewards/TreasureView.tsx`, opened from the piggy bank): a chest to open, then a spotlight carousel of every trophy and badge (`treasureItems`: trophies first, one entry per badge kind with copies counted), totals, a rank (`treasureRank`) and per-universe collections (`collectionProgress`). Pure helpers live in `domain/treasure.ts`; extra sounds are `playChestOpenSound`, `playTreasureTapSound`, `playTreasureSwipeSound`.
 - `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
 
 ## Reminders

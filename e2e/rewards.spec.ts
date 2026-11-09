@@ -46,6 +46,25 @@ test.describe('Stars, medals, badges and piggy bank', () => {
     await page.getByRole('button', { name: 'Tirelire de' }).click();
     const piggy = page.getByTestId('piggy-bank');
     await expect(piggy.getByTestId('piggy-count')).toContainText('1 badge');
+
+    // "My treasure": open the chest, the new badge is shown in big with its collection
+    await piggy.getByTestId('open-treasure').click();
+    const treasure = page.getByTestId('treasure-view');
+    await expect(treasure).toBeVisible();
+    await treasure.getByTestId('treasure-chest').click();
+    await expect(treasure.getByTestId('treasure-name')).toBeVisible();
+    await expect(treasure.getByTestId('treasure-badges')).toContainText('1');
+    await expect(treasure.getByTestId('treasure-medals')).toContainText('1');
+    // Trophies (if any were unlocked) come first: browse until the badge shows up
+    for (let i = 0; i < 5 && (await treasure.getByTestId('treasure-name').textContent()) !== chosenName; i++) {
+      await treasure.getByRole('button', { name: 'Trésor suivant' }).click();
+    }
+    await expect(treasure.getByTestId('treasure-name')).toHaveText(chosenName!);
+    await expect(treasure.getByTestId('treasure-collections').getByText('1/6')).toHaveCount(1);
+    await treasure.getByTestId('treasure-spotlight').click();
+    await treasure.getByRole('button', { name: 'Fermer' }).click();
+    await expect(treasure).toBeHidden();
+    await expect(piggy).toBeVisible();
     const item = piggy.getByTestId('shop-item').filter({ hasText: 'Câlin géant' });
     await item.getByRole('button', { name: 'Échanger' }).click();
     await expect(page.getByText('Un parent doit valider')).toBeVisible();
