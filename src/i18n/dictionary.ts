@@ -352,6 +352,7 @@ export const translations = {
     // Parent - Backup
     'update.available': 'Nouvelle version disponible',
     'update.apply': 'Mettre à jour',
+    'update.applying': 'Mise à jour…',
     'update.later': 'Plus tard',
     'whatsnew.title': 'Quoi de neuf ?',
     'whatsnew.history_title': 'Historique des versions',
@@ -742,6 +743,7 @@ export const translations = {
     // Parent - Backup
     'update.available': 'New version available',
     'update.apply': 'Update',
+    'update.applying': 'Updating…',
     'update.later': 'Later',
     'whatsnew.title': 'What\'s new?',
     'whatsnew.history_title': 'Version history',

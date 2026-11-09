@@ -262,7 +262,12 @@ export default function App() {
 
   // Never shown on a child's board: an update must not cut a routine
   const updateBanner = appUpdate.updateAvailable && !updateDismissed && (parentMode || !activeProfile) && (
-    <AppUpdateBanner language={activeLang} onUpdate={appUpdate.applyUpdate} onLater={() => setUpdateDismissed(true)} />
+    <AppUpdateBanner
+      language={activeLang}
+      onUpdate={appUpdate.applyUpdate}
+      updating={appUpdate.updating}
+      onLater={() => setUpdateDismissed(true)}
+    />
   );
 
   if (parentMode) {

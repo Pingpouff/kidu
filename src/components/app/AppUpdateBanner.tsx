@@ -6,6 +6,8 @@ import { buttonClass } from '../../ui/styles';
 interface AppUpdateBannerProps {
   language: Language;
   onUpdate: () => void;
+  /** The update was started: the page is about to reload */
+  updating?: boolean;
   onLater: () => void;
 }
 
@@ -13,7 +15,7 @@ interface AppUpdateBannerProps {
  * Small bar at the bottom of the screen when a new version is ready.
  * Only shown outside a child's routine board, so an update never cuts a routine.
  */
-export const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ language, onUpdate, onLater }) => (
+export const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ language, onUpdate, onLater, updating = false }) => (
   <div
     role="status"
     data-testid="update-banner"
@@ -24,8 +26,9 @@ export const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ language, onUp
       {translate('update.available', language)}
     </span>
     <div className="flex gap-2">
-      <button type="button" onClick={onUpdate} className={buttonClass('primary', 'sm')}>
-        {translate('update.apply', language)}
+      <button type="button" onClick={onUpdate} disabled={updating} className={buttonClass('primary', 'sm')}>
+        {updating && <RefreshCw className="w-4 h-4 animate-spin" />}
+        {translate(updating ? 'update.applying' : 'update.apply', language)}
       </button>
       <button type="button" onClick={onLater} className={buttonClass('secondary', 'sm')}>
         {translate('update.later', language)}

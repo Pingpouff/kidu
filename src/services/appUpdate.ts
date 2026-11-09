@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { applyUpdate } from './swUpdate';
 
 /** How often an open app asks the server for a new version. */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
@@ -11,6 +12,8 @@ export interface AppUpdate {
   updateAvailable: boolean;
   /** Activates the new version and reloads the page */
   applyUpdate: () => void;
+  /** `applyUpdate` was called: the page is about to reload */
+  updating: boolean;
   /** Asks the server for a new version right now */
   checkNow: () => Promise<void>;
   /** Result of the last manual check (null before any) */
@@ -25,6 +28,7 @@ export interface AppUpdate {
 export function useAppUpdate(): AppUpdate {
   const registrationRef = useRef<ServiceWorkerRegistration | undefined>(undefined);
   const [lastCheck, setLastCheck] = useState<UpdateCheckResult | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const {
     needRefresh: [needRefresh],
@@ -79,8 +83,18 @@ export function useAppUpdate(): AppUpdate {
   return {
     updateAvailable: needRefresh,
     applyUpdate: () => {
-      updateServiceWorker(true);
+      setUpdating(true);
+      applyUpdate({
+        registration: registrationRef.current,
+        skipWaiting: () => {
+          updateServiceWorker(true);
+        },
+        onControllerChange: (listener) => navigator.serviceWorker?.addEventListener('controllerchange', listener, { once: true }),
+        reload: () => window.location.reload(),
+        setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+      });
     },
+    updating,
     checkNow,
     lastCheck,
   };
