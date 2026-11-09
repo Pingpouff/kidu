@@ -131,9 +131,8 @@ export default function App() {
     // One star per newly completed task, a medal every N stars
     const { medalsGained } = await routineRepository.saveSessionWithRewards(updatedSession);
 
-    if (updatedSession.isCompleted) {
-      await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
-    }
+    // Partial days are kept in the history too (e.g. 9/12 tasks)
+    await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
 
     const newTrophies = await routineRepository.awardNewTrophies(childId);
 

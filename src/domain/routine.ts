@@ -30,6 +30,22 @@ export function definitionsForChild(definitions: TaskDefinition[], childId: stri
   return definitions.filter((d) => isTaskForChild(d, childId));
 }
 
+/** Day of the week of a "YYYY-MM-DD" date, local time (0 = Sunday … 6 = Saturday). */
+export function weekdayOf(date: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
+/** True when the task is planned on that date (no `days` = every day). */
+export function isTaskForDay(definition: TaskDefinition, date: string): boolean {
+  return !definition.days?.length || definition.days.includes(weekdayOf(date));
+}
+
+/** The task definitions of one child's routine on a given date. */
+export function definitionsForChildOn(definitions: TaskDefinition[], childId: string, date: string): TaskDefinition[] {
+  return definitionsForChild(definitions, childId).filter((d) => isTaskForDay(d, date));
+}
+
 /**
  * Removes a deleted child from task assignments. Tasks that were assigned only
  * to that child are returned in `orphans` (they belong to nobody anymore).
@@ -64,6 +80,8 @@ export interface RoutinePhase {
   category: TaskCategory;
   tasks: RoutineTask[];
   isCompleted: boolean;
+  /** Skipped by a parent today: the board moves on, its tasks aren't late */
+  isSkipped: boolean;
 }
 
 /**
@@ -84,19 +102,52 @@ export function getRoutinePhases(
         category,
         tasks,
         isCompleted: tasks.every((t) => t.status === 'done'),
+        isSkipped: session.skippedPhases?.includes(category) ?? false,
       };
     })
     .filter((phase) => phase.tasks.length > 0);
 }
 
 /**
- * Index of the phase the child is working on: the first one not completed.
+ * Index of the phase the child is working on: the first one neither completed nor skipped.
  * When everything is done, stays on the last phase. Returns -1 when there are no tasks.
  */
 export function getCurrentPhaseIndex(phases: RoutinePhase[]): number {
   if (phases.length === 0) return -1;
-  const index = phases.findIndex((p) => !p.isCompleted);
+  const index = phases.findIndex((p) => !p.isCompleted && !p.isSkipped);
   return index === -1 ? phases.length - 1 : index;
+}
+
+/**
+ * The day's routine is completed when every step is done or skipped,
+ * with at least one step actually done.
+ */
+export function isSessionCompleted(session: RoutineSession, definitions: TaskDefinition[]): boolean {
+  const phases = getRoutinePhases(session, definitions);
+  return (
+    phases.length > 0 &&
+    phases.every((p) => p.isCompleted || p.isSkipped) &&
+    phases.some((p) => p.isCompleted && !p.isSkipped)
+  );
+}
+
+/** Recomputes `isCompleted` / `completedAt` after tasks or skipped steps changed. */
+export function withCompletion(session: RoutineSession, definitions: TaskDefinition[], now = Date.now()): RoutineSession {
+  const isCompleted = isSessionCompleted(session, definitions);
+  return { ...session, isCompleted, completedAt: isCompleted ? (session.completedAt ?? now) : undefined };
+}
+
+/** A parent skips a step for today: the board moves to the next one. */
+export function skipPhase(session: RoutineSession, category: TaskCategory, definitions: TaskDefinition[]): RoutineSession {
+  const skipped = new Set(session.skippedPhases ?? []);
+  skipped.add(category);
+  return withCompletion({ ...session, skippedPhases: [...skipped] }, definitions);
+}
+
+/** Brings a skipped step back. */
+export function unskipPhase(session: RoutineSession, category: TaskCategory, definitions: TaskDefinition[]): RoutineSession {
+  const skippedPhases = (session.skippedPhases ?? []).filter((c) => c !== category);
+  return withCompletion({ ...session, skippedPhases }, definitions);
 }
 
 /**
@@ -107,7 +158,7 @@ export function initSession(
   date: string,
   definitions: TaskDefinition[]
 ): RoutineSession {
-  const sortedDefs = sortDefinitions(definitionsForChild(definitions, childId));
+  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, childId, date));
   const tasks: RoutineTask[] = sortedDefs.map((def) => ({
     id: `${childId}_${def.id}_${date}`,
     definitionId: def.id,
@@ -130,30 +181,14 @@ export function initSession(
 export function moveTask(
   session: RoutineSession,
   taskId: string,
-  toStatus: TaskStatus
+  toStatus: TaskStatus,
+  definitions: TaskDefinition[],
+  now = Date.now()
 ): RoutineSession {
-  const updatedTasks = session.tasks.map((task) => {
-    if (task.id === taskId) {
-      return {
-        ...task,
-        status: toStatus,
-        completedAt: toStatus === 'done' ? Date.now() : undefined,
-      };
-    }
-    return task;
-  });
-
-  const isCompleted = updatedTasks.every((task) => task.status === 'done');
-  const completedAt = isCompleted
-    ? (session.completedAt || Date.now())
-    : undefined;
-
-  return {
-    ...session,
-    tasks: updatedTasks,
-    isCompleted,
-    completedAt,
-  };
+  const updatedTasks = session.tasks.map((task) =>
+    task.id === taskId ? { ...task, status: toStatus, completedAt: toStatus === 'done' ? now : undefined } : task
+  );
+  return withCompletion({ ...session, tasks: updatedTasks }, definitions, now);
 }
 
 /**
@@ -171,6 +206,7 @@ export function resetSession(session: RoutineSession): RoutineSession {
     tasks: updatedTasks,
     isCompleted: false,
     completedAt: undefined,
+    skippedPhases: [],
   };
 }
 
@@ -221,7 +257,7 @@ export function syncSessionWithDefinitions(
   definitions: TaskDefinition[]
 ): RoutineSession {
   // This child's tasks, sorted by phase, then order
-  const sortedDefs = sortDefinitions(definitionsForChild(definitions, session.childId));
+  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, session.childId, session.date));
 
   // Build the new tasks list
   const newTasks: RoutineTask[] = sortedDefs.map((def) => {
@@ -247,15 +283,7 @@ export function syncSessionWithDefinitions(
     }
   });
 
-  // Calculate completion status of synchronized session
-  const isCompleted = newTasks.length > 0 && newTasks.every((t) => t.status === 'done');
-  const completedAt = isCompleted ? (session.completedAt || Date.now()) : undefined;
-
-  return {
-    ...session,
-    tasks: newTasks,
-    isCompleted,
-    completedAt,
-  };
+  // Completion with the new task list (skipped steps are kept)
+  return withCompletion({ ...session, tasks: newTasks }, definitions);
 }
 

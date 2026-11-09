@@ -48,6 +48,7 @@ export const routineRepository = {
       tasks: fresh.tasks.map((t) => (rewarded.has(t.definitionId) ? { ...t, rewarded: true } : t)),
     };
     await db.sessions.put(reseted);
+    await db.history.delete(session.id); // nothing done anymore today
     return reseted;
   },
 
@@ -85,8 +86,13 @@ export const routineRepository = {
   /**
    * Records a completed session in the history.
    */
-  async recordHistory(session: RoutineSession, childName: string): Promise<HistoryEntry> {
+  async recordHistory(session: RoutineSession, childName: string): Promise<HistoryEntry | undefined> {
     const historyEntry = calculateHistory(session, childName);
+    // A day where nothing is done (yet, or anymore) has no history entry
+    if (historyEntry.completedTasks === 0 && !historyEntry.isCompleted) {
+      await db.history.delete(historyEntry.id);
+      return undefined;
+    }
     await db.history.put(historyEntry);
     return historyEntry;
   },

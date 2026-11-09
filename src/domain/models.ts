@@ -83,6 +83,7 @@ export interface TaskDefinition {
   startTime?: string; // "HH:MM" local time the task is expected to start; one "time to start" reminder if not started
   dueTime?: string; // "HH:MM" expected end time; reminders start when the task isn't done by then
   assignedTo?: string[]; // Child ids. Missing or empty = common task, done by every child
+  days?: number[]; // Days of the week (0 = Sunday … 6 = Saturday). Missing or empty = every day
 }
 
 export interface RoutineTask {
@@ -98,8 +99,9 @@ export interface RoutineSession {
   childId: string;
   date: string; // YYYY-MM-DD
   tasks: RoutineTask[];
-  isCompleted: boolean;
+  isCompleted: boolean; // every step done or skipped, at least one done (isSessionCompleted)
   completedAt?: number; // Epoch timestamp
+  skippedPhases?: TaskCategory[]; // steps a parent skipped today (PIN), e.g. a missed morning
 }
 
 export interface HistoryEntry {

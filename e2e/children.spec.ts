@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { completeTask, enterParentMode, openTaskForm, removeMorningTasks } from './helpers';
 
 test.describe('Personal tasks and selection screen summary', () => {

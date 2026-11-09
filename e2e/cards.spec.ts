@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 const typePin = async (page: Page) => {

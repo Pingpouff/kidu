@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { enterParentMode } from './helpers';
 import pkg from '../package.json' with { type: 'json' };
 

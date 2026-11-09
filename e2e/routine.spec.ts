@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { openTaskForm } from './helpers';
 
 test.describe('Kids Evening Routine E2E Flow', () => {

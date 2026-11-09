@@ -1,5 +1,5 @@
 import { ChildProfile, ReminderSettings, RoutineSession, TaskDefinition } from './models';
-import { isTaskForChild, sortDefinitions } from './routine';
+import { getTaskCategory, isTaskForChild, isTaskForDay, sortDefinitions } from './routine';
 
 /**
  * A task of a child that needs a reminder: either past its end time and not
@@ -66,7 +66,9 @@ export function findOverdueTasks(
     if (session?.isCompleted) return;
 
     for (const def of timed) {
-      if (!isTaskForChild(def, profile.id)) continue;
+      if (!isTaskForChild(def, profile.id) || !isTaskForDay(def, date)) continue;
+      // A step a parent skipped today raises no reminder
+      if (session?.skippedPhases?.includes(getTaskCategory(def))) continue;
       const dueAt = dueTimeToEpoch(date, def.dueTime!);
       if (dueAt > now) continue;
       const task = session?.tasks.find((t) => t.definitionId === def.id);
@@ -112,7 +114,9 @@ export function findStartingTasks(
     if (session?.isCompleted) return;
 
     for (const def of timed) {
-      if (!isTaskForChild(def, profile.id)) continue;
+      if (!isTaskForChild(def, profile.id) || !isTaskForDay(def, date)) continue;
+      // A step a parent skipped today raises no reminder
+      if (session?.skippedPhases?.includes(getTaskCategory(def))) continue;
       const startAt = dueTimeToEpoch(date, def.startTime!);
       if (startAt > now) continue;
       if (isValidDueTime(def.dueTime) && dueTimeToEpoch(date, def.dueTime) <= now) continue;

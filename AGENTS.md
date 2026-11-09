@@ -98,6 +98,7 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        startTime?: string; // "HH:MM" expected start, one "time to start" reminder
        dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
+       days?: number[]; // 0 = Sunday … 6 = Saturday, missing/empty = every day
      }
      ```
 
@@ -150,13 +151,16 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
 
 ## Routine Phases
 
-Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase, so the evening phases show up once the morning one is done.
+Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase; the board shows the first phase neither done nor skipped.
 
 - Default morning tasks: get dressed, breakfast, brush teeth, shoes & coat. Existing databases get them once through the Dexie `version(2)` upgrade in `persistence/db.ts` (skipped if a morning task already exists).
 - Each phase has a "finish it 10 times" trophy (`morning_10`, `after_school_10`, …).
 
 - `sortDefinitions` orders tasks by phase, then by `order`; sessions are built and synced with it.
-- `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.
+- `getRoutinePhases(session, definitions)` returns the non-empty phases (with `isCompleted` / `isSkipped`); `getCurrentPhaseIndex` returns the first one neither completed nor skipped.
+- **Skipping a step**: a parent can skip the current step from the board ("Passer l'étape", PIN) or resume a skipped one; `RoutineSession.skippedPhases`, `skipPhase` / `unskipPhase`. A skipped step raises no reminder and isn't proposed on the selection screen.
+- **Day completed**: `isSessionCompleted` — every step done or skipped, and at least one done. `withCompletion` recomputes `isCompleted` / `completedAt`; every session change goes through it (`moveTask`, `syncSessionWithDefinitions`, the board). Streaks and routine trophies use it, so a skipped morning doesn't break a streak; per-phase trophies only count steps really done.
+- **History**: every session change upserts its history entry, so partial days show up (e.g. 9/12). A day with nothing done has no entry (a reset removes it).
 - The child board only shows the current phase's tasks, with a step indicator, a "step complete" banner/sound/voice when a phase ends, and a night-sky overlay during `bedtime`. Overall progress and the final celebration still cover the whole routine.
 - In Parent Mode, tasks are grouped by phase and can only be reordered inside their phase. The phase is chosen when creating or editing a task.
 
@@ -168,6 +172,12 @@ Tasks belong to one of four fixed phases, run in order: `morning` → `after_sch
 - `initSession` and `syncSessionWithDefinitions` only keep the child's tasks, so changing an assignment updates today's sessions (statuses of remaining tasks are kept). `findOverdueTasks` skips children a task is not assigned to.
 - `routineRepository.deleteProfile` removes the child from assignments and deletes the tasks that were assigned only to them (`unassignChild`).
 - In Parent Mode, `AssigneePicker` (TaskManager) toggles "Every child" or specific children; selecting all children goes back to a common task. Backups keep `assignedTo`.
+
+## Days of the Week
+
+- `TaskDefinition.days` limits a task to some days (`weekdayOf`, `isTaskForDay`, `definitionsForChildOn` in `domain/routine.ts`). Sessions, syncs and reminders only include the tasks planned that day.
+- `DayPicker` (TaskManager): "Every day", "Mon → Fri" or single days; choosing all seven comes back to every day. Default school tasks (empty bag, homework, pack bag) are Monday–Friday.
+- e2e: `e2e/fixtures.ts` moves the browser clock back to Friday when the suite runs on a weekend, so specs always see a school day. Specs import `test` / `expect` from `./fixtures`.
 
 ## Selection Screen Overview
 

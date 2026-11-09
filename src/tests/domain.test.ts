@@ -35,13 +35,13 @@ describe('Evening Routine Domain Logic', () => {
     let session = initSession(mockChild.id, '2026-05-20', mockDefinitions);
     
     // Move first task to "doing"
-    session = moveTask(session, session.tasks[0].id, 'doing');
+    session = moveTask(session, session.tasks[0].id, 'doing', mockDefinitions);
     expect(session.tasks[0].status).toBe('doing');
     expect(session.isCompleted).toBe(false);
     expect(session.completedAt).toBeUndefined();
 
     // Move first task to "done"
-    session = moveTask(session, session.tasks[0].id, 'done');
+    session = moveTask(session, session.tasks[0].id, 'done', mockDefinitions);
     expect(session.tasks[0].status).toBe('done');
     expect(session.tasks[0].completedAt).toBeDefined();
     expect(session.isCompleted).toBe(false); // Second task still 'todo'
@@ -51,8 +51,8 @@ describe('Evening Routine Domain Logic', () => {
     let session = initSession(mockChild.id, '2026-05-20', mockDefinitions);
 
     // Complete all tasks
-    session = moveTask(session, session.tasks[0].id, 'done');
-    session = moveTask(session, session.tasks[1].id, 'done');
+    session = moveTask(session, session.tasks[0].id, 'done', mockDefinitions);
+    session = moveTask(session, session.tasks[1].id, 'done', mockDefinitions);
 
     expect(session.isCompleted).toBe(true);
     expect(session.completedAt).toBeDefined();
@@ -62,8 +62,8 @@ describe('Evening Routine Domain Logic', () => {
     let session = initSession(mockChild.id, '2026-05-20', mockDefinitions);
 
     // Complete session
-    session = moveTask(session, session.tasks[0].id, 'done');
-    session = moveTask(session, session.tasks[1].id, 'done');
+    session = moveTask(session, session.tasks[0].id, 'done', mockDefinitions);
+    session = moveTask(session, session.tasks[1].id, 'done', mockDefinitions);
     expect(session.isCompleted).toBe(true);
 
     // Reset session
@@ -77,7 +77,7 @@ describe('Evening Routine Domain Logic', () => {
 
   it('should compile correct history entry from a session', () => {
     let session = initSession(mockChild.id, '2026-05-20', mockDefinitions);
-    session = moveTask(session, session.tasks[0].id, 'done');
+    session = moveTask(session, session.tasks[0].id, 'done', mockDefinitions);
 
     const history = calculateHistory(session, mockChild.name);
 
@@ -98,7 +98,7 @@ describe('Evening Routine Domain Logic', () => {
   it('should synchronize session tasks with updated definitions', () => {
     let session = initSession(mockChild.id, '2026-05-20', mockDefinitions);
     // Complete first task (toys)
-    session = moveTask(session, session.tasks[0].id, 'done');
+    session = moveTask(session, session.tasks[0].id, 'done', mockDefinitions);
 
     // Updated definitions: teeth reordered first, toys second, new task 'pyjamas' added
     const updatedDefs: TaskDefinition[] = [
