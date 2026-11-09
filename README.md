@@ -23,6 +23,7 @@ A visual, tablet-first Progressive Web App (PWA) designed to help young children
 - ⚙️ **Parent Portal**: Management dashboard to add/delete/reorder routine tasks, create/edit child profiles, inspect history logs, toggle languages (FR/EN), and configure rewards.
 - 💾 **Configuration Backup**: Export tasks, child profiles and settings (optionally with history) to a JSON file from *Parent Mode → Settings*, and import it back on the same or another device. The app asks the browser to protect its data from automatic clean-up, and Parent Mode reminds you to back up when the last export is more than 30 days old.
 - ✈️ **Offline-First (PWA)**: installable app with service-worker caching via Workbox and IndexedDB local persistence (`dexie`).
+- 📲 **Install & About**: the home screen invites to install the app (Chrome, Edge, Android; step-by-step instructions on iPhone / iPad). The ℹ️ button shows the app version, checks for updates and lists the version history.
 - 🔄 **Updates & what's new**: when a new version is published, a banner offers to update (never on a child's board, so a routine is never interrupted); after the update, a "What's new?" window lists the changes. *Parent Mode → Settings → App* shows the installed version, checks for updates and lists the version history.
 
 ---

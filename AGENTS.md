@@ -38,6 +38,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
     │   ├── ReminderQueue.ts # Serial queue of reminder announcements
     │   ├── storage.ts      # Persistent storage request / status
+    │   ├── install.ts      # Install invitation: beforeinstallprompt, iOS detection, dismissal
+    │   ├── swUpdate.ts     # Applying a service worker update (reload logic)
     │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
@@ -258,6 +260,13 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 - **What's new**: on startup, `App.tsx` compares `localStorage['kidu.lastSeenVersion']` with `APP_VERSION` and shows `WhatsNewModal` on the selection screen if versions were missed. A fresh install (`seedDatabase()` returns `freshInstall`) shows nothing; an install from before versions were tracked counts as `BASELINE_VERSION` (1.0.0).
 - **Releasing** (before merging `development` into `main`): bump `package.json` `version` and add the matching entry at the top of `CHANGELOG`. `src/tests/changelog.test.tsx` fails (and blocks the deploy) if they don't match.
 - The dev server doesn't run the service worker: to try the update flow, `npm run build && npm run preview`, then rebuild with a higher version.
+
+## About and Install
+
+- The home screen ℹ️ button opens `AboutModal` (no PIN): version, install / update actions and the whole `CHANGELOG` (`ChangelogList`, shared with `WhatsNewModal`).
+- `services/install.ts` is imported first thing in `main.tsx`: it catches `beforeinstallprompt` (and `preventDefault`s it — the browser's own invitation is replaced by ours), tracks `appinstalled` and standalone mode, and detects Safari on iPhone / iPad (no install event there: we explain Share → Add to Home Screen). `useInstallState()` gives `installed | available | ios | unavailable`.
+- `InstallBanner` shows on the home screen when the app can be installed; "Not now" hides it for 30 days (`localStorage['kidu.installDismissedAt']`).
+- Headless Chromium never fires `beforeinstallprompt`; e2e tests dispatch a fake one.
 
 ## Data Safety
 
