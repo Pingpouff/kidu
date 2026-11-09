@@ -32,6 +32,8 @@ interface DashboardProps {
   // Settings handlers
   onSaveSettings: (settings: ParentSettings) => Promise<void>;
   onResetAllData: () => Promise<void>;
+  onExportBackup: (includeHistory: boolean) => Promise<void>;
+  onImportBackup: (fileContent: string) => Promise<void>;
 }
 
 type TabId = 'tasks' | 'children' | 'history' | 'settings';
@@ -53,6 +55,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDeleteHistory,
   onSaveSettings,
   onResetAllData,
+  onExportBackup,
+  onImportBackup,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
 
@@ -154,6 +158,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 language={language}
                 onSaveSettings={onSaveSettings}
                 onResetAllData={onResetAllData}
+                onExportBackup={onExportBackup}
+                onImportBackup={onImportBackup}
               />
             )}
           </div>

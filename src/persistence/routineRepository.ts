@@ -1,5 +1,6 @@
-import { db } from './db';
+import { db, getSettings } from './db';
 import { RoutineSession, HistoryEntry } from '../domain/models';
+import { BackupFile, createBackup } from '../domain/backup';
 import { initSession, calculateHistory, awardStars, syncSessionWithDefinitions } from '../domain/routine';
 
 export const routineRepository = {
@@ -94,6 +95,41 @@ export const routineRepository = {
       const synced = syncSessionWithDefinitions(session, definitions);
       await db.sessions.put(synced);
     }
+  },
+
+  /**
+   * Builds a backup of the current configuration (settings, tasks, profiles),
+   * optionally including the routine history.
+   */
+  async exportBackup(includeHistory: boolean): Promise<BackupFile> {
+    const [settings, tasks, profiles, history] = await Promise.all([
+      getSettings(),
+      db.tasks.toArray(),
+      db.profiles.toArray(),
+      includeHistory ? db.history.toArray() : Promise.resolve(undefined),
+    ]);
+    return createBackup({ settings, tasks, profiles, history });
+  },
+
+  /**
+   * Replaces the current configuration with the content of a validated backup.
+   * In-progress sessions are cleared since they reference the previous tasks/profiles.
+   * History is only replaced when the backup contains it.
+   */
+  async importBackup(backup: BackupFile): Promise<void> {
+    const { settings, tasks, profiles, history } = backup.data;
+    await db.transaction('rw', [db.settings, db.tasks, db.profiles, db.sessions, db.history], async () => {
+      await db.settings.put({ ...settings, id: 'current' });
+      await db.tasks.clear();
+      await db.tasks.bulkPut(tasks);
+      await db.profiles.clear();
+      await db.profiles.bulkPut(profiles);
+      await db.sessions.clear();
+      if (history) {
+        await db.history.clear();
+        await db.history.bulkPut(history);
+      }
+    });
   },
 
   /**

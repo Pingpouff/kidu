@@ -9,6 +9,7 @@ import { Celebration } from './components/rewards/Celebration';
 import { PinModal } from './components/parent-mode/PinModal';
 import { Dashboard as ParentDashboard } from './components/parent-mode/Dashboard';
 import { reminderService } from './services/ReminderService';
+import { backupFileName, parseBackup } from './domain/backup';
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
@@ -151,6 +152,27 @@ export default function App() {
     await routineRepository.clearAllData();
   };
 
+  // Backup callbacks
+  const handleExportBackup = async (includeHistory: boolean) => {
+    const backup = await routineRepository.exportBackup(includeHistory);
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = backupFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // Throws a BackupError when the file is not a valid backup
+  const handleImportBackup = async (fileContent: string) => {
+    const backup = parseBackup(fileContent);
+    await routineRepository.importBackup(backup);
+    setActiveProfileId(null);
+  };
+
   /* Router/State renderer logic */
 
   if (parentMode) {
@@ -172,6 +194,8 @@ export default function App() {
         onDeleteHistory={handleDeleteHistory}
         onSaveSettings={handleSaveSettings}
         onResetAllData={handleResetAllData}
+        onExportBackup={handleExportBackup}
+        onImportBackup={handleImportBackup}
       />
     );
   }
