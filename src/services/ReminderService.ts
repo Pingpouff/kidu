@@ -187,6 +187,26 @@ class ReminderService {
     this.playTone(2093.0, 0.6, 'sine', 0.32, { gain: 0.1 });
   }
 
+  /** Treasure chest opens: wooden creak, then a magical rising sparkle. */
+  public playChestOpenSound() {
+    this.playTone(140, 0.35, 'sawtooth', 0, { gain: 0.05, slideTo: 260 });
+    [659.25, 783.99, 987.77, 1318.51, 1567.98, 1975.53].forEach((f, i) =>
+      this.playTone(f, 0.35, 'sine', 0.3 + i * 0.07, { gain: 0.09 })
+    );
+    this.playTone(2637.02, 1.0, 'sine', 0.75, { gain: 0.06 });
+  }
+
+  /** A treasure is tapped in the showcase: short "bling". */
+  public playTreasureTapSound() {
+    this.playTone(1567.98, 0.12, 'triangle', 0, { gain: 0.08 });
+    this.playTone(2093.0, 0.3, 'sine', 0.06, { gain: 0.07 });
+  }
+
+  /** Switching to the next/previous treasure: soft whoosh-tick. */
+  public playTreasureSwipeSound() {
+    this.playTone(600, 0.12, 'triangle', 0, { gain: 0.05, slideTo: 900 });
+  }
+
   /** Reminder for a late task: a gentle "ding-dong", noticeable but not alarming. */
   public playReminderSound() {
     this.playTone(659.25, 0.5, 'sine', 0, { gain: 0.18 }); // E5
