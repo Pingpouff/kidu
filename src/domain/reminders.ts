@@ -1,5 +1,5 @@
 import { ChildProfile, ReminderSettings, RoutineSession, TaskDefinition } from './models';
-import { sortDefinitions } from './routine';
+import { isTaskForChild, sortDefinitions } from './routine';
 
 /** A task of a child that is past its due time and not done yet. */
 export interface OverdueTask {
@@ -55,6 +55,7 @@ export function findOverdueTasks(
     if (session?.isCompleted) return;
 
     for (const def of timed) {
+      if (!isTaskForChild(def, profile.id)) continue;
       const dueAt = dueTimeToEpoch(date, def.dueTime!);
       if (dueAt > now) continue;
       const task = session?.tasks.find((t) => t.definitionId === def.id);

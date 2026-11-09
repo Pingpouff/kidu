@@ -18,6 +18,38 @@ export function getTaskCategory(definition: TaskDefinition | undefined): TaskCat
 }
 
 /**
+ * True when the task is part of this child's routine: common tasks (no
+ * assignment) belong to every child, assigned ones only to the listed children.
+ */
+export function isTaskForChild(definition: TaskDefinition, childId: string): boolean {
+  return !definition.assignedTo?.length || definition.assignedTo.includes(childId);
+}
+
+/** The task definitions of one child's routine. */
+export function definitionsForChild(definitions: TaskDefinition[], childId: string): TaskDefinition[] {
+  return definitions.filter((d) => isTaskForChild(d, childId));
+}
+
+/**
+ * Removes a deleted child from task assignments. Tasks that were assigned only
+ * to that child are returned in `orphans` (they belong to nobody anymore).
+ */
+export function unassignChild(
+  definitions: TaskDefinition[],
+  childId: string
+): { updated: TaskDefinition[]; orphans: string[] } {
+  const updated: TaskDefinition[] = [];
+  const orphans: string[] = [];
+  for (const def of definitions) {
+    if (!def.assignedTo?.includes(childId)) continue;
+    const rest = def.assignedTo.filter((id) => id !== childId);
+    if (rest.length === 0) orphans.push(def.id);
+    else updated.push({ ...def, assignedTo: rest });
+  }
+  return { updated, orphans };
+}
+
+/**
  * Sorts task definitions by routine phase, then by their order inside the phase.
  */
 export function sortDefinitions(definitions: TaskDefinition[]): TaskDefinition[] {
@@ -75,7 +107,7 @@ export function initSession(
   date: string,
   definitions: TaskDefinition[]
 ): RoutineSession {
-  const sortedDefs = sortDefinitions(definitions);
+  const sortedDefs = sortDefinitions(definitionsForChild(definitions, childId));
   const tasks: RoutineTask[] = sortedDefs.map((def) => ({
     id: `${childId}_${def.id}_${date}`,
     definitionId: def.id,
@@ -188,8 +220,8 @@ export function syncSessionWithDefinitions(
   session: RoutineSession,
   definitions: TaskDefinition[]
 ): RoutineSession {
-  // Sort definitions by phase, then order
-  const sortedDefs = sortDefinitions(definitions);
+  // This child's tasks, sorted by phase, then order
+  const sortedDefs = sortDefinitions(definitionsForChild(definitions, session.childId));
 
   // Build the new tasks list
   const newTasks: RoutineTask[] = sortedDefs.map((def) => {

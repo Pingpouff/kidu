@@ -52,7 +52,7 @@ export interface TrophyStats {
 /**
  * Number of days between two YYYY-MM-DD dates (b - a), DST-safe.
  */
-function dayDiff(a: string, b: string): number {
+export function dayDiff(a: string, b: string): number {
   const toUtc = (d: string) => {
     const [y, m, day] = d.split('-').map(Number);
     return Date.UTC(y, m - 1, day);
@@ -63,7 +63,7 @@ function dayDiff(a: string, b: string): number {
 /**
  * Longest run of consecutive days with a completed routine, ending on the most recent one.
  */
-function currentStreak(completedDates: string[]): number {
+export function currentStreak(completedDates: string[]): number {
   const dates = [...new Set(completedDates)].sort();
   if (dates.length === 0) return 0;
   let streak = 1;

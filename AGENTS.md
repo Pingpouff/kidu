@@ -22,6 +22,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── routine.ts      # Pure business rules (stateless)
     │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
     │   ├── badges.ts       # Badge catalog (universes) and offer drawing
+    │   ├── summary.ts      # Selection screen overview: per-child summary, upcoming deadlines
     │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
@@ -79,6 +80,8 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        icon: string; // Emoji character
        order: number; // Sorting order inside its phase
        category?: 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
+       dueTime?: string; // "HH:MM", reminders when late
+       assignedTo?: string[]; // child ids, missing/empty = common to every child
      }
      ```
 
@@ -139,6 +142,17 @@ Tasks belong to one of three fixed phases, run in order: `after_school` → `mea
 - In Parent Mode, tasks are grouped by phase and can only be reordered inside their phase. The phase is chosen when creating or editing a task.
 
 ---
+
+## Personal Tasks
+
+- `TaskDefinition.assignedTo` lists the children a task belongs to; missing or empty means every child. `isTaskForChild` / `definitionsForChild` (`domain/routine.ts`) are the single source of truth.
+- `initSession` and `syncSessionWithDefinitions` only keep the child's tasks, so changing an assignment updates today's sessions (statuses of remaining tasks are kept). `findOverdueTasks` skips children a task is not assigned to.
+- `routineRepository.deleteProfile` removes the child from assignments and deletes the tasks that were assigned only to them (`unassignChild`).
+- In Parent Mode, `AssigneePicker` (TaskManager) toggles "Every child" or specific children; selecting all children goes back to a common task. Backups keep `assignedTo`.
+
+## Selection Screen Overview
+
+`domain/summary.ts`: `childSummary` (status, done/total, current phase, doing/next task, late tasks, next due time, stars to the next medal, piggy bank badges, pending badge choices, live streak) and `upcomingDeadlines` (next due times grouped by task, children listed together). A child without a session today is previewed with `initSession`. `ProfileSelector` re-renders every 30 s and gets all sessions from `App.tsx`.
 
 ## Rewards
 
