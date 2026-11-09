@@ -316,6 +316,24 @@
   animation: treasure-rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* Referee card (yellow / red) */
+.referee-card {
+  width: 7.5rem;
+  height: 10.5rem;
+  border-radius: 0.9rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), inset 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+.referee-card.is-yellow { background: linear-gradient(160deg, #fde047, #eab308); }
+.referee-card.is-red { background: linear-gradient(160deg, #f87171, #dc2626); }
+@keyframes card-raise {
+  0% { transform: translateY(120px) rotate(-25deg) scale(0.6); opacity: 0; }
+  60% { transform: translateY(-14px) rotate(6deg) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0) rotate(-6deg) scale(1); opacity: 1; }
+}
+.animate-card-raise {
+  animation: card-raise 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 /* Reduced motion: device setting OR parent's "reduced animations" setting */
 @media (prefers-reduced-motion: reduce) {
   .animate-task-pop,
@@ -331,7 +349,8 @@
   .animate-chest-nudge,
   .animate-spotlight-in,
   .animate-treasure-spin,
-  .animate-treasure-rise {
+  .animate-treasure-rise,
+  .animate-card-raise {
     animation: none;
   }
   .particle,
@@ -362,7 +381,8 @@
 .reduce-motion .animate-chest-nudge,
 .reduce-motion .animate-spotlight-in,
 .reduce-motion .animate-treasure-spin,
-.reduce-motion .animate-treasure-rise {
+.reduce-motion .animate-treasure-rise,
+.reduce-motion .animate-card-raise {
   animation: none !important;
 }
 .reduce-motion .particle,

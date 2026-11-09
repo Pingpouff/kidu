@@ -10,6 +10,7 @@ import { shopItems } from '../../domain/rewards';
 import { ShopItem } from '../../domain/models';
 import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
 import { buttonClass } from '../../ui/styles';
+import { CardHistory } from './CardHistory';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -32,6 +33,7 @@ interface DashboardProps {
 
   // History handlers
   onDeleteHistory: (id: string) => Promise<void>;
+  onWithdrawCard: (childId: string, cardId: string) => Promise<void>;
 
   // Settings handlers
   onSaveSettings: (settings: ParentSettings) => Promise<void>;
@@ -58,6 +60,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateProfile,
   onDeleteProfile,
   onDeleteHistory,
+  onWithdrawCard,
   onSaveSettings,
   onResetAllData,
   onExportBackup,
@@ -167,11 +170,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               />
             )}
             {activeTab === 'history' && (
-              <HistoryPanel
-                history={history}
-                language={language}
-                onDeleteHistory={onDeleteHistory}
-              />
+              <div className="flex flex-col gap-8">
+                <CardHistory profiles={profiles} language={language} onWithdraw={onWithdrawCard} />
+                <HistoryPanel
+                  history={history}
+                  language={language}
+                  onDeleteHistory={onDeleteHistory}
+                />
+              </div>
             )}
             {activeTab === 'settings' && (
               <SettingsPanel

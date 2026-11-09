@@ -23,6 +23,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
     │   ├── badges.ts       # Badge catalog (universes) and offer drawing
     │   ├── summary.ts      # Selection screen overview: per-child summary, upcoming deadlines
+    │   ├── cards.ts        # Yellow / red behavior cards (pure rules)
     │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
@@ -176,6 +177,17 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
 - **My treasure** (`components/rewards/TreasureView.tsx`, opened from the piggy bank): a chest to open, then a spotlight carousel of every trophy and badge (`treasureItems`: trophies first, one entry per badge kind with copies counted), totals, a rank (`treasureRank`) and per-universe collections (`collectionProgress`). Pure helpers live in `domain/treasure.ts`; extra sounds are `playChestOpenSound`, `playTreasureTapSound`, `playTreasureSwipeSound`.
 - `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
+
+## Yellow and Red Cards
+
+Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: BehaviorCard[]`, whole history, kept in backups).
+
+- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the hold bypass).
+- **Yellow**: a warning, no effect. **Red**: `starProgress` goes back to 0 (stored in `lostProgress`); stars, medals, badges and trophies are never taken.
+- A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
+- `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
+- Parent Mode → History lists recent cards (`CardHistory`); `withdrawCard` removes a card given by mistake (with the red it triggered) and gives the stars back, up to just below a medal.
+- The selection screen shows tonight's cards on each child's card (`ChildSummary.cards`).
 
 ## Reminders
 

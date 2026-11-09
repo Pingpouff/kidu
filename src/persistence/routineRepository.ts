@@ -1,9 +1,10 @@
 import { db, getSettings } from './db';
-import { RoutineSession, HistoryEntry, ChildProfile } from '../domain/models';
+import { RoutineSession, HistoryEntry, ChildProfile, CardColor } from '../domain/models';
 import { BackupFile, createBackup } from '../domain/backup';
 import { TrophyId, computeTrophyStats, findNewTrophies } from '../domain/trophies';
 import { initSession, calculateHistory, syncSessionWithDefinitions, unassignChild } from '../domain/routine';
 import { applyTaskRewards, chooseBadge, spendBadges, starsPerMedal, shopItems } from '../domain/rewards';
+import { CardOutcome, giveCard, withdrawCard } from '../domain/cards';
 
 export const routineRepository = {
   /**
@@ -114,6 +115,30 @@ export const routineRepository = {
       const updated = spendBadges(profile, item);
       await db.profiles.put(updated);
       return updated;
+    });
+  },
+
+  /**
+   * A parent gives a yellow or red card (see domain/cards.ts).
+   */
+  async giveCard(childId: string, color: CardColor, date: string, reason?: string): Promise<{ outcome: CardOutcome; lostProgress: number } | undefined> {
+    return db.transaction('rw', db.profiles, async () => {
+      const profile = await db.profiles.get(childId);
+      if (!profile) return undefined;
+      const result = giveCard(profile, color, date, Date.now(), reason);
+      await db.profiles.put(result.profile);
+      return { outcome: result.outcome, lostProgress: result.lostProgress };
+    });
+  },
+
+  /**
+   * Withdraws a card given by mistake (gives back the stars a red card took).
+   */
+  async withdrawCard(childId: string, cardId: string): Promise<void> {
+    await db.transaction('rw', [db.profiles, db.settings], async () => {
+      const [profile, settings] = await Promise.all([db.profiles.get(childId), db.settings.get('current')]);
+      if (!profile) return;
+      await db.profiles.put(withdrawCard(profile, cardId, starsPerMedal(settings)));
     });
   },
 
