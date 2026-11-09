@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
 const openParentSettings = async (page: Page) => {
@@ -15,7 +16,8 @@ test.describe('Configuration backup', () => {
     await page.goto('/');
     await openParentSettings(page);
 
-    // 1. Export the current configuration
+    // 1. Export the current configuration (the date of the last backup follows)
+    await expect(page.getByTestId('last-backup')).toContainText('jamais');
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Exporter' }).click();
     const download = await downloadPromise;
@@ -25,6 +27,9 @@ test.describe('Configuration backup', () => {
     expect(exported.app).toBe('kidu');
     expect(exported.data.profiles.map((p: { name: string }) => p.name)).toContain('Léo');
     expect(exported.data).not.toHaveProperty('history');
+    expect(exported.data.settings).not.toHaveProperty('lastBackupAt');
+    await expect(page.getByTestId('last-backup')).not.toContainText('jamais');
+    await expect(page.getByTestId('storage-protection')).toBeVisible();
 
     // 2. Change the configuration: delete every task
     await page.getByRole('button', { name: 'Routine & Tâches' }).click();

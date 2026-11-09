@@ -73,3 +73,29 @@ export const removeMorningTasks = async (page: Page) => {
   }))).toBeGreaterThan(0);
   await page.reload();
 };
+
+/**
+ * Keeps only the given default tasks (by id) and clears sessions, then reloads.
+ * Waits for the seed first.
+ */
+export const keepOnlyTasks = async (page: Page, ids: string[]) => {
+  await expect.poll(() => page.evaluate((keep) => new Promise<number>((resolve) => {
+    const open = indexedDB.open('ChildrenEveningRoutineDB');
+    open.onsuccess = () => {
+      const idb = open.result;
+      if (!idb.objectStoreNames.contains('tasks')) { idb.close(); resolve(0); return; }
+      const tx = idb.transaction(['tasks', 'sessions'], 'readwrite');
+      const tasks = tx.objectStore('tasks');
+      let removed = 0;
+      tasks.getAll().onsuccess = (e) => {
+        for (const t of (e.target as IDBRequest).result) {
+          if (!keep.includes(t.id)) { tasks.delete(t.id); removed++; }
+        }
+        tx.objectStore('sessions').clear();
+      };
+      tx.oncomplete = () => { idb.close(); resolve(removed); };
+    };
+    open.onerror = () => resolve(0);
+  }), ids)).toBeGreaterThan(0);
+  await page.reload();
+};

@@ -1,20 +1,21 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings } from '../../domain/models';
 import { starsPerMedal } from '../../domain/rewards';
+import { isValidPin } from '../../domain/parentGate';
 import {
   NotificationStatus,
   notificationStatus,
   requestNotificationPermission,
   showSystemNotification,
 } from '../../services/notifications';
-import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
-import { Save, AlertOctagon, Download, Upload, HardDrive, Smartphone, RefreshCw, History } from 'lucide-react';
+import { Save } from 'lucide-react';
 import type { AppUpdate } from '../../services/appUpdate';
-import { APP_VERSION, CHANGELOG } from '../../domain/changelog';
-import { WhatsNewModal } from '../app/WhatsNewModal';
 import { buttonClass, fieldClass } from '../../ui/styles';
 import { PanelHeader } from '../../ui/Panel';
+import { BackupSection } from './settings/BackupSection';
+import { AppSection } from './settings/AppSection';
+import { DangerZone } from './settings/DangerZone';
 
 interface SettingsPanelProps {
   settings: ParentSettings;
@@ -26,12 +27,6 @@ interface SettingsPanelProps {
   appUpdate?: AppUpdate;
 }
 
-type BackupStatus =
-  | { kind: 'idle' }
-  | { kind: 'confirm'; fileName: string; content: string }
-  | { kind: 'success'; messageKey: string }
-  | { kind: 'error'; messageKey: string };
-
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   settings,
   language,
@@ -41,8 +36,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onImportBackup,
   appUpdate,
 }) => {
-  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [pin, setPin] = useState(settings.parentPin);
+  const [pinInvalid, setPinInvalid] = useState(false);
   const [lang, setLang] = useState<Language>(settings.language);
   const [perMedal, setPerMedal] = useState<number>(starsPerMedal(settings));
   const [feedback, setFeedback] = useState<FeedbackSettings>({ ...DEFAULT_FEEDBACK, ...settings.feedback });
@@ -67,7 +62,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     if (status === 'granted') setReminderField('systemNotifications', true);
   };
 
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleTestNotification = async () => {
@@ -80,7 +74,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin.length !== 4 || isNaN(Number(pin))) return;
+    if (!isValidPin(pin)) {
+      setPinInvalid(true);
+      return;
+    }
+    setPinInvalid(false);
 
     // Keep the fields edited elsewhere (shop, …)
     await onSaveSettings({
@@ -103,57 +101,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
-  const [includeHistory, setIncludeHistory] = useState(false);
-  const [backupStatus, setBackupStatus] = useState<BackupStatus>({ kind: 'idle' });
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const backupErrorKey = (err: unknown) =>
-    err instanceof BackupError && err.code === 'unsupported_version'
-      ? 'parent.backup.error_version'
-      : 'parent.backup.error';
-
-  const handleExport = async () => {
-    await onExportBackup(includeHistory);
-    setBackupStatus({ kind: 'success', messageKey: 'parent.backup.export_success' });
-  };
-
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    // Allow re-selecting the same file later
-    e.target.value = '';
-    if (!file) return;
-
-    try {
-      const content = await file.text();
-      parseBackup(content); // Validate before asking for confirmation
-      setBackupStatus({ kind: 'confirm', fileName: file.name, content });
-    } catch (err) {
-      setBackupStatus({ kind: 'error', messageKey: backupErrorKey(err) });
-    }
-  };
-
-  const handleConfirmImport = async () => {
-    if (backupStatus.kind !== 'confirm') return;
-    try {
-      await onImportBackup(backupStatus.content);
-      setBackupStatus({ kind: 'success', messageKey: 'parent.backup.import_success' });
-      // Reload so every screen picks up the restored configuration
-      setTimeout(() => window.location.reload(), 1200);
-    } catch (err) {
-      setBackupStatus({ kind: 'error', messageKey: backupErrorKey(err) });
-    }
-  };
-
-  const handleResetClick = async () => {
-    if (showResetConfirm) {
-      await onResetAllData();
-      setShowResetConfirm(false);
-      window.location.reload();
-    } else {
-      setShowResetConfirm(true);
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6">
       <PanelHeader title={translate('parent.settings.title', language)} />
@@ -167,14 +114,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {translate('parent.settings.pin_label', language)}
             </label>
             <input
-              type="text"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
               maxLength={4}
               pattern="\d{4}"
               required
+              aria-label={translate('parent.settings.pin_label', language)}
+              aria-invalid={pinInvalid}
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                setPinInvalid(false);
+              }}
               className={fieldClass('md', 'font-mono tracking-widest')}
             />
+            {pinInvalid && <p className="text-xs text-rose-400">{translate('parent.settings.pin_invalid', language)}</p>}
           </div>
 
           {/* Language selection dropdown */}
@@ -361,7 +316,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </button>
           {savedSuccess && (
             <span className="text-xs font-bold text-emerald-400 animate-pulse">
-              ✓ {language === 'fr' ? 'Paramètres sauvegardés !' : 'Settings saved!'}
+              ✓ {translate('parent.settings.saved', language)}
             </span>
           )}
         </div>
@@ -370,172 +325,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       {/* Divider */}
       <hr className="border-white/5 my-2" />
 
-      {/* Backup Zone */}
-      <div className="bg-indigo-950/20 border border-indigo-500/20 p-5 rounded-2xl flex flex-col gap-3">
-        <div className="flex items-center gap-3 text-indigo-300 font-extrabold text-sm uppercase tracking-wider">
-          <HardDrive className="w-5 h-5" />
-          <span>{translate('parent.backup.title', language)}</span>
-        </div>
-        <p className="text-xs text-white/50 leading-relaxed max-w-xl">
-          {translate('parent.backup.description', language)}
-        </p>
-
-        <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer w-fit">
-          <input
-            type="checkbox"
-            checked={includeHistory}
-            onChange={(e) => setIncludeHistory(e.target.checked)}
-            className="accent-indigo-500"
-          />
-          {translate('parent.backup.include_history', language)}
-        </label>
-
-        <div className="flex flex-wrap items-center gap-3 mt-1">
-          <button
-            type="button"
-            onClick={handleExport}
-            className={buttonClass('primary', 'sm')}
-          >
-            <Download className="w-4 h-4" />
-            <span>{translate('parent.backup.export', language)}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center gap-2 active:scale-95 transition-all"
-          >
-            <Upload className="w-4 h-4" />
-            <span>{translate('parent.backup.import', language)}</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleFileSelected}
-            className="hidden"
-            data-testid="backup-file-input"
-          />
-        </div>
-
-        {backupStatus.kind === 'confirm' && (
-          <div className="flex flex-col gap-3 mt-1 p-4 rounded-xl bg-amber-950/20 border border-amber-500/30">
-            <p className="text-xs text-amber-200 leading-relaxed">
-              <span className="font-mono font-bold">{backupStatus.fileName}</span>
-              {' — '}
-              {translate('parent.backup.import_confirm', language)}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleConfirmImport}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 hover:bg-amber-500 border border-amber-500 text-white active:scale-95 transition-all"
-              >
-                {translate('parent.backup.import_confirm_btn', language)}
-              </button>
-              <button
-                type="button"
-                onClick={() => setBackupStatus({ kind: 'idle' })}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
-              >
-                {translate('btn.cancel', language)}
-              </button>
-            </div>
-          </div>
-        )}
-        {backupStatus.kind === 'success' && (
-          <span className="text-xs font-bold text-emerald-400" role="status">
-            ✓ {translate(backupStatus.messageKey, language)}
-          </span>
-        )}
-        {backupStatus.kind === 'error' && (
-          <span className="text-xs font-bold text-rose-400" role="alert">
-            {translate(backupStatus.messageKey, language)}
-          </span>
-        )}
-      </div>
+      <BackupSection
+        settings={settings}
+        language={language}
+        onExportBackup={onExportBackup}
+        onImportBackup={onImportBackup}
+      />
 
       {/* Divider */}
-      {/* App version and updates */}
-      <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3" data-testid="app-version">
-        <div className="flex items-center gap-3 text-indigo-300 font-extrabold text-sm uppercase tracking-wider">
-          <Smartphone className="w-5 h-5" />
-          <span>{translate('parent.app.title', language)}</span>
-        </div>
-        <p className="text-sm text-white/70">
-          {translate('parent.app.version', language)}{language === 'fr' ? ' : ' : ': '}<strong className="text-white">{APP_VERSION}</strong>
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          {appUpdate?.updateAvailable ? (
-            <button type="button" onClick={appUpdate.applyUpdate} className={buttonClass('success', 'sm')}>
-              <RefreshCw className="w-4 h-4" />
-              <span>{translate('update.apply', language)}</span>
-            </button>
-          ) : (
-            appUpdate && (
-              <button
-                type="button"
-                onClick={appUpdate.checkNow}
-                disabled={appUpdate.lastCheck === 'checking'}
-                className={buttonClass('secondary', 'sm')}
-              >
-                <RefreshCw className={`w-4 h-4 ${appUpdate.lastCheck === 'checking' ? 'animate-spin' : ''}`} />
-                <span>{translate(appUpdate.lastCheck === 'checking' ? 'parent.app.checking' : 'parent.app.check', language)}</span>
-              </button>
-            )
-          )}
-          <button type="button" onClick={() => setShowVersionHistory(true)} className={buttonClass('secondary', 'sm')}>
-            <History className="w-4 h-4" />
-            <span>{translate('parent.app.history', language)}</span>
-          </button>
-        </div>
-        {appUpdate?.updateAvailable && (
-          <p className="text-xs text-emerald-300">{translate('update.available', language)}</p>
-        )}
-        {!appUpdate?.updateAvailable && (appUpdate?.lastCheck === 'up_to_date' || appUpdate?.lastCheck === 'unavailable') && (
-          <p className="text-xs text-white/50">{translate(`parent.app.${appUpdate.lastCheck}`, language)}</p>
-        )}
-      </div>
-
-      {showVersionHistory && (
-        <WhatsNewModal entries={CHANGELOG} language={language} mode="history" onClose={() => setShowVersionHistory(false)} />
-      )}
+      <AppSection language={language} appUpdate={appUpdate} />
 
       <hr className="border-white/5 my-2" />
 
-      {/* Dangerous Operations Zone */}
-      <div className="bg-rose-950/15 border border-rose-500/20 p-5 rounded-2xl flex flex-col gap-3">
-        <div className="flex items-center gap-3 text-rose-400 font-extrabold text-sm uppercase tracking-wider">
-          <AlertOctagon className="w-5 h-5" />
-          <span>Zone de danger</span>
-        </div>
-        <p className="text-xs text-white/50 leading-relaxed max-w-xl">
-          {translate('parent.settings.reset_db_confirm', language)}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 mt-1">
-          <button
-            onClick={handleResetClick}
-            className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all active:scale-95 ${
-              showResetConfirm
-                ? 'bg-rose-600 hover:bg-rose-500 border-rose-500 text-white'
-                : 'bg-white/5 hover:bg-rose-900/20 border-white/10 text-rose-400'
-            }`}
-          >
-            {showResetConfirm
-              ? (language === 'fr' ? 'Confirmer la suppression' : 'Confirm suppression')
-              : translate('parent.settings.reset_all_db', language)}
-          </button>
-          
-          {showResetConfirm && (
-            <button
-              onClick={() => setShowResetConfirm(false)}
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
-            >
-              {translate('btn.cancel', language)}
-            </button>
-          )}
-        </div>
-      </div>
+      <DangerZone language={language} onResetAllData={onResetAllData} />
     </div>
   );
 };

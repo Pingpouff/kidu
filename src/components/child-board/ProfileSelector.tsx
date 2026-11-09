@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChildProfile, ParentSettings, RoutineSession, TaskDefinition } from '../../domain/models';
-import { childSummary, upcomingDeadlines } from '../../domain/summary';
+import { childSummary, greetingKey, upcomingDeadlines } from '../../domain/summary';
 import { ChildCard } from './ChildCard';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Settings } from 'lucide-react';
@@ -90,7 +90,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
 
       <div className="flex-1 flex flex-col items-center w-full max-w-5xl mx-auto z-10 gap-8">
         <h1 className="text-3xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-indigo-300 drop-shadow">
-          {language === 'fr' ? 'Bonsoir ! Qui se prépare ? 🌟' : 'Good evening! Who is getting ready? 🌟'}
+          {translate(greetingKey(new Date(now).getHours()), language)}
         </h1>
 
         <div className="flex flex-wrap justify-center gap-6 w-full">
@@ -150,7 +150,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                     <span className="flex-1 min-w-0 truncate font-bold text-white">
                       {label(d.definitionId)}
                       {d.startTime && d.dueTime && (
-                        <span className="ml-2 text-xs font-semibold text-white/40">
+                        <span className="ml-2 text-xs font-semibold text-white/60">
                           {d.startTime}–{d.dueTime}
                         </span>
                       )}
@@ -169,8 +169,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       </div>
 
       {/* Footer message */}
-      <div className="text-center text-white/30 text-sm z-10">
-        {language === 'fr' ? 'Application Routine Enfant' : 'Kids Routine Companion App'}
+      <div className="text-center text-white/50 text-sm z-10">
+        {translate('home.footer', language)}
       </div>
     </div>
   );

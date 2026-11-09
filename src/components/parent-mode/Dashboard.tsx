@@ -12,6 +12,7 @@ import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'luc
 import { buttonClass } from '../../ui/styles';
 import { CardHistory } from './CardHistory';
 import type { AppUpdate } from '../../services/appUpdate';
+import { isBackupDue } from '../../domain/backup';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -72,6 +73,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   appUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
+  const [backupReminderHidden, setBackupReminderHidden] = useState(false);
+  const [now] = useState(() => Date.now());
+  const showBackupReminder = !backupReminderHidden && isBackupDue(settings.lastBackupAt, history.length, now);
 
   // Sidebar navigation configuration
   const navigationItems = [
@@ -99,7 +103,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {translate('parent.title', language)}
             </h1>
             <span className="hidden sm:block text-[10px] text-white/40 tracking-wider uppercase font-semibold">
-              Administration MVP
+              {translate('parent.subtitle', language)}
             </span>
           </div>
         </div>
@@ -114,6 +118,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <span className="sm:hidden">{translate('btn.exit_short', language)}</span>
         </button>
       </header>
+
+      {settings.parentPin === '1234' && activeTab !== 'settings' && (
+        <div
+          role="status"
+          data-testid="default-pin-warning"
+          className="z-10 flex flex-wrap items-center justify-center gap-3 px-4 py-2 bg-amber-500/15 border-b border-amber-400/30 text-amber-100 text-xs sm:text-sm"
+        >
+          <span>{translate('parent.default_pin_warning', language)}</span>
+          <button type="button" onClick={() => setActiveTab('settings')} className={buttonClass('secondary', 'sm', 'py-1')}>
+            {translate('parent.default_pin_action', language)}
+          </button>
+        </div>
+      )}
+
+      {showBackupReminder && (
+        <div
+          role="status"
+          data-testid="backup-reminder"
+          className="z-10 flex flex-wrap items-center justify-center gap-3 px-4 py-2 bg-sky-500/15 border-b border-sky-400/30 text-sky-100 text-xs sm:text-sm"
+        >
+          <span>💾 {translate('parent.backup.reminder', language)}</span>
+          <button
+            type="button"
+            onClick={async () => {
+              await onExportBackup(true);
+              setBackupReminderHidden(true);
+            }}
+            className={buttonClass('primary', 'sm', 'py-1')}
+          >
+            {translate('parent.backup.reminder_action', language)}
+          </button>
+          <button type="button" onClick={() => setBackupReminderHidden(true)} className={buttonClass('secondary', 'sm', 'py-1')}>
+            {translate('update.later', language)}
+          </button>
+        </div>
+      )}
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden z-10">

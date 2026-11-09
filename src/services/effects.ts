@@ -1,4 +1,4 @@
-import confetti from 'canvas-confetti';
+import type confetti from 'canvas-confetti';
 import { reminderService } from './ReminderService';
 
 /**
@@ -18,5 +18,6 @@ export function richMotion(): boolean {
  */
 export function fireConfetti(options: confetti.Options) {
   if (!richMotion()) return;
-  confetti({ disableForReducedMotion: true, ...options });
+  // Loaded on first use, kept out of the startup bundle
+  import('canvas-confetti').then(({ default: fire }) => fire({ disableForReducedMotion: true, ...options }));
 }

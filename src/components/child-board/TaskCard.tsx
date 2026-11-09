@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { RoutineTask, TaskDefinition } from '../../domain/models';
-import { translate, Language } from '../../i18n/dictionary';
+import { taskLabel, translate, Language } from '../../i18n/dictionary';
 
 interface TaskCardProps {
   task: RoutineTask;
@@ -102,6 +102,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
       {...listeners}
       {...attributes}
       onClick={handleClick}
+      // Keyboard: Enter / Space move the task like a tap
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onTap(task);
+        }
+      }}
+      aria-label={`${taskLabel(definition, language)}, ${translate(`task.status.${task.status}`, language)}${isLate ? ' ⏰' : ''}`}
       className={`${cardAspectClass} border ${cardTheme} flex flex-col items-center justify-center relative cursor-grab active:cursor-grabbing transform ${baseHoverClass} transition-all duration-300 ${
         isDragging ? 'opacity-50 scale-105 rotate-2 z-50 shadow-2xl' : 'z-10'
       }`}
@@ -143,7 +151,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Small helper text label */}
         {task.status !== 'done' && (
           <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
-            {definition?.labelKey ? translate(definition.labelKey, language) : (definition?.defaultLabel || '')}
+            {taskLabel(definition, language)}
           </span>
         )}
       </div>

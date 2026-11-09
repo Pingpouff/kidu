@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Language } from '../../i18n/dictionary';
+import { translate, Language } from '../../i18n/dictionary';
 import { Search, X } from 'lucide-react';
 
 interface EmojiItem {
@@ -111,7 +111,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
       {/* Header and Close */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-          {language === 'fr' ? 'Choisir un emoji' : 'Choose an emoji'}
+          {translate('emoji.title', language)}
         </span>
         <button
           type="button"
@@ -130,7 +130,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
           autoFocus
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+          placeholder={translate('emoji.search', language)}
           className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
         />
       </div>
@@ -139,7 +139,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
       <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto scrollbar-thin pr-1">
         {filteredEmojis.length === 0 ? (
           <div className="col-span-5 text-center py-4 text-xs text-white/30">
-            {language === 'fr' ? 'Aucun emoji trouvé' : 'No emoji found'}
+            {translate('emoji.none', language)}
           </div>
         ) : (
           filteredEmojis.map((item) => (

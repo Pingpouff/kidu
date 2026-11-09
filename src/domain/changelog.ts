@@ -16,6 +16,66 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.4.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Données mieux protégées : l\'app demande au navigateur de ne pas les effacer, et rappelle de faire une sauvegarde au bout de 30 jours.',
+        'Date de la dernière sauvegarde et état de la protection dans Paramètres.',
+        'Démarrage plus léger : le Mode Parent et les animations se chargent seulement quand on en a besoin.',
+        'Accessibilité : cartes de tâche lisibles par les lecteurs d\'écran et utilisables au clavier, focus géré dans les fenêtres, textes plus contrastés.',
+      ],
+      en: [
+        'Better protected data: the app asks the browser not to clear it, and reminds you to back up after 30 days.',
+        'Date of the last backup and protection status in Settings.',
+        'Lighter start: Parent Mode and animations load only when needed.',
+        'Accessibility: task cards readable by screen readers and usable with the keyboard, focus kept in dialogs, higher-contrast texts.',
+      ],
+    },
+  },
+  {
+    version: '1.3.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Bouton « Passer l\'étape » (avec le code parent) : un matin manqué ne bloque plus la soirée. Une étape passée peut être reprise.',
+        'Une journée compte pour la série dès que les autres étapes sont terminées, même si une étape a été passée.',
+        'Les tâches d\'une étape passée ne déclenchent plus de rappel de retard.',
+        'Jours par tâche : une tâche peut être limitée à certains jours (ex. cartable et devoirs du lundi au vendredi).',
+        'L\'historique montre aussi les journées partielles (ex. 9/12 tâches).',
+      ],
+      en: [
+        '"Skip this step" button (with the parent PIN): a missed morning no longer blocks the evening. A skipped step can be resumed.',
+        'A day counts for the streak once the other steps are done, even if a step was skipped.',
+        'Tasks of a skipped step no longer trigger late reminders.',
+        'Days per task: a task can be limited to some days (e.g. school bag and homework Monday to Friday).',
+        'The history also shows partial days (e.g. 9/12 tasks).',
+      ],
+    },
+  },
+  {
+    version: '1.2.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Mode Parent mieux protégé : plus de raccourci « maintenir 3 secondes ». En cas d\'oubli du code, une question de calcul pour adulte le remplace.',
+        'Après 3 codes faux, le clavier se bloque 30 secondes.',
+        'Le Mode Parent invite à remplacer le code 1234 ; le code est masqué dans Paramètres.',
+        'Salutation selon l\'heure (Bonjour, Bon après-midi, Bonsoir) et textes adaptés à toute la journée (« jours de suite », « aujourd\'hui »).',
+        'Le trophée « Lève-tôt » récompense maintenant l\'étape Matin finie avant 8 h.',
+        'Tous les textes de l\'app sont traduits en anglais.',
+      ],
+      en: [
+        'Parent Mode is better protected: no more "hold for 3 seconds" shortcut. If the PIN is forgotten, a grown-up math question replaces it.',
+        'After 3 wrong PINs, the keypad locks for 30 seconds.',
+        'Parent Mode asks to replace the 1234 PIN; the PIN is hidden in Settings.',
+        'Greeting depends on the time of day (Good morning, Good afternoon, Good evening) and texts fit the whole day ("days in a row", "today").',
+        'The "Early bird" trophy now rewards finishing the Morning step before 8 am.',
+        'Every text of the app is translated into English.',
+      ],
+    },
+  },
+  {
     version: '1.1.0',
     date: '2026-11-09',
     changes: {

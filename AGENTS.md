@@ -28,7 +28,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
     │   ├── backup.ts       # Backup file format, creation and validation
-    │   └── changelog.ts    # App version, bilingual changelog, "what's new" selection
+    │   ├── changelog.ts    # App version, bilingual changelog, "what's new" selection
+    │   └── parentGate.ts   # PIN lock-out, grown-up question, PIN format
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
@@ -36,6 +37,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
     │   ├── ReminderQueue.ts # Serial queue of reminder announcements
+    │   ├── storage.ts      # Persistent storage request / status
     │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
@@ -53,8 +55,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
     │   ├── app/            # Update banner and "What's new" window
-    │   ├── child-board/    # Kid-facing board components
-    │   ├── parent-mode/    # Parent settings dashboard components
+    │   ├── child-board/    # Kid-facing board (RoutineBoard, PhaseIndicator, StarMeter, TaskCard…)
+    │   ├── parent-mode/    # Parent dashboard; settings/ (Backup, App, Danger zone) and tasks/ (fields, DayPicker, SortableTaskRow)
     │   └── rewards/        # Fanfare and confetti celebrations
     └── tests/
         ├── domain.test.ts  # Vitest unit test suite
@@ -97,6 +99,7 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        startTime?: string; // "HH:MM" expected start, one "time to start" reminder
        dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
+       days?: number[]; // 0 = Sunday … 6 = Saturday, missing/empty = every day
      }
      ```
 
@@ -149,13 +152,16 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
 
 ## Routine Phases
 
-Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase, so the evening phases show up once the morning one is done.
+Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase; the board shows the first phase neither done nor skipped.
 
 - Default morning tasks: get dressed, breakfast, brush teeth, shoes & coat. Existing databases get them once through the Dexie `version(2)` upgrade in `persistence/db.ts` (skipped if a morning task already exists).
 - Each phase has a "finish it 10 times" trophy (`morning_10`, `after_school_10`, …).
 
 - `sortDefinitions` orders tasks by phase, then by `order`; sessions are built and synced with it.
-- `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.
+- `getRoutinePhases(session, definitions)` returns the non-empty phases (with `isCompleted` / `isSkipped`); `getCurrentPhaseIndex` returns the first one neither completed nor skipped.
+- **Skipping a step**: a parent can skip the current step from the board ("Passer l'étape", PIN) or resume a skipped one; `RoutineSession.skippedPhases`, `skipPhase` / `unskipPhase`. A skipped step raises no reminder and isn't proposed on the selection screen.
+- **Day completed**: `isSessionCompleted` — every step done or skipped, and at least one done. `withCompletion` recomputes `isCompleted` / `completedAt`; every session change goes through it (`moveTask`, `syncSessionWithDefinitions`, the board). Streaks and routine trophies use it, so a skipped morning doesn't break a streak; per-phase trophies only count steps really done.
+- **History**: every session change upserts its history entry, so partial days show up (e.g. 9/12). A day with nothing done has no entry (a reset removes it).
 - The child board only shows the current phase's tasks, with a step indicator, a "step complete" banner/sound/voice when a phase ends, and a night-sky overlay during `bedtime`. Overall progress and the final celebration still cover the whole routine.
 - In Parent Mode, tasks are grouped by phase and can only be reordered inside their phase. The phase is chosen when creating or editing a task.
 
@@ -168,6 +174,12 @@ Tasks belong to one of four fixed phases, run in order: `morning` → `after_sch
 - `routineRepository.deleteProfile` removes the child from assignments and deletes the tasks that were assigned only to them (`unassignChild`).
 - In Parent Mode, `AssigneePicker` (TaskManager) toggles "Every child" or specific children; selecting all children goes back to a common task. Backups keep `assignedTo`.
 
+## Days of the Week
+
+- `TaskDefinition.days` limits a task to some days (`weekdayOf`, `isTaskForDay`, `definitionsForChildOn` in `domain/routine.ts`). Sessions, syncs and reminders only include the tasks planned that day.
+- `DayPicker` (TaskManager): "Every day", "Mon → Fri" or single days; choosing all seven comes back to every day. Default school tasks (empty bag, homework, pack bag) are Monday–Friday.
+- e2e: `e2e/fixtures.ts` moves the browser clock back to Friday when the suite runs on a weekend, so specs always see a school day. Specs import `test` / `expect` from `./fixtures`.
+
 ## Selection Screen Overview
 
 `domain/summary.ts`: `childSummary` (status, done/total, current phase, doing/next task, late tasks, next due time, stars to the next medal, piggy bank badges, pending badge choices, live streak) and `upcomingDeadlines` (next due times grouped by task, children listed together). A child without a session today is previewed with `initSession`. `ProfileSelector` re-renders every 30 s and gets all sessions from `App.tsx`.
@@ -179,7 +191,7 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **Stars**: one per task the first time it reaches `done` on a given day. `RoutineTask.rewarded` marks it; the flag survives undo/redo, session resets and task-list syncs, and the repository merges it from the stored session to resist stale UI copies.
 - **Medals**: every `settings.rewards.starsPerMedal` stars (default 3). `profile.starProgress` holds the remainder, `profile.medalCount` the total.
 - **Badges**: each medal queues an offer of 3 badges from distinct universes (`profile.badgeOffers`, drawn by `drawBadgeOffer`, preferring badges not owned yet). The child picks one (`chooseBadge`) → `profile.badges`.
-- **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the hold bypass). Spent badges stay in the album with `spentAt`/`spentOn`.
+- **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the "forgot the PIN" question). Spent badges stay in the album with `spentAt`/`spentOn`.
 - **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
 - **My treasure** (`components/rewards/TreasureView.tsx`, opened from the piggy bank): a chest to open, then a spotlight carousel of every trophy and badge (`treasureItems`: trophies first, one entry per badge kind with copies counted), totals, a rank (`treasureRank`) and per-universe collections (`collectionProgress`). Pure helpers live in `domain/treasure.ts`; extra sounds are `playChestOpenSound`, `playTreasureTapSound`, `playTreasureSwipeSound`.
 - `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
@@ -188,7 +200,7 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 
 Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: BehaviorCard[]`, whole history, kept in backups).
 
-- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the hold bypass).
+- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the "forgot the PIN" question).
 - **Yellow**: a warning, no effect. **Red**: `starProgress` goes back to 0 (stored in `lostProgress`); stars, medals, badges and trophies are never taken.
 - A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
 - `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
@@ -227,6 +239,17 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 - **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
 - **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
 
+## Parent Mode Access
+
+- `PinModal` checks the PIN client-side. Rules live in `domain/parentGate.ts`: 3 wrong attempts (`MAX_PIN_ATTEMPTS`) lock every PIN pad for 30 s (`PIN_LOCK_MS`); the guard is module-level in `PinModal.tsx`, so closing and reopening the pad doesn't reset it.
+- `allowForgotPin` (only `App.tsx`, to enter Parent Mode) shows "Code oublié ?": a grown-up multiplication (`makeChallenge`) replaces the PIN. Shop purchases and cards always require the PIN. There is no long-press bypass anymore.
+- Parent Mode shows a warning while the PIN is still the default `1234`; the settings field is a password field validated with `isValidPin`.
+
+## Translations
+
+- `translate(key, lang, vars?)` only accepts keys of the French dictionary (`TranslationKey`), so a typo doesn't compile; template keys such as `` `category.${c}` `` type-check when every value exists. Use `translateDynamic` for keys only known at runtime (`cheer.${n}`, stored `labelKey`s).
+- `{placeholders}` are filled from `vars`: `translate('badge.choose_spoken', lang, { name })`. Don't build sentences with `language === 'fr' ? … : …` in components.
+
 ## Versions, Changelog and Updates
 
 - **Version**: `package.json` `version` (semver), injected at build time as `__APP_VERSION__` (`define` in `vite.config.ts`) and exported as `APP_VERSION` from `domain/changelog.ts`.
@@ -235,6 +258,17 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 - **What's new**: on startup, `App.tsx` compares `localStorage['kidu.lastSeenVersion']` with `APP_VERSION` and shows `WhatsNewModal` on the selection screen if versions were missed. A fresh install (`seedDatabase()` returns `freshInstall`) shows nothing; an install from before versions were tracked counts as `BASELINE_VERSION` (1.0.0).
 - **Releasing** (before merging `development` into `main`): bump `package.json` `version` and add the matching entry at the top of `CHANGELOG`. `src/tests/changelog.test.tsx` fails (and blocks the deploy) if they don't match.
 - The dev server doesn't run the service worker: to try the update flow, `npm run build && npm run preview`, then rebuild with a higher version.
+
+## Data Safety
+
+- `requestPersistentStorage()` (`services/storage.ts`) runs at startup so the browser doesn't evict IndexedDB; Settings → *App* shows the status.
+- `settings.lastBackupAt` is set on every export (it is not written into backup files). `isBackupDue` (`domain/backup.ts`) — at least 3 history days and no export for 30 days — shows a "back up now" banner in Parent Mode.
+
+## Performance, CI and Accessibility
+
+- Parent Mode (`Dashboard`), `Celebration`, `TreasureView` and `canvas-confetti` are loaded on demand (`React.lazy` / dynamic `import()`); the service worker still precaches every chunk for offline use.
+- `.github/workflows/ci.yml` runs lint, `tsc -b`, unit and e2e tests on every push to `development` and on pull requests; `deploy-pages.yml` does the same before deploying `main`.
+- Task cards have an accessible name and status and react to Enter / Space; the progress bar is a `progressbar`; the star meter announces its count. `Overlay` moves focus inside when it opens, keeps Tab inside the top overlay and gives focus back on close.
 
 ## Configuration Backup
 

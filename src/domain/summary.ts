@@ -1,5 +1,5 @@
 import { ChildProfile, ParentSettings, RoutineSession, TaskCategory, TaskDefinition } from './models';
-import { getCurrentPhaseIndex, getRoutinePhases, initSession, isTaskForChild, sortDefinitions } from './routine';
+import { getCurrentPhaseIndex, getRoutinePhases, initSession, isSessionCompleted, isTaskForChild, sortDefinitions } from './routine';
 import { dueTimeToEpoch, findOverdueTasks, isValidDueTime } from './reminders';
 import { starsPerMedal, unspentBadges } from './rewards';
 import { currentStreak, dayDiff } from './trophies';
@@ -105,9 +105,9 @@ export function childSummary(
   const status: RoutineStatus =
     total === 0
       ? 'no_tasks'
-      : session.isCompleted || done === total
+      : session.isCompleted || isSessionCompleted({ ...session, tasks }, definitions)
         ? 'completed'
-        : started && tasks.some((t) => t.status !== 'todo')
+        : started && (tasks.some((t) => t.status !== 'todo') || (session.skippedPhases?.length ?? 0) > 0)
           ? 'in_progress'
           : 'not_started';
 
@@ -140,7 +140,8 @@ export function childSummary(
         }
       : {}),
     doing: tasks.filter((t) => t.status === 'doing').map((t) => t.definitionId),
-    next: tasks.find((t) => t.status === 'todo')?.definitionId,
+    // Next task of the current step (a skipped step's tasks aren't proposed)
+    next: (currentPhase?.tasks ?? tasks).find((t) => t.status === 'todo')?.definitionId,
     late,
     ...(upcoming ? { upcoming } : {}),
     ...(session.completedAt ? { completedAt: session.completedAt } : {}),
@@ -181,4 +182,11 @@ export function upcomingDeadlines(
     }
   }
   return [...groups.values()].sort((a, b) => a.at - b.at).slice(0, limit);
+}
+
+/** Home screen greeting for the hour of the day (0–23). */
+export function greetingKey(hour: number): 'home.greeting.morning' | 'home.greeting.afternoon' | 'home.greeting.evening' {
+  if (hour >= 5 && hour < 12) return 'home.greeting.morning';
+  if (hour >= 12 && hour < 18) return 'home.greeting.afternoon';
+  return 'home.greeting.evening';
 }

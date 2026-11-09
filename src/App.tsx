@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedDatabase, saveSettings } from './persistence/db';
 import { routineRepository } from './persistence/routineRepository';
 import { ChildProfile, TaskDefinition, ParentSettings, RoutineSession, ShopItem } from './domain/models';
 import { ProfileSelector } from './components/child-board/ProfileSelector';
 import { RoutineBoard } from './components/child-board/RoutineBoard';
-import { Celebration } from './components/rewards/Celebration';
 import { PinModal } from './components/parent-mode/PinModal';
-import { Dashboard as ParentDashboard } from './components/parent-mode/Dashboard';
 import { reminderService } from './services/ReminderService';
 import { backupFileName, parseBackup } from './domain/backup';
 import { TrophyId, TROPHY_ICONS } from './domain/trophies';
@@ -20,12 +18,17 @@ import { useTaskReminders } from './hooks/useTaskReminders';
 import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
 import { APP_VERSION, ChangelogEntry, changesSince, previousVersion } from './domain/changelog';
 import { AppUpdateBanner } from './components/app/AppUpdateBanner';
+import { requestPersistentStorage } from './services/storage';
 import { WhatsNewModal } from './components/app/WhatsNewModal';
 
 /** Rewards waiting to be revealed, one full-screen reveal at a time */
 type Reveal =
   | { kind: 'medal'; childId: string; key: string }
   | { kind: 'trophy'; childId: string; id: TrophyId; key: string };
+
+// Loaded on demand: Parent Mode and the end-of-day celebration aren't needed to start the app
+const ParentDashboard = lazy(() => import('./components/parent-mode/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Celebration = lazy(() => import('./components/rewards/Celebration').then((m) => ({ default: m.Celebration })));
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
@@ -41,6 +44,11 @@ export default function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [lastSeenVersion] = useState(readLastSeenVersion); // read before it is overwritten below
   const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
+
+  // Ask the browser to keep our data (no automatic eviction)
+  useEffect(() => {
+    requestPersistentStorage();
+  }, []);
 
   // Seed DB on mount
   useEffect(() => {
@@ -112,12 +120,12 @@ export default function App() {
   if (!dbSeeded || !profiles || !tasks || !settings) {
     return (
       <div className="w-full h-screen bg-slate-950 flex flex-col justify-center items-center gap-4 text-white">
-        <div className="text-7xl animate-bounce">🌙</div>
+        <div className="text-7xl animate-bounce">🌟</div>
         <div className="h-2 w-32 bg-white/10 rounded-full overflow-hidden relative">
           <div className="h-full bg-indigo-500 w-1/2 rounded-full absolute left-0 top-0 animate-pulse" />
         </div>
         <p className="text-sm text-indigo-300 font-bold tracking-wider uppercase animate-pulse">
-          Chargement...
+          {translate('app.loading', settings?.language ?? 'fr')}
         </p>
       </div>
     );
@@ -131,9 +139,8 @@ export default function App() {
     // One star per newly completed task, a medal every N stars
     const { medalsGained } = await routineRepository.saveSessionWithRewards(updatedSession);
 
-    if (updatedSession.isCompleted) {
-      await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
-    }
+    // Partial days are kept in the history too (e.g. 9/12 tasks)
+    await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
 
     const newTrophies = await routineRepository.awardNewTrophies(childId);
 
@@ -241,6 +248,7 @@ export default function App() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    await saveSettings({ ...settings, lastBackupAt: Date.now() });
   };
 
   // Throws a BackupError when the file is not a valid backup
@@ -260,6 +268,7 @@ export default function App() {
   if (parentMode) {
     return (
       <>
+      <Suspense fallback={<div className="w-full h-[100dvh] bg-slate-950" />}>
       <ParentDashboard
         profiles={profiles}
         tasks={tasks}
@@ -283,6 +292,7 @@ export default function App() {
         onSaveShop={handleSaveShop}
         appUpdate={appUpdate}
       />
+      </Suspense>
       {updateBanner}
       </>
     );
@@ -292,6 +302,7 @@ export default function App() {
     <>
       {/* 1. Celebration Layer overlay */}
       {celebrationActive && activeProfile && (
+        <Suspense fallback={null}>
         <Celebration
           profile={activeProfile}
           language={activeLang}
@@ -301,6 +312,7 @@ export default function App() {
             setActiveProfileId(null); // return to select child screen
           }}
         />
+        </Suspense>
       )}
 
       {/* Medal / trophy reveal, above the routine celebration */}
@@ -321,12 +333,10 @@ export default function App() {
           }
           spoken={
             currentReveal.kind === 'medal'
-              ? activeLang === 'fr'
-                ? `Bravo ${revealChild?.name ?? ''} ! Tu as gagné une médaille !`
-                : `Well done ${revealChild?.name ?? ''}! You won a medal!`
-              : activeLang === 'fr'
-                ? `Nouveau trophée : ${translate(`trophy.${currentReveal.id}.name`, activeLang)} !`
-                : `New trophy: ${translate(`trophy.${currentReveal.id}.name`, activeLang)}!`
+              ? translate('reveal.new_medal_spoken', activeLang, { name: revealChild?.name ?? '' })
+              : translate('reveal.new_trophy_spoken', activeLang, {
+                  trophy: translate(`trophy.${currentReveal.id}.name`, activeLang),
+                })
           }
           language={activeLang}
           position={revealPosition}
@@ -363,6 +373,7 @@ export default function App() {
       {pinPrompt && (
         <PinModal
           correctPin={settings.parentPin}
+          allowForgotPin
           language={activeLang}
           onSuccess={() => {
             setPinPrompt(false);

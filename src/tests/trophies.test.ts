@@ -56,15 +56,29 @@ describe('Trophies', () => {
     expect(trophiesFor([session('2026-11-09', ['snack'])])).toEqual(['first_step']);
   });
 
-  it('earns "first routine" and "early bird" for a routine finished before 8 pm', () => {
-    const medals = trophiesFor([session('2026-11-09')]);
-    expect(medals).toEqual(['first_step', 'first_routine', 'early_bird']);
+  it('earns "first routine" once every step is done', () => {
+    expect(trophiesFor([session('2026-11-09')])).toEqual(['first_step', 'first_routine']);
   });
 
-  it('does not earn "early bird" after 8 pm', () => {
-    const medals = trophiesFor([session('2026-11-09', undefined, { startHour: 20 })]);
-    expect(medals).not.toContain('early_bird');
-    expect(medals).toContain('first_routine');
+  it('earns "early bird" when the morning step is finished before 8 am', () => {
+    const morning: TaskDefinition[] = [
+      { id: 'dress', labelKey: '', defaultLabel: 'Dress', icon: '👖', order: 1, category: 'morning' },
+      { id: 'breakfast', labelKey: '', defaultLabel: 'Breakfast', icon: '🥣', order: 2, category: 'morning' },
+    ];
+    const morningSession = (lastDoneHour: number): RoutineSession => ({
+      id: '2026-11-09_leo',
+      childId: 'leo',
+      date: '2026-11-09',
+      isCompleted: false,
+      tasks: [
+        { id: 'a', definitionId: 'dress', status: 'done', completedAt: at('2026-11-09', 7, 10) },
+        { id: 'b', definitionId: 'breakfast', status: 'done', completedAt: at('2026-11-09', lastDoneHour, 40) },
+      ],
+    });
+    expect(findNewTrophies(computeTrophyStats([morningSession(7)], morning))).toContain('early_bird');
+    expect(findNewTrophies(computeTrophyStats([morningSession(8)], morning))).not.toContain('early_bird');
+    // Evening steps never count, however early
+    expect(trophiesFor([session('2026-11-09', undefined, { startHour: 6 })])).not.toContain('early_bird');
   });
 
   it('counts consecutive days for streaks, across month boundaries', () => {
@@ -108,7 +122,7 @@ describe('Trophies', () => {
   it('never returns a medal the child already has', () => {
     const stats = computeTrophyStats([session('2026-11-09')], definitions);
     const earned = [{ id: 'first_routine' as const, earnedAt: 1 }];
-    expect(findNewTrophies(stats, earned)).toEqual(['first_step', 'early_bird']);
+    expect(findNewTrophies(stats, earned)).toEqual(['first_step']);
   });
 
   it('keeps medals in backups and rejects unknown ones', () => {

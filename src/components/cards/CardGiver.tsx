@@ -100,7 +100,6 @@ export const CardGiver: React.FC<CardGiverProps> = ({ profile, tonight, parentPi
         <PinModal
           correctPin={parentPin}
           language={language}
-          allowHoldBypass={false}
           title={`${translate(`cards.${color}`, language)} · ${profile.name}`}
           instruction={translate('cards.pin_instruction', language)}
           onSuccess={() => {

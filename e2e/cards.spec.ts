@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 const typePin = async (page: Page) => {
@@ -90,14 +91,14 @@ test.describe('Yellow and red cards', () => {
     await reveal.click();
     const banner = page.getByTestId('card-banner');
     await expect(banner).toHaveAttribute('data-level', 'yellow');
-    await expect(banner).toContainText('Carton jaune ce soir · Gros mots');
+    await expect(banner).toContainText("Carton jaune aujourd'hui · Gros mots");
     await expect(page.getByTestId('card-frame')).toHaveAttribute('data-level', 'yellow');
     await expect(page.getByTestId('star-meter-card')).toHaveCount(0); // a yellow does not touch the stars
 
     // Tapping the banner shows the card again, quietly
     await banner.click();
     await expect(reveal).toHaveAttribute('data-mode', 'reminder');
-    await expect(reveal).toContainText('Rappel : carton jaune ce soir');
+    await expect(reveal).toContainText("Rappel : carton jaune aujourd'hui");
     await reveal.click();
 
     // Red card: red everywhere, card stuck on the star counter
@@ -114,12 +115,12 @@ test.describe('Yellow and red cards', () => {
     const leo = page.getByTestId('child-card-leo');
     await expect(leo).toHaveAttribute('data-card-level', 'red');
     await expect(leo.getByTestId('home-card')).toBeVisible();
-    await expect(leo.getByTestId('home-card-reason')).toContainText('Carton rouge ce soir · Comportement dangereux');
+    await expect(leo.getByTestId('home-card-reason')).toContainText("Carton rouge aujourd'hui · Comportement dangereux");
 
     // Reopening the board: reminder first, which closes by itself
     await leo.click();
     await expect(reveal).toHaveAttribute('data-mode', 'reminder');
-    await expect(reveal).toContainText('Rappel : carton rouge ce soir');
+    await expect(reveal).toContainText("Rappel : carton rouge aujourd'hui");
     await expect(reveal).toHaveCount(0, { timeout: 8000 });
 
     // Next evening: everything is gone

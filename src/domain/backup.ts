@@ -177,7 +177,8 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       (t.category !== undefined && !TASK_CATEGORIES.includes(t.category as TaskCategory)) ||
       (t.dueTime !== undefined && !isValidDueTime(t.dueTime)) ||
       (t.startTime !== undefined && !isValidDueTime(t.startTime)) ||
-      (t.assignedTo !== undefined && (!Array.isArray(t.assignedTo) || !t.assignedTo.every(isString)))
+      (t.assignedTo !== undefined && (!Array.isArray(t.assignedTo) || !t.assignedTo.every(isString))) ||
+      (t.days !== undefined && (!Array.isArray(t.days) || !t.days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)))
     ) {
       throw new BackupError('invalid_tasks');
     }
@@ -192,6 +193,7 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       ...(isValidDueTime(t.startTime) ? { startTime: t.startTime } : {}),
       ...(isValidDueTime(t.dueTime) ? { dueTime: t.dueTime } : {}),
       ...(Array.isArray(t.assignedTo) && t.assignedTo.length > 0 ? { assignedTo: [...new Set(t.assignedTo as string[])] } : {}),
+      ...(Array.isArray(t.days) && t.days.length > 0 ? { days: [...new Set(t.days as number[])] } : {}),
     };
   });
   if (new Set(tasks.map((t) => t.id)).size !== tasks.length) throw new BackupError('invalid_tasks');
@@ -351,4 +353,15 @@ export function parseBackup(text: string): BackupFile {
       ...(data.history !== undefined ? { history: parseHistory(data.history) } : {}),
     },
   };
+}
+
+/** Remind parents to back up after this many days (or if they never did). */
+export const BACKUP_REMINDER_DAYS = 30;
+/** Below this many history days, there is little to lose: no reminder yet. */
+export const BACKUP_REMINDER_MIN_HISTORY = 3;
+
+/** True when the parent should be reminded to export a backup. */
+export function isBackupDue(lastBackupAt: number | undefined, historyCount: number, now: number): boolean {
+  if (historyCount < BACKUP_REMINDER_MIN_HISTORY) return false;
+  return lastBackupAt === undefined || now - lastBackupAt > BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000;
 }

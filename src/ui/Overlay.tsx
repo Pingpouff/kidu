@@ -34,6 +34,56 @@ function useOverlayStack(id: string, onEscape?: () => void) {
   }, [id]);
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Keyboard focus for the top overlay: moves focus inside on open (unless an
+ * element already took it, e.g. `autoFocus`), keeps Tab inside, and gives
+ * focus back to the element that had it when the overlay closes.
+ */
+function useFocusTrap(id: string, container: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const root = container.current;
+    if (!root) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusables = () => Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.closest('[aria-hidden="true"]'));
+
+    if (!root.contains(document.activeElement)) {
+      (focusables()[0] ?? root).focus({ preventScroll: true });
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || openStack[openStack.length - 1] !== id) return;
+      const items = focusables();
+      if (items.length === 0) {
+        e.preventDefault();
+        root.focus({ preventScroll: true });
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !root.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !root.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      // On close, focus was inside the overlay (now gone, so on <body>): give it back
+      const active = document.activeElement;
+      if (previous?.isConnected && (active === document.body || active === null || root.contains(active))) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, [id, container]);
+}
+
 export interface OverlayProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'role'> {
   /** Stacking level (see layers.ts) */
   layer: Layer;
@@ -55,13 +105,21 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(function O
 ) {
   const id = useId();
   useOverlayStack(id, onClose);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(id, innerRef);
+  const setRefs = (node: HTMLDivElement | null) => {
+    innerRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  };
 
   return (
     <div
-      ref={ref}
+      ref={setRefs}
+      tabIndex={-1}
       role={role}
       aria-modal={role === 'presentation' ? undefined : true}
-      className={cx('fixed inset-0', LAYER[layer], className)}
+      className={cx('fixed inset-0 outline-none', LAYER[layer], className)}
       onClick={(e) => {
         onClick?.(e);
         if (closeOnBackdrop && e.target === e.currentTarget) onClose?.();

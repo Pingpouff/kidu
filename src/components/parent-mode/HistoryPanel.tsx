@@ -84,7 +84,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
               </div>
 
               <ConfirmIconButton
-                label="delete history entry"
+                label={translate('parent.history.delete', language)}
                 confirmText={translate('btn.confirm_delete', language)}
                 icon={<Trash2 className="w-4 h-4" />}
                 onConfirm={() => onDeleteHistory(entry.id)}

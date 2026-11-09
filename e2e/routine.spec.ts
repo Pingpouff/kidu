@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { openTaskForm } from './helpers';
 
 test.describe('Kids Evening Routine E2E Flow', () => {
@@ -57,7 +57,7 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     await expect(page.locator('header')).toContainText('Léo');
 
     // 8. Click the Reset button once. Verify the "Sûr ?" confirmation appears
-    const resetBtn = page.locator('button[aria-label="reset routine"]');
+    const resetBtn = page.locator('button[aria-label="Recommencer la routine"]');
     await resetBtn.click();
     await expect(resetBtn).toContainText(/Sûr/i);
 
@@ -85,7 +85,7 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     await expect(page.locator('h1')).toContainText(/Tableau de bord/i);
 
     // 2. Locate first and second task drag handles
-    const dragHandles = page.locator('button[aria-label="drag task"]');
+    const dragHandles = page.locator('button[aria-label="Déplacer la tâche"]');
     const firstHandle = dragHandles.nth(0);
     const secondHandle = dragHandles.nth(1);
     const firstTaskRow = firstHandle.locator('xpath=../..');
@@ -131,7 +131,7 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     await page.getByRole('button', { name: '3', exact: true }).click();
     await page.getByRole('button', { name: '4', exact: true }).click();
 
-    const reorderedHandles = page.locator('button[aria-label="drag task"]');
+    const reorderedHandles = page.locator('button[aria-label="Déplacer la tâche"]');
     await expect(reorderedHandles.nth(0).locator('xpath=../..').locator('p')).toHaveText(secondTaskLabel!);
     await expect(reorderedHandles.nth(1).locator('xpath=../..').locator('p')).toHaveText(firstTaskLabel!);
   });

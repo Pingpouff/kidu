@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 test.describe('Stars, medals, badges and piggy bank', () => {

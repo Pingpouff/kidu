@@ -9,9 +9,10 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
-import { getRoutinePhases, getCurrentPhaseIndex } from '../../domain/routine';
-import { translate, Language } from '../../i18n/dictionary';
+import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory, TaskStatus } from '../../domain/models';
+import { getRoutinePhases, getCurrentPhaseIndex, moveTask, skipPhase, unskipPhase, withCompletion } from '../../domain/routine';
+import { PinModal } from '../parent-mode/PinModal';
+import { translate, translateDynamic, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
@@ -29,6 +30,8 @@ import { CardOutcome, tonightCardState } from '../../domain/cards';
 import { CardBanner } from '../cards/CardBanner';
 import { CardGiver } from '../cards/CardGiver';
 import { CardReveal } from '../cards/CardReveal';
+import { PhaseIndicator } from './PhaseIndicator';
+import { StarMeter } from './StarMeter';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -49,6 +52,9 @@ interface RoutineBoardProps {
   /** A parent gives a yellow / red card (after PIN check) */
   onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
 }
+
+/** Tap-to-progress order */
+const NEXT_STATUS: Record<TaskStatus, TaskStatus> = { todo: 'doing', doing: 'done', done: 'todo' };
 
 /* A star flying from the "done" column to the star meter */
 const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> = ({ from, to, onDone }) => {
@@ -129,6 +135,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   }, []);
   const [showPiggy, setShowPiggy] = useState(false);
   const [showCardGiver, setShowCardGiver] = useState(false);
+  // A parent skips the current step, or resumes a skipped one (PIN)
+  const [phaseAction, setPhaseAction] = useState<{ kind: 'skip' | 'resume'; category: TaskCategory } | null>(null);
   const [cardReveal, setCardReveal] = useState<{ outcome: CardOutcome; lostProgress: number; reason?: string } | null>(null);
   const tonightCards = tonightCardState(profile, session.date);
   // Every time the board opens with a card tonight, the card is shown again first
@@ -160,10 +168,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   const phases = getRoutinePhases(session, tasksDefinitions);
   const currentPhaseIndex = getCurrentPhaseIndex(phases);
   const currentPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex] : null;
-  const nextPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex + 1] : undefined;
   const visibleTasks = currentPhase ? currentPhase.tasks : session.tasks;
   const isBedtime = currentPhase?.category === 'bedtime';
-  const colon = language === 'fr' ? ' : ' : ': ';
 
   // Filter tasks into their respective columns
   const todoTasks = visibleTasks.filter((t) => t.status === 'todo');
@@ -175,35 +181,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     return tasksDefinitions.find((d) => d.id === defId)!;
   };
 
-  // Tap-to-progress: Moves task sequentially
-  const handleTaskTap = (task: RoutineTask) => {
-    let nextStatus: 'todo' | 'doing' | 'done';
-    if (task.status === 'todo') {
-      nextStatus = 'doing';
-      reminderService.playMoveSound();
-    } else if (task.status === 'doing') {
-      nextStatus = 'done';
-      reminderService.playTaskDoneSound();
-    } else {
-      nextStatus = 'todo';
-      reminderService.playResetSound();
-    }
-
-    const updatedTasks = session.tasks.map((t) => {
-      if (t.id === task.id) {
-        return {
-          ...t,
-          status: nextStatus,
-          completedAt: nextStatus === 'done' ? Date.now() : undefined,
-        };
-      }
-      return t;
-    });
-
-    triggerSessionUpdate(updatedTasks);
+  // One path for taps and drags: sound by destination, then the domain move
+  const moveTo = (task: RoutineTask, status: TaskStatus) => {
+    if (task.status === status) return;
+    if (status === 'done') reminderService.playTaskDoneSound();
+    else if (status === 'doing') reminderService.playMoveSound();
+    else reminderService.playResetSound();
+    triggerSessionUpdate(moveTask(session, task.id, status, tasksDefinitions).tasks);
   };
 
-  // Drag-and-drop end trigger
+  // Tap-to-progress: todo → doing → done → todo
+  const handleTaskTap = (task: RoutineTask) => moveTo(task, NEXT_STATUS[task.status]);
+
+  // Drag-and-drop
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragId(event.active.id as string);
   };
@@ -211,50 +201,24 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragId(null);
-
     if (!over) return;
+    const task = session.tasks.find((t) => t.id === active.id);
+    if (task) moveTo(task, over.id as TaskStatus);
+  };
 
-    const taskId = active.id as string;
-    const targetStatus = over.id as 'todo' | 'doing' | 'done';
-
-    const task = session.tasks.find((t) => t.id === taskId);
-    if (!task || task.status === targetStatus) return;
-
-    // Trigger audio cues based on destination
-    if (targetStatus === 'done') {
-      reminderService.playTaskDoneSound();
-    } else if (targetStatus === 'doing') {
-      reminderService.playMoveSound();
-    } else {
-      reminderService.playResetSound();
-    }
-
-    const updatedTasks = session.tasks.map((t) => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          status: targetStatus,
-          completedAt: targetStatus === 'done' ? Date.now() : undefined,
-        };
-      }
-      return t;
-    });
-
-    triggerSessionUpdate(updatedTasks);
+  const applyPhaseAction = (action: { kind: 'skip' | 'resume'; category: TaskCategory }) => {
+    const changed =
+      action.kind === 'skip'
+        ? skipPhase(session, action.category, tasksDefinitions)
+        : unskipPhase(session, action.category, tasksDefinitions);
+    triggerSessionUpdate(changed.tasks, changed);
   };
 
   // Utility to dispatch session updates and verify completeness
-  const triggerSessionUpdate = (updatedTasks: RoutineTask[]) => {
+  const triggerSessionUpdate = (updatedTasks: RoutineTask[], base: RoutineSession = session) => {
     const wasCompleted = session.isCompleted;
-    const isCompleted = updatedTasks.every((t) => t.status === 'done');
-    const completedAt = isCompleted ? (session.completedAt || Date.now()) : undefined;
-
-    const updatedSession = {
-      ...session,
-      tasks: updatedTasks,
-      isCompleted,
-      completedAt,
-    };
+    const updatedSession = withCompletion({ ...base, tasks: updatedTasks }, tasksDefinitions);
+    const isCompleted = updatedSession.isCompleted;
 
     onUpdateSession(updatedSession);
 
@@ -263,7 +227,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
       (t) => t.status === 'done' && session.tasks.find((old) => old.id === t.id)?.status !== 'done'
     );
     if (newlyDone) {
-      const cheer = translate(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
+      const cheer = translateDynamic(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
       setCelebration({ taskId: newlyDone.id, cheer, key: Date.now() });
       if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
       celebrationTimer.current = setTimeout(() => setCelebration(null), 1300);
@@ -291,7 +255,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         setNearMedalHint(oneLeft);
         if (oneLeft) {
           reminderService.triggerVoiceReminder(
-            language === 'fr' ? 'Plus qu\'une étoile pour gagner une médaille !' : 'Just one more star to win a medal!',
+            translate('board.one_star_left', language),
             language === 'fr' ? 'fr-FR' : 'en-US'
           );
         } else if (progress < starsPerMedal && !isCompleted) {
@@ -310,9 +274,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
       reminderService.playPhaseCompleteSound();
       const nextLabel = translate(`category.${upcoming.category}`, language);
       reminderService.triggerVoiceReminder(
-        language === 'fr'
-          ? `Bravo ${profile.name} ! Maintenant : ${nextLabel} !`
-          : `Well done ${profile.name}! Now: ${nextLabel}!`,
+        translate('board.next_phase_spoken', language, { name: profile.name, phase: nextLabel }),
         language === 'fr' ? 'fr-FR' : 'en-US'
       );
       setPhaseBanner(justCompletedPhase.category);
@@ -324,10 +286,11 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     if (isCompleted && !wasCompleted) {
       reminderService.playRoutineSuccessSound();
       
-      // Localized voice prompt praise
-      const speechMsg = language === 'fr' 
-        ? `Félicitations ${profile.name} ! Tu as terminé ta routine du soir. Bonne nuit !`
-        : `Congratulations ${profile.name}! You finished your evening routine. Good night!`;
+      // Localized voice praise; "good night" only when the day ends with bedtime
+      const endsWithBedtime = phases[phases.length - 1]?.category === 'bedtime';
+      const speechMsg = translate(endsWithBedtime ? 'board.day_done_spoken_night' : 'board.day_done_spoken', language, {
+        name: profile.name,
+      });
       reminderService.triggerVoiceReminder(speechMsg, language === 'fr' ? 'fr-FR' : 'en-US');
 
       // Trigger celebration view
@@ -410,6 +373,22 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           />
         )}
 
+        {phaseAction && (
+          <PinModal
+            correctPin={parentPin}
+            language={language}
+            title={translate(phaseAction.kind === 'skip' ? 'board.skip_title' : 'board.resume_title', language, {
+              phase: translate(`category.${phaseAction.category}`, language),
+            })}
+            instruction={translate('board.skip_instruction', language)}
+            onClose={() => setPhaseAction(null)}
+            onSuccess={() => {
+              applyPhaseAction(phaseAction);
+              setPhaseAction(null);
+            }}
+          />
+        )}
+
         {flyingStars.map((star) => (
           <FlyingStar key={star.key} from={star.from} to={star.to} onDone={() => removeFlyingStar(star.key)} />
         ))}
@@ -443,34 +422,14 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
           <div className="flex flex-col items-center gap-1 min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-              {/* Star meter: stars collected toward the next medal */}
-              <div
+              <StarMeter
                 ref={starMeterRef}
-                data-testid="star-meter"
-                aria-label={translate('stars.meter', language)}
-                className="relative flex items-center gap-1 sm:gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg"
-              >
-                {tonightCards.level === 'red' && (
-                  <span
-                    data-testid="star-meter-card"
-                    aria-hidden="true"
-                    className="referee-card size-sm is-red absolute -bottom-2 -right-2 rotate-12 animate-card-sticker ring-1 ring-white/60"
-                  />
-                )}
-                {Array.from({ length: starsPerMedal }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`transition-all duration-300 ${i < (profile.starProgress ?? 0) ? '' : 'grayscale opacity-30'}`}
-                  >
-                    ⭐
-                  </span>
-                ))}
-                <span className="hidden sm:inline text-white/50 mx-0.5">→</span>
-                <span>🏅</span>
-                <span key={profile.medalCount ?? 0} className="animate-counter-bump inline-block" data-testid="medal-count">
-                  {profile.medalCount ?? 0}
-                </span>
-              </div>
+                starProgress={profile.starProgress ?? 0}
+                starsPerMedal={starsPerMedal}
+                medalCount={profile.medalCount ?? 0}
+                redCard={tonightCards.level === 'red'}
+                language={language}
+              />
 
               {/* Piggy bank */}
               <button
@@ -513,7 +472,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </button>
             <button
               onClick={handleResetClick}
-              aria-label="reset routine"
+              aria-label={translate('board.reset', language)}
               className={`flex items-center gap-2 px-3 py-2 border rounded-full transition-all duration-300 active:scale-95 text-xs font-bold ${
                 confirmReset
                   ? 'bg-amber-600/30 border-amber-500/50 text-amber-200 hover:bg-amber-600/40 animate-pulse'
@@ -522,7 +481,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             >
               <RotateCcw className="w-4 h-4" />
               {confirmReset && (
-                <span>{language === 'fr' ? 'Sûr ?' : 'Sure?'}</span>
+                <span>{translate('board.reset_confirm', language)}</span>
               )}
             </button>
 
@@ -538,32 +497,13 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
         {/* Current phase indicator */}
         {currentPhase && phases.length > 1 && (
-          <div className="flex flex-col items-center gap-1.5 z-10" data-testid="phase-indicator">
-            <div className="flex items-center gap-2 sm:gap-3 text-white font-black text-base sm:text-lg md:text-2xl">
-              <span className="text-2xl sm:text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
-              <span>
-                {translate('board.step', language)} {currentPhaseIndex + 1}/{phases.length}{colon}
-                {translate(`category.${currentPhase.category}`, language)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 font-bold">
-              <div className="flex gap-1.5">
-                {phases.map((p, i) => (
-                  <span
-                    key={p.category}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      p.isCompleted ? 'bg-emerald-400' : i === currentPhaseIndex ? 'bg-yellow-300' : 'bg-white/20'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span>
-                {nextPhase
-                  ? `${translate('board.next', language)}${colon}${translate(`category.${nextPhase.category}`, language)} ${CATEGORY_ICONS[nextPhase.category]}`
-                  : translate('board.last_step', language)}
-              </span>
-            </div>
-          </div>
+          <PhaseIndicator
+            phases={phases}
+            currentIndex={currentPhaseIndex}
+            language={language}
+            onSkip={(category) => setPhaseAction({ kind: 'skip', category })}
+            onResume={(category) => setPhaseAction({ kind: 'resume', category })}
+          />
         )}
 
         <CardBanner
@@ -648,6 +588,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             progress={progressPct}
             avatar={profile.avatar}
             colorTheme={profile.color}
+            label={translate('board.progress', language)}
           />
         </footer>
 
