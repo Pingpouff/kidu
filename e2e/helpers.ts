@@ -47,3 +47,29 @@ export const openTaskForm = async (page: Page) => {
   if (await opener.isVisible()) await opener.click();
   await expect(page.locator('input[placeholder*="Nom de la tâche"]')).toBeVisible();
 };
+
+/**
+ * Removes the default morning tasks (and any session already built with them),
+ * so a test can start directly on the after-school phase. Waits for the seed first.
+ */
+export const removeMorningTasks = async (page: Page) => {
+  await expect.poll(() => page.evaluate(() => new Promise<number>((resolve) => {
+    const open = indexedDB.open('ChildrenEveningRoutineDB');
+    open.onsuccess = () => {
+      const idb = open.result;
+      if (!idb.objectStoreNames.contains('tasks')) { idb.close(); resolve(0); return; }
+      const tx = idb.transaction(['tasks', 'sessions'], 'readwrite');
+      const tasks = tx.objectStore('tasks');
+      let removed = 0;
+      tasks.getAll().onsuccess = (e) => {
+        for (const t of (e.target as IDBRequest).result) {
+          if (t.category === 'morning') { tasks.delete(t.id); removed++; }
+        }
+        tx.objectStore('sessions').clear();
+      };
+      tx.oncomplete = () => { idb.close(); resolve(removed); };
+    };
+    open.onerror = () => resolve(0);
+  }))).toBeGreaterThan(0);
+  await page.reload();
+};

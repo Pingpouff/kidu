@@ -90,7 +90,7 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        defaultLabel: string; // Fallback label
        icon: string; // Emoji character
        order: number; // Sorting order inside its phase
-       category?: 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
+       category?: 'morning' | 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
        startTime?: string; // "HH:MM" expected start, one "time to start" reminder
        dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
@@ -146,7 +146,10 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
 
 ## Routine Phases
 
-Tasks belong to one of three fixed phases, run in order: `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`).
+Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase, so the evening phases show up once the morning one is done.
+
+- Default morning tasks: get dressed, breakfast, brush teeth, shoes & coat. Existing databases get them once through the Dexie `version(2)` upgrade in `persistence/db.ts` (skipped if a morning task already exists).
+- Each phase has a "finish it 10 times" trophy (`morning_10`, `after_school_10`, …).
 
 - `sortDefinitions` orders tasks by phase, then by `order`; sessions are built and synced with it.
 - `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.

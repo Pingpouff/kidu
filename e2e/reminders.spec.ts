@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { completeTask, enterParentMode } from './helpers';
+import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 // "00:00" is always in the past during the day: the tasks are immediately late
 const setDueTime = async (page: Page, taskLabel: string, time: string) => {
@@ -14,6 +14,7 @@ test.describe('Reminders for late tasks', () => {
   test('announces late tasks one child at a time and clears them once done', async ({ page }) => {
     test.setTimeout(60_000);
     await page.goto('/');
+    await removeMorningTasks(page);
     await enterParentMode(page);
     await setDueTime(page, 'Vider son cartable', '00:00');
     await setDueTime(page, 'Prendre son goûter', '00:00');
@@ -69,6 +70,7 @@ test.describe('Start and end times', () => {
   test('a task can have a start and an end time, with a "time to start" reminder', async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-09T18:20:00'));
     await page.goto('/');
+    await removeMorningTasks(page);
     await enterParentMode(page);
 
     const row = page.locator('[data-testid="task-row"]').filter({ hasText: 'Vider son cartable' });

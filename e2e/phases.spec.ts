@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { completeTask, dismissRewards, enterParentMode, openTaskForm } from './helpers';
+import { completeTask, dismissRewards, enterParentMode, openTaskForm, removeMorningTasks } from './helpers';
 
 test.describe('Routine phases', () => {
   test('shows one phase at a time and moves to the next when it is done', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     await page.getByRole('button').filter({ hasText: 'Léo' }).click();
 
     const indicator = page.getByTestId('phase-indicator');
@@ -16,11 +17,11 @@ test.describe('Routine phases', () => {
     await expect(page.locator('main')).not.toContainText('Mettre la table');
     await expect(page.locator('main')).not.toContainText('Se brosser les dents');
 
-    for (const label of ['Vider son cartable', 'Prendre son goûter', 'Faire ses devoirs']) {
+    for (const label of ['Vider son cartable', 'Ranger ses chaussures et son manteau', 'Prendre son goûter', 'Faire ses devoirs', 'Prendre son bain']) {
       await completeTask(page, label);
     }
     // Keep reward screens open for the last one: the step banner only lasts 2.5 s
-    await completeTask(page, 'Prendre son bain', { dismiss: false });
+    await completeTask(page, 'Préparer son cartable pour demain', { dismiss: false });
 
     // Phase complete banner, then the meal phase
     await expect(page.getByTestId('phase-banner')).toContainText('Étape terminée');
@@ -29,6 +30,25 @@ test.describe('Routine phases', () => {
     await expect(indicator).toContainText('Repas');
     await expect(page.locator('main')).toContainText('Mettre la table');
     await expect(page.locator('main')).not.toContainText('Prendre son goûter');
+  });
+
+  test('the day starts with the morning phase', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button').filter({ hasText: 'Léo' }).click();
+
+    const indicator = page.getByTestId('phase-indicator');
+    await expect(indicator).toContainText('Étape 1/4');
+    await expect(indicator).toContainText('Matin');
+    await expect(indicator).toContainText("Ensuite : Après l'école");
+    await expect(page.locator('main')).toContainText('Prendre son petit-déjeuner');
+    await expect(page.locator('main')).not.toContainText('Vider son cartable');
+
+    for (const label of ['Faire son lit', "S'habiller", 'Prendre son petit-déjeuner', 'Se brosser les dents', 'Se coiffer', 'Mettre ses chaussures et son manteau']) {
+      await completeTask(page, label);
+    }
+    await expect(indicator).toContainText('Étape 2/4');
+    await expect(indicator).toContainText("Après l'école");
+    await expect(page.locator('main')).toContainText('Vider son cartable');
   });
 
   test('lets the parent assign a category to a new task', async ({ page }) => {

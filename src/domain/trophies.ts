@@ -8,6 +8,7 @@ export const TROPHY_IDS = [
   'streak_7',
   'routines_10',
   'routines_30',
+  'morning_10',
   'after_school_10',
   'meal_10',
   'bedtime_10',
@@ -29,6 +30,7 @@ export const TROPHY_ICONS: Record<TrophyId, string> = {
   streak_7: '🌈',
   routines_10: '🏆',
   routines_30: '👑',
+  morning_10: '☀️',
   after_school_10: '🎒',
   meal_10: '🍽️',
   bedtime_10: '🌙',
@@ -93,7 +95,7 @@ export function computeTrophyStats(
   definitions: TaskDefinition[]
 ): TrophyStats {
   const completed = sessions.filter((s) => s.isCompleted);
-  const phaseCompletions: Record<TaskCategory, number> = { after_school: 0, meal: 0, bedtime: 0 };
+  const phaseCompletions: Record<TaskCategory, number> = { morning: 0, after_school: 0, meal: 0, bedtime: 0 };
 
   for (const session of sessions) {
     for (const phase of getRoutinePhases(session, definitions)) {
@@ -119,6 +121,7 @@ const RULES: Record<TrophyId, (s: TrophyStats) => boolean> = {
   streak_7: (s) => s.currentStreak >= 7,
   routines_10: (s) => s.completedRoutines >= 10,
   routines_30: (s) => s.completedRoutines >= 30,
+  morning_10: (s) => s.phaseCompletions.morning >= 10,
   after_school_10: (s) => s.phaseCompletions.after_school >= 10,
   meal_10: (s) => s.phaseCompletions.meal >= 10,
   bedtime_10: (s) => s.phaseCompletions.bedtime >= 10,

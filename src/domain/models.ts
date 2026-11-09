@@ -62,10 +62,11 @@ export interface ShopItem {
 /**
  * Routine phases, in the order the child goes through them.
  */
-export const TASK_CATEGORIES = ['after_school', 'meal', 'bedtime'] as const;
+export const TASK_CATEGORIES = ['morning', 'after_school', 'meal', 'bedtime'] as const;
 export type TaskCategory = typeof TASK_CATEGORIES[number];
 
 export const CATEGORY_ICONS: Record<TaskCategory, string> = {
+  morning: '☀️',
   after_school: '🎒',
   meal: '🍽️',
   bedtime: '🌙',

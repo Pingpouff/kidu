@@ -50,6 +50,18 @@ describe('Routine phases', () => {
     expect(phases.every((p) => !p.isCompleted)).toBe(true);
   });
 
+  it('puts the morning phase first', () => {
+    const withMorning: TaskDefinition[] = [
+      ...definitions,
+      { id: 'breakfast', labelKey: 'task.breakfast', defaultLabel: 'Breakfast', icon: '🥣', order: 9, category: 'morning' },
+    ];
+    const session = initSession('leo', '2026-11-09', withMorning);
+    expect(session.tasks[0].definitionId).toBe('breakfast');
+    const phases = getRoutinePhases(session, withMorning);
+    expect(phases.map((p) => p.category)).toEqual(['morning', 'after_school', 'meal', 'bedtime']);
+    expect(phases[getCurrentPhaseIndex(phases)].category).toBe('morning');
+  });
+
   it('skips phases that have no task', () => {
     const bedtimeOnly = definitions.filter((d) => getTaskCategory(d) === 'bedtime');
     const session = initSession('leo', '2026-11-09', bedtimeOnly);
