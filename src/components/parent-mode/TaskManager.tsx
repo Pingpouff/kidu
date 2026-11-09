@@ -43,6 +43,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newLabel, setNewLabel] = useState('');
   const [showNewPicker, setShowNewPicker] = useState(false);
   const [newCategory, setNewCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
+  const [newDueTime, setNewDueTime] = useState('');
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editLabel, setEditLabel] = useState('');
   const [editOrder, setEditOrder] = useState<number>(1);
   const [editCategory, setEditCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
+  const [editDueTime, setEditDueTime] = useState('');
   const [showEditPicker, setShowEditPicker] = useState(false);
 
   // Setup sensors for desktop & mobile touch support
@@ -77,6 +79,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       defaultLabel: newLabel.trim(),
       order: tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) + 1 : 1,
       category: newCategory,
+      ...(newDueTime ? { dueTime: newDueTime } : {}),
     });
 
     setNewIcon('');
@@ -89,6 +92,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditLabel(task.labelKey ? translate(task.labelKey, language) : task.defaultLabel);
     setEditOrder(task.order);
     setEditCategory(getTaskCategory(task));
+    setEditDueTime(task.dueTime ?? '');
   };
 
   const cancelEdit = () => {
@@ -98,8 +102,12 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const saveEdit = async (task: TaskDefinition) => {
     if (!editIcon.trim() || !editLabel.trim()) return;
 
+    // Without a due time, the field is removed (no reminder)
+    const rest = { ...task };
+    delete rest.dueTime;
     await onUpdateTask({
-      ...task,
+      ...rest,
+      ...(editDueTime ? { dueTime: editDueTime } : {}),
       icon: editIcon.trim(),
       defaultLabel: editLabel.trim(),
       labelKey: '', // Custom label overrides key translation
@@ -183,6 +191,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           language={language}
           className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
         />
+        <input
+          type="time"
+          value={newDueTime}
+          onChange={(e) => setNewDueTime(e.target.value)}
+          aria-label={translate('parent.tasks.due_time', language)}
+          title={translate('parent.tasks.due_time_hint', language)}
+          className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm [color-scheme:dark]"
+        />
         <button
           type="submit"
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -221,6 +237,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                       editLabel={editLabel}
                       editOrder={editOrder}
                       editCategory={editCategory}
+                      editDueTime={editDueTime}
+                      setEditDueTime={setEditDueTime}
                       setEditCategory={setEditCategory}
                       setShowEditPicker={setShowEditPicker}
                       setEditIcon={setEditIcon}
@@ -275,6 +293,8 @@ interface SortableTaskRowProps {
   editLabel: string;
   editOrder: number;
   editCategory: TaskCategory;
+  editDueTime: string;
+  setEditDueTime: (val: string) => void;
   setEditCategory: (val: TaskCategory) => void;
   setShowEditPicker: (show: boolean) => void;
   setEditIcon: (val: string) => void;
@@ -295,6 +315,8 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   editLabel,
   editOrder,
   editCategory,
+  editDueTime,
+  setEditDueTime,
   setEditCategory,
   setShowEditPicker,
   setEditIcon,
@@ -389,6 +411,13 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               language={language}
               className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
             />
+            <input
+              type="time"
+              value={editDueTime}
+              onChange={(e) => setEditDueTime(e.target.value)}
+              aria-label={translate('parent.tasks.due_time', language)}
+              className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm [color-scheme:dark]"
+            />
             <div className="flex items-center gap-1.5 text-xs text-white/50">
               <span>{translate('parent.tasks.order', language)}:</span>
               <input
@@ -411,6 +440,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               </p>
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
                 # {task.order}
+                {task.dueTime && <span className="ml-2 text-amber-300">⏰ {task.dueTime}</span>}
               </span>
             </div>
           </div>

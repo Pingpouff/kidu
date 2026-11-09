@@ -187,6 +187,12 @@ class ReminderService {
     this.playTone(2093.0, 0.6, 'sine', 0.32, { gain: 0.1 });
   }
 
+  /** Reminder for a late task: a gentle "ding-dong", noticeable but not alarming. */
+  public playReminderSound() {
+    this.playTone(659.25, 0.5, 'sine', 0, { gain: 0.18 }); // E5
+    this.playTone(523.25, 0.7, 'sine', 0.35, { gain: 0.18 }); // C5
+  }
+
   /** Whole routine completed. */
   public playRoutineSuccessSound() {
     const tempo = 0.12;
@@ -238,6 +244,47 @@ class ReminderService {
     } catch (err) {
       console.error('Speech synthesis error:', err);
     }
+  }
+
+  /** True while the speech engine is talking (encouragement, song…). */
+  public isSpeaking(): boolean {
+    return typeof window !== 'undefined' && !!window.speechSynthesis?.speaking;
+  }
+
+  /**
+   * Speaks a message and resolves when it is finished, without interrupting
+   * whatever is being said (waits up to `maxWaitMs` for silence first).
+   * Resolves immediately when the voice is disabled.
+   */
+  public async speakAndWait(message: string, language: Lang, maxWaitMs = 15_000): Promise<void> {
+    if (!this.settings.voice || this.settings.volume <= 0) return;
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const start = Date.now();
+    while (this.isSpeaking() && Date.now() - start < maxWaitMs) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    await new Promise<void>((resolve) => {
+      try {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = language === 'fr' ? 'fr-FR' : 'en-US';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.15;
+        utterance.volume = this.settings.volume;
+        // Some engines never fire `end`: fall back on an estimate of the speech length
+        const fallback = setTimeout(resolve, 1500 + message.length * 90);
+        const done = () => {
+          clearTimeout(fallback);
+          resolve();
+        };
+        utterance.onend = done;
+        utterance.onerror = done;
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        resolve();
+      }
+    });
   }
 
   /** Speaks a random encouragement (never twice the same in a row). */

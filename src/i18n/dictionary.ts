@@ -89,6 +89,27 @@ export const translations = {
     'parent.shop.cost': 'Prix en badges',
     'parent.shop.saved': 'Boutique enregistrée',
     'parent.settings.stars_per_medal': 'Étoiles pour une médaille',
+    'reminders.time_for': 'c\'est l\'heure !',
+    'parent.tasks.due_time': 'Heure limite',
+    'parent.tasks.due_time_hint': 'Facultatif : un rappel est lancé si la tâche n\'est pas faite à cette heure',
+    'parent.reminders.title': 'Rappels',
+    'parent.reminders.description': 'Quand une tâche a une heure limite et n\'est pas faite à temps, l\'app le rappelle (bandeau, son et voix selon les réglages ci-dessous). S\'il y a plusieurs retards, les rappels passent un par un, regroupés par enfant.',
+    'parent.reminders.enabled': '⏰ Activer les rappels',
+    'parent.reminders.repeat': 'Répéter le rappel toutes les',
+    'parent.reminders.max': 'Nombre maximum de rappels par tâche',
+    'parent.reminders.system': '🔔 Notifications système quand l\'app est en arrière-plan',
+    'parent.reminders.permission': 'Autorisation :',
+    'parent.reminders.permission_granted': 'accordée',
+    'parent.reminders.permission_denied': 'refusée',
+    'parent.reminders.permission_default': 'pas encore demandée',
+    'parent.reminders.permission_unsupported': 'non disponible',
+    'parent.reminders.test': 'Tester la notification',
+    'parent.reminders.test_body': 'Les notifications fonctionnent ! 🎉',
+    'parent.reminders.test_sent': '✓ Envoyée (elle peut n\'apparaître que dans le volet de notifications)',
+    'parent.reminders.test_failed': 'Impossible d\'afficher la notification sur cet appareil.',
+    'parent.reminders.denied_help': 'Les notifications ont été refusées. Sur Android : appui long sur l\'icône de l\'app → Infos sur l\'appli → Notifications → Autoriser, puis rouvrez l\'app. Dans le navigateur : icône à gauche de l\'adresse → Autorisations → Notifications.',
+    'parent.reminders.unsupported_help': 'Ce navigateur ne gère pas les notifications. Sur iPhone, installez d\'abord l\'app sur l\'écran d\'accueil.',
+    'parent.reminders.limits': 'Les rappels fonctionnent tant que l\'app est ouverte (au premier plan ou dans un onglet). Ils sont mis en pause pendant le Mode Parent.',
     'parent.feedback.title': 'Sons et animations',
     'parent.feedback.description': 'Réduisez ce qui devient trop bruyant ou trop long à la longue.',
     'parent.feedback.sounds': '🔊 Sons courts (carillons, jingles)',
@@ -275,6 +296,27 @@ export const translations = {
     'parent.shop.cost': 'Price in badges',
     'parent.shop.saved': 'Shop saved',
     'parent.settings.stars_per_medal': 'Stars for a medal',
+    'reminders.time_for': 'it\'s time!',
+    'parent.tasks.due_time': 'Due time',
+    'parent.tasks.due_time_hint': 'Optional: a reminder starts if the task is not done by then',
+    'parent.reminders.title': 'Reminders',
+    'parent.reminders.description': 'When a task has a due time and is not done in time, the app reminds the child (banner, sound and voice according to the settings below). Several late tasks are announced one at a time, grouped by child.',
+    'parent.reminders.enabled': '⏰ Enable reminders',
+    'parent.reminders.repeat': 'Repeat the reminder every',
+    'parent.reminders.max': 'Maximum reminders per task',
+    'parent.reminders.system': '🔔 System notifications when the app is in the background',
+    'parent.reminders.permission': 'Permission:',
+    'parent.reminders.permission_granted': 'granted',
+    'parent.reminders.permission_denied': 'denied',
+    'parent.reminders.permission_default': 'not asked yet',
+    'parent.reminders.permission_unsupported': 'not available',
+    'parent.reminders.test': 'Test notification',
+    'parent.reminders.test_body': 'Notifications are working! 🎉',
+    'parent.reminders.test_sent': '✓ Sent (it may only show in the notification shade)',
+    'parent.reminders.test_failed': 'Could not show the notification on this device.',
+    'parent.reminders.denied_help': 'Notifications were denied. On Android: long-press the app icon → App info → Notifications → Allow, then reopen the app. In the browser: icon left of the address → Permissions → Notifications.',
+    'parent.reminders.unsupported_help': 'This browser does not support notifications. On iPhone, install the app on the home screen first.',
+    'parent.reminders.limits': 'Reminders work while the app is open (in the foreground or in a tab). They are paused during Parent Mode.',
     'parent.feedback.title': 'Sounds & animations',
     'parent.feedback.description': 'Tone down whatever gets too noisy or too long over time.',
     'parent.feedback.sounds': '🔊 Short sounds (chimes, jingles)',
@@ -383,4 +425,12 @@ export type TranslationKey = keyof typeof translations['fr'];
 export function translate(key: string, lang: Language): string {
   const dict: Record<string, string> = translations[lang] || translations['fr'];
   return dict[key] || key;
+}
+
+/**
+ * Display label of a task: its translation when it is a built-in task, else the custom label.
+ */
+export function taskLabel(definition: { labelKey?: string; defaultLabel: string } | undefined, lang: Language): string {
+  if (!definition) return '';
+  return definition.labelKey ? translate(definition.labelKey, lang) : definition.defaultLabel;
 }

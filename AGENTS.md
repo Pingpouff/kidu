@@ -23,13 +23,17 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
     │   ├── badges.ts       # Badge catalog (universes) and offer drawing
     │   ├── trophies.ts     # Milestone trophies computed from sessions
+    │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
     │   └── backup.ts       # Backup file format, creation and validation
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
     ├── services/
     │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
-    │   └── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
+    │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
+    │   └── ReminderQueue.ts # Serial queue of reminder announcements
+    ├── hooks/
+    │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
@@ -145,6 +149,14 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the hold bypass). Spent badges stay in the album with `spentAt`/`spentOn`.
 - **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
 - `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
+
+## Reminders
+
+- `TaskDefinition.dueTime` (`"HH:MM"`, optional) and `settings.reminders` (`ReminderSettings`: `enabled`, `repeatMinutes`, `maxReminders`, `systemNotifications`; default `DEFAULT_REMINDERS`).
+- `findOverdueTasks` lists, for every child, the tasks past their due time and not done (a child without a session today counts as not started; completed routines are skipped), sorted by due time, child, then routine order.
+- `planReminders` decides what to announce now from a per-day log (`{ count, lastAt }` per `date_child_task` key): first time overdue, then every `repeatMinutes`, at most `maxReminders`. Tasks of the same child are grouped into one batch.
+- `ReminderQueue` plays batches strictly one at a time (banner + chime + voice, waiting for any ongoing speech), merges pending batches of the same child and re-validates each batch against the database right before playing.
+- `useTaskReminders` ticks every 30 s, persists the log in `localStorage` (best effort) and is paused during Parent Mode. Reminders only run while the app is open; there is no push server.
 
 ## Feedback Settings
 

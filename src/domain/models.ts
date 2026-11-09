@@ -58,6 +58,7 @@ export interface TaskDefinition {
   helperTextKey?: string; // Optional simple description key
   order: number;
   category?: TaskCategory; // Missing on tasks created before categories existed: treated as 'bedtime'
+  dueTime?: string; // "HH:MM" local time; reminders start when the task isn't done by then
 }
 
 export interface RoutineTask {
@@ -105,6 +106,23 @@ export interface FeedbackSettings {
   animations: 'full' | 'reduced'; // reduced: no confetti, particles or spinning rays
 }
 
+/**
+ * Reminders for tasks that are not done by their due time.
+ */
+export interface ReminderSettings {
+  enabled: boolean;
+  repeatMinutes: number; // Delay between two reminders for the same task
+  maxReminders: number; // Total reminders per task and per day
+  systemNotifications: boolean; // Also show an OS notification when the app is in the background
+}
+
+export const DEFAULT_REMINDERS: ReminderSettings = {
+  enabled: true,
+  repeatMinutes: 5,
+  maxReminders: 3,
+  systemNotifications: false,
+};
+
 export const DEFAULT_FEEDBACK: FeedbackSettings = {
   sounds: true,
   voice: true,
@@ -120,4 +138,5 @@ export interface ParentSettings {
   rewards: RewardSettings;
   feedback?: FeedbackSettings; // default: DEFAULT_FEEDBACK
   shop?: ShopItem[]; // Real-life rewards bought with badges
+  reminders?: ReminderSettings; // default: DEFAULT_REMINDERS
 }

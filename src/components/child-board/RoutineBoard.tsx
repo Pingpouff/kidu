@@ -36,6 +36,8 @@ interface RoutineBoardProps {
   shop: ShopItem[];
   parentPin: string;
   onBuyShopItem: (itemId: string) => Promise<void>;
+  /** Definition ids of this child's tasks that are past their due time */
+  lateDefinitionIds?: Set<string>;
 }
 
 /* A star flying from the "done" column to the star meter */
@@ -86,6 +88,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   shop,
   parentPin,
   onBuyShopItem,
+  lateDefinitionIds,
 }) => {
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -505,6 +508,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 language={language}
                 onTap={handleTaskTap}
                 celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>
@@ -525,6 +529,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 language={language}
                 onTap={handleTaskTap}
                 celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>
@@ -545,6 +550,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 language={language}
                 onTap={handleTaskTap}
                 celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>
