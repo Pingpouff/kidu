@@ -10,6 +10,8 @@ interface TaskCardProps {
   onTap: (task: RoutineTask) => void;
   /** Set right after the task is completed: plays the burst + cheer animation */
   celebration?: { cheer: string; key: number };
+  /** The task is past its due time and not done */
+  isLate?: boolean;
 }
 
 const PARTICLES = ['⭐', '✨', '🌟', '💫', '⭐', '✨', '🌟', '💫'];
@@ -47,6 +49,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   language,
   onTap,
   celebration,
+  isLate = false,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -106,6 +109,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Sparkle or done indicator */}
         {task.status === 'done' && (
           <span className="absolute top-0 right-0 text-sm md:text-base lg:text-lg animate-bounce">✨</span>
+        )}
+        {/* Due time: discreet when upcoming, red and wiggling when late */}
+        {definition?.dueTime && task.status !== 'done' && (
+          <span
+            data-testid={isLate ? 'task-late' : 'task-due'}
+            className={`absolute top-1.5 left-1.5 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 ${
+              isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-black/30 text-white/70'
+            }`}
+          >
+            ⏰ {definition.dueTime}
+          </span>
         )}
         {task.status === 'doing' && (
           <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>

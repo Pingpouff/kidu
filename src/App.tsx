@@ -15,6 +15,8 @@ import { shopItems, starsPerMedal } from './domain/rewards';
 import { translate } from './i18n/dictionary';
 import { RewardReveal } from './components/rewards/RewardReveal';
 import { BadgeChoice } from './components/rewards/BadgeChoice';
+import { ReminderBanner } from './components/child-board/ReminderBanner';
+import { useTaskReminders } from './hooks/useTaskReminders';
 
 /** Rewards waiting to be revealed, one full-screen reveal at a time */
 type Reveal =
@@ -75,6 +77,21 @@ export default function App() {
       routineRepository.createSession(activeProfileId, todayStr);
     }
   }, [dbSeeded, activeProfileId, activeSession, todayStr]);
+
+  // Reminders for tasks past their due time (all children, on every screen)
+  const reminders = useTaskReminders({
+    settings,
+    profiles,
+    tasks,
+    today: todayStr,
+    language: settings?.language ?? 'fr',
+    paused: parentMode,
+  });
+  const lateCounts: Record<string, number> = {};
+  for (const task of reminders.overdue) lateCounts[task.childId] = (lateCounts[task.childId] ?? 0) + 1;
+  const activeLateIds = new Set(
+    reminders.overdue.filter((t) => t.childId === activeProfileId).map((t) => t.definitionId)
+  );
 
   // Loading Screen
   if (!dbSeeded || !profiles || !tasks || !settings) {
@@ -291,6 +308,17 @@ export default function App() {
         />
       )}
 
+      {/* Reminder being announced (late tasks) */}
+      {reminders.current && (
+        <ReminderBanner
+          announcement={reminders.current}
+          profile={profiles.find((p) => p.id === reminders.current!.childId)}
+          definitions={tasks}
+          language={activeLang}
+          onDismiss={reminders.dismissCurrent}
+        />
+      )}
+
       {/* Badge choice for each medal waiting */}
       {showBadgeChoice && activeProfile && (
         <BadgeChoice
@@ -336,6 +364,7 @@ export default function App() {
           onBuyShopItem={async (itemId) => {
             await routineRepository.buyShopItem(activeProfile.id, itemId);
           }}
+          lateDefinitionIds={activeLateIds}
         />
       ) : (
         <ProfileSelector
@@ -343,6 +372,7 @@ export default function App() {
           onSelect={(p) => setActiveProfileId(p.id)}
           onEnterParentMode={() => setPinPrompt(true)}
           language={activeLang}
+          lateCounts={lateCounts}
         />
       )}
     </>

@@ -1,5 +1,6 @@
 import { TROPHY_IDS, TrophyId, EarnedTrophy } from './trophies';
 import { isBadgeId } from './badges';
+import { isValidDueTime } from './reminders';
 import {
   ChildProfile,
   TaskDefinition,
@@ -66,6 +67,7 @@ export function createBackup(
         rewards: { ...settings.rewards },
         ...(settings.feedback ? { feedback: { ...settings.feedback } } : {}),
         ...(settings.shop ? { shop: settings.shop.map((i) => ({ ...i })) } : {}),
+        ...(settings.reminders ? { reminders: { ...settings.reminders } } : {}),
       },
       tasks: [...tasks].sort((a, b) => a.order - b.order),
       profiles: [...profiles],
@@ -91,7 +93,7 @@ const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.is
 
 function parseSettings(raw: unknown): ParentSettings {
   if (!isObject(raw) || !isObject(raw.rewards)) throw new BackupError('invalid_settings');
-  const { parentPin, language, rewards, feedback, shop } = raw;
+  const { parentPin, language, rewards, feedback, shop, reminders } = raw;
   if (!isString(parentPin) || !/^\d{4}$/.test(parentPin)) throw new BackupError('invalid_settings');
   if (language !== 'fr' && language !== 'en') throw new BackupError('invalid_settings');
   if (!isNumber(rewards.starsPerCompletion) || !isNumber(rewards.weeklyGoal)) {
@@ -112,6 +114,16 @@ function parseSettings(raw: unknown): ParentSettings {
     throw new BackupError('invalid_settings');
   }
   if (shop !== undefined && !Array.isArray(shop)) throw new BackupError('invalid_settings');
+  if (
+    reminders !== undefined &&
+    (!isObject(reminders) ||
+      typeof reminders.enabled !== 'boolean' ||
+      typeof reminders.systemNotifications !== 'boolean' ||
+      !isNumber(reminders.repeatMinutes) || reminders.repeatMinutes < 1 ||
+      !isNumber(reminders.maxReminders) || reminders.maxReminders < 1)
+  ) {
+    throw new BackupError('invalid_settings');
+  }
   const parsedShop = shop?.map((item): ShopItem => {
     if (!isObject(item) || !isString(item.id) || !isString(item.label) || !isString(item.icon) || !isNumber(item.cost) || item.cost < 1) {
       throw new BackupError('invalid_settings');
@@ -138,6 +150,16 @@ function parseSettings(raw: unknown): ParentSettings {
         }
       : {}),
     ...(parsedShop ? { shop: parsedShop } : {}),
+    ...(isObject(reminders)
+      ? {
+          reminders: {
+            enabled: reminders.enabled as boolean,
+            repeatMinutes: reminders.repeatMinutes as number,
+            maxReminders: reminders.maxReminders as number,
+            systemNotifications: reminders.systemNotifications as boolean,
+          },
+        }
+      : {}),
   };
 }
 
@@ -151,7 +173,8 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       !isString(t.icon) ||
       !isNumber(t.order) ||
       (t.labelKey !== undefined && !isString(t.labelKey)) ||
-      (t.category !== undefined && !TASK_CATEGORIES.includes(t.category as TaskCategory))
+      (t.category !== undefined && !TASK_CATEGORIES.includes(t.category as TaskCategory)) ||
+      (t.dueTime !== undefined && !isValidDueTime(t.dueTime))
     ) {
       throw new BackupError('invalid_tasks');
     }
@@ -163,6 +186,7 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       order: t.order,
       ...(isString(t.helperTextKey) ? { helperTextKey: t.helperTextKey } : {}),
       ...(t.category !== undefined ? { category: t.category as TaskCategory } : {}),
+      ...(isValidDueTime(t.dueTime) ? { dueTime: t.dueTime } : {}),
     };
   });
   if (new Set(tasks.map((t) => t.id)).size !== tasks.length) throw new BackupError('invalid_tasks');

@@ -1,6 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings } from '../../domain/models';
+import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings } from '../../domain/models';
 import { starsPerMedal } from '../../domain/rewards';
+import {
+  NotificationStatus,
+  notificationStatus,
+  requestNotificationPermission,
+  showSystemNotification,
+} from '../../services/notifications';
 import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
 import { Save, AlertOctagon, Download, Upload, HardDrive } from 'lucide-react';
@@ -34,9 +40,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [feedback, setFeedback] = useState<FeedbackSettings>({ ...DEFAULT_FEEDBACK, ...settings.feedback });
   const setFeedbackField = <K extends keyof FeedbackSettings>(key: K, value: FeedbackSettings[K]) =>
     setFeedback((f) => ({ ...f, [key]: value }));
-  
+  const [reminders, setReminders] = useState<ReminderSettings>({ ...DEFAULT_REMINDERS, ...settings.reminders });
+  const [notifStatus, setNotifStatus] = useState<NotificationStatus>(notificationStatus());
+  const [testResult, setTestResult] = useState<'sent' | 'failed' | null>(null);
+  const setReminderField = <K extends keyof ReminderSettings>(key: K, value: ReminderSettings[K]) =>
+    setReminders((r) => ({ ...r, [key]: value }));
+
+  // System notifications need the browser permission. It is requested right in the
+  // tap handler: Android only shows its permission prompt after a user gesture.
+  const handleSystemNotifications = async (enabled: boolean) => {
+    setTestResult(null);
+    if (!enabled) {
+      setReminderField('systemNotifications', false);
+      return;
+    }
+    const status = await requestNotificationPermission();
+    setNotifStatus(status);
+    if (status === 'granted') setReminderField('systemNotifications', true);
+  };
+
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleTestNotification = async () => {
+    const ok = await showSystemNotification('⏰ Kidu', {
+      body: translate('parent.reminders.test_body', language),
+      tag: 'kidu-test',
+    });
+    setTestResult(ok ? 'sent' : 'failed');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +84,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         starsPerMedal: Math.max(1, Number(perMedal)),
       },
       feedback,
+      reminders: {
+        ...reminders,
+        repeatMinutes: Math.max(1, Number(reminders.repeatMinutes)),
+        maxReminders: Math.max(1, Number(reminders.maxReminders)),
+      },
     });
 
     setSavedSuccess(true);
@@ -167,6 +204,96 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
 
         </div>
+
+        {/* Reminders for late tasks */}
+        <fieldset className="flex flex-col gap-3 bg-white/5 border border-white/10 rounded-2xl p-4" data-testid="reminder-settings">
+          <legend className="px-2 text-xs font-bold text-slate-400 uppercase tracking-wide">
+            {translate('parent.reminders.title', language)}
+          </legend>
+          <p className="text-xs text-white/50 leading-relaxed -mt-1">
+            {translate('parent.reminders.description', language)}
+          </p>
+          <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={reminders.enabled}
+              onChange={(e) => setReminderField('enabled', e.target.checked)}
+              className="w-4 h-4 accent-indigo-500"
+            />
+            {translate('parent.reminders.enabled', language)}
+          </label>
+          <div className={`flex flex-col gap-3 ${reminders.enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+            <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+              <span>{translate('parent.reminders.repeat', language)}</span>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={reminders.repeatMinutes}
+                onChange={(e) => setReminderField('repeatMinutes', Number(e.target.value))}
+                className="w-20 px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm text-center"
+              />
+              <span className="text-white/50 text-xs">min</span>
+            </label>
+            <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+              <span>{translate('parent.reminders.max', language)}</span>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={reminders.maxReminders}
+                onChange={(e) => setReminderField('maxReminders', Number(e.target.value))}
+                className="w-20 px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm text-center"
+              />
+            </label>
+            <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={reminders.systemNotifications}
+                onChange={(e) => handleSystemNotifications(e.target.checked)}
+                className="w-4 h-4 accent-indigo-500"
+              />
+              {translate('parent.reminders.system', language)}
+            </label>
+            <div className="flex flex-wrap items-center gap-3 text-xs" data-testid="notification-status">
+              <span className="text-white/50">{translate('parent.reminders.permission', language)}</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded-full ${
+                  notifStatus === 'granted'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : notifStatus === 'denied'
+                      ? 'bg-rose-500/20 text-rose-300'
+                      : 'bg-white/10 text-white/60'
+                }`}
+              >
+                {translate(`parent.reminders.permission_${notifStatus}`, language)}
+              </span>
+              {notifStatus === 'granted' && (
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold"
+                >
+                  🔔 {translate('parent.reminders.test', language)}
+                </button>
+              )}
+              {testResult && (
+                <span className={testResult === 'sent' ? 'text-emerald-300' : 'text-amber-300'}>
+                  {translate(`parent.reminders.test_${testResult}`, language)}
+                </span>
+              )}
+            </div>
+            {notifStatus === 'denied' && (
+              <p className="text-xs text-amber-300 leading-relaxed">{translate('parent.reminders.denied_help', language)}</p>
+            )}
+            {notifStatus === 'unsupported' && (
+              <p className="text-xs text-amber-300 leading-relaxed">{translate('parent.reminders.unsupported_help', language)}</p>
+            )}
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              {translate('parent.reminders.limits', language)}
+            </p>
+          </div>
+        </fieldset>
 
         {/* Sounds & animations */}
         <fieldset className="flex flex-col gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
