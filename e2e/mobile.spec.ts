@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { completeTask, enterParentMode } from './helpers';
+import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
@@ -12,6 +12,7 @@ const expectNoHorizontalScroll = async (page: Page) => {
 test.describe('Phone layout', () => {
   test('the board stacks the columns, "doing" first, with every task reachable', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     await expectNoHorizontalScroll(page);
     await page.getByTestId('child-card-leo').click();
     await expectNoHorizontalScroll(page);

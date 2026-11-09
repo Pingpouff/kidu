@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { completeTask, enterParentMode } from './helpers';
+import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 test.describe('Stars, medals, badges and piggy bank', () => {
   test('3 tasks give a medal, the child picks a badge and exchanges it in the shop', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
 
     // Parent adds a cheap reward to the shop
     await enterParentMode(page);
@@ -82,6 +83,7 @@ test.describe('Stars, medals, badges and piggy bank', () => {
 
   test('a done → todo → done toggle does not give a second star', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     await page.getByRole('button').filter({ hasText: 'Léo' }).click();
 
     await completeTask(page, 'Vider son cartable');
