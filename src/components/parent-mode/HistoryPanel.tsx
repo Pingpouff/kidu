@@ -2,6 +2,7 @@ import React from 'react';
 import { HistoryEntry } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { Calendar, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { ConfirmIconButton } from '../../ui/controls';
 
 interface HistoryPanelProps {
   history: HistoryEntry[];
@@ -83,13 +84,13 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={() => onDeleteHistory(entry.id)}
-                aria-label="delete history entry"
-                className="p-2 bg-white/5 hover:bg-rose-600 border border-white/10 hover:border-rose-500 rounded-xl text-rose-400 hover:text-white transition-colors ml-4"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <ConfirmIconButton
+                label="delete history entry"
+                confirmText={translate('btn.confirm_delete', language)}
+                icon={<Trash2 className="w-4 h-4" />}
+                onConfirm={() => onDeleteHistory(entry.id)}
+                className="ml-4"
+              />
             </div>
           ))}
         </div>

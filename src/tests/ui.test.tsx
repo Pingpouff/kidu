@@ -46,5 +46,8 @@ describe('UI kit', () => {
     for (const color of CHILD_COLORS) expect(childTheme(color).board).toBe(`theme-${color}`);
     expect(childTheme('unknown')).toBe(childTheme('indigo'));
     expect(cx('a', false, undefined, 'b', 0 as const)).toBe('a b');
+    // later classes override earlier ones for the same property
+    expect(cx('px-4 py-2 text-sm', 'px-2')).toBe('py-2 text-sm px-2');
+    expect(cx('fixed z-overlay', 'z-dialog')).toBe('fixed z-dialog');
   });
 });

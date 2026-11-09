@@ -4,6 +4,8 @@ import { ChildProfile, ShopItem } from '../../domain/models';
 import { unspentBadges } from '../../domain/rewards';
 import { translate, Language } from '../../i18n/dictionary';
 import { EmojiPicker } from './EmojiPicker';
+import { ConfirmIconButton, IconButton } from '../../ui/controls';
+import { buttonClass, fieldClass } from '../../ui/styles';
 
 interface ShopManagerProps {
   shop: ShopItem[];
@@ -12,8 +14,7 @@ interface ShopManagerProps {
   onSaveShop: (shop: ShopItem[]) => Promise<void>;
 }
 
-const inputClass =
-  'px-3 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm';
+const inputClass = fieldClass('md', 'px-3');
 
 /**
  * Parent-side shop: real-life rewards and their price in badges,
@@ -99,7 +100,7 @@ export const ShopManager: React.FC<ShopManagerProps> = ({ shop, profiles, langua
         </label>
         <button
           type="submit"
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
+          className={buttonClass('primary', 'md')}
         >
           <Plus className="w-4 h-4" />
           <span>{translate('btn.add', language)}</span>
@@ -135,20 +136,19 @@ export const ShopManager: React.FC<ShopManagerProps> = ({ shop, profiles, langua
                 className={`${inputClass} w-20 text-center`}
               />
             </label>
-            <button
+            <IconButton
+              tone="success"
+              label={translate('btn.save', language)}
               onClick={() => persist(items.map((i) => ({ ...i, cost: Math.max(1, i.cost), label: i.label.trim() || i.label })))}
-              aria-label={translate('btn.save', language)}
-              className="p-2 bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/20 rounded-xl text-emerald-400 hover:text-white transition-colors"
             >
               <Check className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => persist(items.filter((i) => i.id !== item.id))}
-              aria-label={translate('btn.delete', language)}
-              className="p-2 bg-white/5 hover:bg-rose-600 border border-white/10 rounded-xl text-rose-400 hover:text-white transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            </IconButton>
+            <ConfirmIconButton
+              label={translate('btn.delete', language)}
+              confirmText={translate('btn.confirm_delete', language)}
+              icon={<Trash2 className="w-4 h-4" />}
+              onConfirm={() => persist(items.filter((i) => i.id !== item.id))}
+            />
           </div>
         ))}
         {saved && <span className="text-xs font-bold text-emerald-400">✓ {translate('parent.shop.saved', language)}</span>}

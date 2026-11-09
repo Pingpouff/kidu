@@ -10,6 +10,7 @@ import {
 import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
 import { Save, AlertOctagon, Download, Upload, HardDrive } from 'lucide-react';
+import { buttonClass, fieldClass } from '../../ui/styles';
 
 interface SettingsPanelProps {
   settings: ParentSettings;
@@ -167,7 +168,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               required
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white font-mono tracking-widest text-sm"
+              className={fieldClass('md', 'font-mono tracking-widest')}
             />
           </div>
 
@@ -179,7 +180,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as Language)}
-              className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
+              className={fieldClass('md')}
             >
               <option value="fr">Français 🇫🇷</option>
               <option value="en">English 🇬🇧</option>
@@ -199,7 +200,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               required
               value={perMedal}
               onChange={(e) => setPerMedal(Number(e.target.value))}
-              className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
+              className={fieldClass('md')}
             />
           </div>
 
@@ -231,7 +232,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 max={60}
                 value={reminders.repeatMinutes}
                 onChange={(e) => setReminderField('repeatMinutes', Number(e.target.value))}
-                className="w-20 px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm text-center"
+                className={fieldClass('md', 'w-20 px-3 text-center')}
               />
               <span className="text-white/50 text-xs">min</span>
             </label>
@@ -243,7 +244,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 max={10}
                 value={reminders.maxReminders}
                 onChange={(e) => setReminderField('maxReminders', Number(e.target.value))}
-                className="w-20 px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm text-center"
+                className={fieldClass('md', 'w-20 px-3 text-center')}
               />
             </label>
             <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
@@ -336,7 +337,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             <select
               value={feedback.animations}
               onChange={(e) => setFeedbackField('animations', e.target.value as FeedbackSettings['animations'])}
-              className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm"
+              className={fieldClass('md', 'px-3')}
             >
               <option value="full">{translate('parent.feedback.animations_full', language)}</option>
               <option value="reduced">{translate('parent.feedback.animations_reduced', language)}</option>
@@ -348,7 +349,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="flex items-center gap-4 mt-2">
           <button
             type="submit"
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
+            className={buttonClass('primary', 'md', 'px-6')}
           >
             <Save className="w-4.5 h-4.5" />
             <span>{translate('btn.save', language)}</span>
@@ -388,7 +389,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <button
             type="button"
             onClick={handleExport}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white flex items-center gap-2 active:scale-95 transition-all"
+            className={buttonClass('primary', 'sm')}
           >
             <Download className="w-4 h-4" />
             <span>{translate('parent.backup.export', language)}</span>

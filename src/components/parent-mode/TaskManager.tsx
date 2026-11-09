@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { ConfirmIconButton, IconButton } from '../../ui/controls';
+import { buttonClass, chipClass, fieldClass } from '../../ui/styles';
 import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { isValidTimeWindow } from '../../domain/reminders';
@@ -179,7 +181,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             type="button"
             onClick={() => setShowForm(true)}
             data-testid="open-task-form"
-            className="shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm active:scale-95 transition-all"
+            className={buttonClass('primary', 'md', 'shrink-0 gap-1.5 px-3 sm:px-4 py-2')}
           >
             <Plus className="w-4 h-4" />
             {translate('parent.tasks.add', language)}
@@ -207,7 +209,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             onFocus={() => setShowNewPicker(true)}
             onChange={(e) => setNewIcon(e.target.value)}
             placeholder={translate('parent.tasks.icon_placeholder', language)}
-            className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-center text-xl text-white placeholder:text-white/20 cursor-pointer"
+            className={fieldClass('lg', 'w-full text-center text-xl cursor-pointer')}
           />
           {showNewPicker && (
             <EmojiPicker
@@ -222,17 +224,17 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder={translate('parent.tasks.label_placeholder', language)}
-          className="flex-1 min-w-[10rem] px-4 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
+          className={fieldClass('lg', 'flex-1 min-w-[10rem]')}
         />
         <CategorySelect
           value={newCategory}
           onChange={setNewCategory}
           language={language}
-          className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
+          className={fieldClass('lg', 'px-3 text-sm')}
         />
         <button
           type="submit"
-          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+          className={buttonClass('primary', 'lg')}
         >
           <Plus className="w-5 h-5" />
           <span>{translate('btn.add', language)}</span>
@@ -245,7 +247,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             onStart={setNewStartTime}
             onEnd={setNewDueTime}
             language={language}
-            inputClassName="px-2 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm [color-scheme:dark]"
+            inputClassName={fieldClass('md', 'px-2')}
           />
           <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
         </div>
@@ -398,10 +400,7 @@ export const AssigneePicker: React.FC<AssigneePickerProps> = ({ profiles, value,
     const next = known.includes(id) ? known.filter((x) => x !== id) : [...known, id];
     onChange(next.length === profiles.length ? [] : next);
   };
-  const chip = (active: boolean) =>
-    `flex items-center gap-1.5 rounded-full border font-bold transition-colors ${compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm'} ${
-      active ? 'bg-indigo-500/30 border-indigo-400/60 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
-    }`;
+  const chip = (active: boolean) => chipClass(active, compact);
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={translate('parent.tasks.assigned_to', language)}>
       <span className="text-xs font-bold text-white/50">{translate('parent.tasks.assigned_to', language)}</span>
@@ -473,13 +472,6 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   onDeleteTask,
 }) => {
   const isEditing = editingId === task.id;
-  // Deleting takes a second tap (easy to hit by mistake on a touch screen)
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  useEffect(() => {
-    if (!confirmDelete) return;
-    const timer = setTimeout(() => setConfirmDelete(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmDelete]);
 
   const {
     attributes,
@@ -542,7 +534,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 value={editIcon}
                 onFocus={() => setShowEditPicker(true)}
                 onChange={(e) => setEditIcon(e.target.value)}
-                className="w-16 px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-center text-lg text-white cursor-pointer"
+                className={fieldClass('sm', 'w-16 text-center text-lg cursor-pointer', { editing: true })}
               />
               {showEditPicker && (
                 <EmojiPicker
@@ -556,13 +548,13 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               type="text"
               value={editLabel}
               onChange={(e) => setEditLabel(e.target.value)}
-              className="flex-1 px-3 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
+              className={fieldClass('sm', 'flex-1', { editing: true })}
             />
             <CategorySelect
               value={editCategory}
               onChange={setEditCategory}
               language={language}
-              className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
+              className={fieldClass('sm', undefined, { editing: true })}
             />
             <div className="flex items-center gap-1.5 text-xs text-white/50">
               <span>{translate('parent.tasks.order', language)}:</span>
@@ -570,7 +562,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 type="number"
                 value={editOrder}
                 onChange={(e) => setEditOrder(Number(e.target.value))}
-                className="w-12 px-1 py-1 bg-slate-900 border border-indigo-500/30 rounded text-center text-white"
+                className={fieldClass('sm', 'w-14 px-1 text-center', { editing: true })}
               />
             </div>
             <div className="basis-full flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -580,7 +572,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 onStart={setEditStartTime}
                 onEnd={setEditDueTime}
                 language={language}
-                inputClassName="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm [color-scheme:dark]"
+                inputClassName={fieldClass('sm', 'px-2', { editing: true })}
               />
               <AssigneePicker profiles={profiles} value={editAssigned} onChange={setEditAssigned} language={language} compact />
             </div>
@@ -620,43 +612,24 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
       <div className="flex items-center gap-1.5 sm:gap-2 ml-2 sm:ml-4 shrink-0">
         {isEditing ? (
           <>
-            <button
-              onClick={() => saveEdit(task)}
-              aria-label="save task"
-              className="p-2 bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/20 rounded-xl text-emerald-400 hover:text-white transition-colors"
-            >
+            <IconButton tone="success" label="save task" onClick={() => saveEdit(task)}>
               <Check className="w-5 h-5" />
-            </button>
-            <button
-              onClick={cancelEdit}
-              aria-label="cancel edit"
-              className="p-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-white/60 hover:text-white transition-colors"
-            >
+            </IconButton>
+            <IconButton tone="neutral" label="cancel edit" onClick={cancelEdit}>
               <X className="w-5 h-5" />
-            </button>
+            </IconButton>
           </>
         ) : (
           <>
-            <button
-              onClick={() => startEdit(task)}
-              aria-label="edit task"
-              className="p-2.5 sm:p-2 bg-white/5 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-500/30 rounded-xl text-white/50 hover:text-indigo-200 transition-colors"
-            >
+            <IconButton tone="edit" label="edit task" onClick={() => startEdit(task)}>
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => (confirmDelete ? onDeleteTask(task.id) : setConfirmDelete(true))}
-              aria-label="delete task"
-              data-confirm={confirmDelete}
-              className={`flex items-center gap-1 p-2.5 sm:p-2 border rounded-xl transition-colors text-xs font-bold ${
-                confirmDelete
-                  ? 'bg-rose-600 border-rose-400 text-white'
-                  : 'bg-white/5 hover:bg-rose-600/30 border-white/10 hover:border-rose-500 text-rose-400 hover:text-white'
-              }`}
-            >
-              <Trash2 className="w-4 h-4" />
-              {confirmDelete && <span>{translate('btn.confirm_delete', language)}</span>}
-            </button>
+            </IconButton>
+            <ConfirmIconButton
+              label="delete task"
+              confirmText={translate('btn.confirm_delete', language)}
+              icon={<Trash2 className="w-4 h-4" />}
+              onConfirm={() => onDeleteTask(task.id)}
+            />
           </>
         )}
       </div>

@@ -23,6 +23,7 @@ import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
 import { childTheme } from '../../ui/theme';
 import { CONFETTI_Z } from '../../ui/layers';
+import { useConfirmTap } from '../../ui/useConfirmTap';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -92,19 +93,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onBuyShopItem,
   lateDefinitionIds,
 }) => {
-  const [confirmReset, setConfirmReset] = useState(false);
-
-  const handleResetClick = () => {
-    if (confirmReset) {
-      setConfirmReset(false);
-      onResetSession();
-    } else {
-      setConfirmReset(true);
-      setTimeout(() => {
-        setConfirmReset(false);
-      }, 3000);
-    }
-  };
+  // Resetting takes a second tap
+  const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
 
   // Set up dnd-kit touch-friendly sensors
   const sensors = useSensors(
