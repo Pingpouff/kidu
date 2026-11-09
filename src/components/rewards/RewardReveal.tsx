@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti } from '../../services/effects';
+import { CONFETTI_Z } from '../../ui/layers';
+import { Overlay } from '../../ui/Overlay';
 
 interface RewardRevealProps {
   icon: string;
@@ -38,17 +40,18 @@ export const RewardReveal: React.FC<RewardRevealProps> = ({
       startVelocity: 35,
       origin: { x: 0.5, y: 0.45 },
       colors: ['#facc15', '#fde047', '#f59e0b', '#ffffff'],
-      zIndex: 120,
+      zIndex: CONFETTI_Z.overlay,
     });
   }, [spoken, language]);
 
   return (
-    <div
+    <Overlay
+      layer="reveal"
       onClick={onDismiss}
-      role="dialog"
+      onClose={onDismiss}
       aria-label={heading}
       data-testid="reward-reveal"
-      className="fixed inset-0 z-[110] flex flex-col items-center justify-center gap-6 bg-slate-950/85 backdrop-blur-sm cursor-pointer select-none p-6"
+      className="flex flex-col items-center justify-center gap-6 bg-slate-950/85 backdrop-blur-sm cursor-pointer select-none p-6"
     >
       <p className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-amber-300">
         {heading}
@@ -74,6 +77,6 @@ export const RewardReveal: React.FC<RewardRevealProps> = ({
         {position ? `${position} · ` : ''}
         {translate('rewards.tap_continue', language)}
       </p>
-    </div>
+    </Overlay>
   );
 };

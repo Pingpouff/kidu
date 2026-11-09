@@ -9,6 +9,7 @@ import { ShopManager } from './ShopManager';
 import { shopItems } from '../../domain/rewards';
 import { ShopItem } from '../../domain/models';
 import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
+import { buttonClass } from '../../ui/styles';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -99,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <button
           onClick={onClose}
           aria-label={translate('btn.exit_parent', language)}
-          className="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-400/20 text-white font-bold rounded-xl active:scale-95 transition-all text-sm shadow-md"
+          className={buttonClass('danger', 'md', 'shrink-0 px-3 sm:px-4 py-2 shadow-md')}
         >
           <LogOut className="w-4.5 h-4.5" />
           <span className="hidden sm:inline">{translate('btn.exit_parent', language)}</span>

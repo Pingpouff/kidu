@@ -36,6 +36,16 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   └── ReminderQueue.ts # Serial queue of reminder announcements
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
+    ├── ui/                 # UI kit (generic, no domain logic)
+    │   ├── cx.ts           # Class joiner + tailwind-merge (last class wins)
+    │   ├── theme.ts        # Child color themes (single table)
+    │   ├── layers.ts       # Named stacking layers (z-index tokens) + confetti z
+    │   ├── styles.ts       # fieldClass / buttonClass / iconButtonClass / chipClass
+    │   ├── controls.tsx    # IconButton, ConfirmIconButton
+    │   ├── useConfirmTap.ts # Two-tap confirmation hook
+    │   ├── Overlay.tsx     # Overlay (full-screen layer) and Modal (centered panel)
+    │   ├── Panel.tsx       # PanelHeader for Parent Mode sections
+    │   └── Pill.tsx        # Small rounded labels
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
@@ -181,6 +191,16 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 `settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
 ---
+
+## UI Kit
+
+Styles live in Tailwind classes, shared through `src/ui/` instead of being copied:
+
+- **Child colors**: `childTheme(color)` returns every class tied to a child's color (board background, card, bars, celebration, Parent Mode row). Add a color in `CHILD_THEMES` (+ its `.theme-*` background in `index.css`).
+- **Layers**: full-screen views use `<Overlay layer="…">` (`overlay` < `treasure` < `flying` < `banner` < `dialog` < `choice` < `reveal`, tokens in `tailwind.config.js`). Overlays lock the page scroll, and Escape closes only the top one. `<Modal>` is an Overlay with a centered glass panel and a close button (piggy bank, PIN pad). Confetti canvases use `CONFETTI_Z`.
+- **Parent Mode controls**: `fieldClass(size, extra, { editing })` for inputs/selects (`lg` creation forms, `md` settings, `sm` inline row editing), `buttonClass(variant, size, extra)`, `IconButton` (edit / success / neutral) and `ConfirmIconButton` for anything destructive (second tap within 3 s). `PanelHeader` for section titles.
+- **Child-facing pieces**: `ChildAvatar`, `Pill`, `ChildCard`, `TaskCard`, `BadgeDisc`.
+- `cx()` merges classes with tailwind-merge, so an `extra` class overrides the component's default for the same property (`cx('px-4', 'px-2')` → `px-2`).
 
 ## Responsive Layout
 

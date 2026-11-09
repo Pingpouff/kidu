@@ -14,6 +14,9 @@ import {
 import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
+import { CONFETTI_Z } from '../../ui/layers';
+import { Overlay } from '../../ui/Overlay';
+import { Pill } from '../../ui/Pill';
 
 interface TreasureViewProps {
   profile: ChildProfile;
@@ -81,7 +84,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
         origin: { x: 0.5, y: 0.55 },
         colors: ['#facc15', '#fde047', '#f59e0b', '#fbbf24', '#ffffff'],
         shapes: ['circle'],
-        zIndex: 130,
+        zIndex: CONFETTI_Z.top,
       });
     }
   };
@@ -107,13 +110,12 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
     setSpin((s) => s + 1);
     reminderService.playTreasureTapSound();
     reminderService.triggerVoiceReminder(itemName(current), voiceLang(language));
-    fireConfetti({ particleCount: 35, spread: 60, startVelocity: 25, origin: { x: 0.5, y: 0.4 }, zIndex: 130 });
+    fireConfetti({ particleCount: 35, spread: 60, startVelocity: 25, origin: { x: 0.5, y: 0.4 }, zIndex: CONFETTI_Z.top });
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (!opened && (e.key === 'Enter' || e.key === ' ')) {
+      if (!opened && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         openChest();
       } else if (e.key === 'ArrowLeft') go(-1);
@@ -132,20 +134,21 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
   };
 
   const stat = (icon: string, value: number, label: string, testId: string) => (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15" data-testid={testId}>
+    <Pill tone="glass" className="gap-2 px-3 py-1.5" data-testid={testId}>
       <span className="text-xl">{icon}</span>
       <span className="text-lg font-black text-white">{value}</span>
       <span className="text-xs font-bold text-white/60 hidden sm:inline">{label}</span>
-    </div>
+    </Pill>
   );
 
   return (
-    <div
-      role="dialog"
+    <Overlay
+      layer="treasure"
+      onClose={onClose}
       aria-label={`${translate('treasure.title', language)} ${profile.name}`}
       data-testid="treasure-view"
       ref={scroller}
-      className="fixed inset-0 z-[60] treasure-bg overflow-y-auto overflow-x-hidden select-none"
+      className="treasure-bg overflow-y-auto overflow-x-hidden select-none"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Twinkling sparkles in the background */}
@@ -368,6 +371,6 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
           </section>
         </div>
       )}
-    </div>
+    </Overlay>
   );
 };

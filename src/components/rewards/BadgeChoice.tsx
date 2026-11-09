@@ -3,6 +3,8 @@ import { getBadge, getUniverse } from '../../domain/badges';
 import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
+import { CONFETTI_Z } from '../../ui/layers';
+import { Overlay } from '../../ui/Overlay';
 
 interface BadgeChoiceProps {
   childName: string;
@@ -68,17 +70,17 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
         language === 'fr' ? 'fr-FR' : 'en-US'
       );
     }
-    fireConfetti({ particleCount: 50, spread: 70, origin: { x: 0.5, y: 0.5 }, zIndex: 120 });
+    fireConfetti({ particleCount: 50, spread: 70, origin: { x: 0.5, y: 0.5 }, zIndex: CONFETTI_Z.overlay });
     // Let the "fly to the piggy bank" animation play before saving
     setTimeout(() => onChoose(badgeId), richMotion() ? 900 : 200);
   };
 
   return (
-    <div
-      role="dialog"
+    <Overlay
+      layer="choice"
       aria-label={translate('badges.choose', language)}
       data-testid="badge-choice"
-      className="fixed inset-0 z-[105] flex flex-col items-center justify-center gap-8 bg-slate-950/90 backdrop-blur-sm select-none p-6"
+      className="flex flex-col items-center justify-center gap-8 bg-slate-950/90 backdrop-blur-sm select-none p-6"
     >
       <div className="text-center flex flex-col gap-2">
         <p className="text-3xl md:text-5xl font-black text-white">
@@ -119,6 +121,6 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
           );
         })}
       </div>
-    </div>
+    </Overlay>
   );
 };

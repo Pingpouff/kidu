@@ -21,7 +21,7 @@ export const ReminderBanner: React.FC<ReminderBannerProps> = ({
   language,
   onDismiss,
 }) => (
-  <div className="fixed top-3 inset-x-0 z-[95] flex justify-center px-4 pointer-events-none">
+  <div className="fixed top-3 inset-x-0 z-banner flex justify-center px-4 pointer-events-none">
     <button
       role="alert"
       data-testid="reminder-banner"
