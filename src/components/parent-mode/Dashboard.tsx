@@ -9,6 +9,7 @@ import { ShopManager } from './ShopManager';
 import { shopItems } from '../../domain/rewards';
 import { ShopItem } from '../../domain/models';
 import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
+import { buttonClass } from '../../ui/styles';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -67,30 +68,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Sidebar navigation configuration
   const navigationItems = [
-    { id: 'tasks', label: translate('parent.tab.tasks', language), icon: LayoutGrid },
-    { id: 'children', label: translate('parent.tab.children', language), icon: Users },
-    { id: 'shop', label: translate('parent.tab.shop', language), icon: Gift },
-    { id: 'history', label: translate('parent.tab.history', language), icon: Calendar },
-    { id: 'settings', label: translate('parent.tab.settings', language), icon: Gear },
+    { id: 'tasks', label: translate('parent.tab.tasks', language), short: translate('parent.tab.tasks_short', language), icon: LayoutGrid },
+    { id: 'children', label: translate('parent.tab.children', language), short: translate('parent.tab.children', language), icon: Users },
+    { id: 'shop', label: translate('parent.tab.shop', language), short: translate('parent.tab.shop', language), icon: Gift },
+    { id: 'history', label: translate('parent.tab.history', language), short: translate('parent.tab.history', language), icon: Calendar },
+    { id: 'settings', label: translate('parent.tab.settings', language), short: translate('parent.tab.settings_short', language), icon: Gear },
   ] as const;
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col overflow-hidden text-slate-100 select-none relative">
+    <div className="w-full h-[100dvh] bg-slate-950 flex flex-col overflow-hidden text-slate-100 select-none relative">
       {/* Visual glowing decorations */}
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-purple-500/10 blur-[120px] pointer-events-none" />
 
       {/* Main Header */}
-      <header className="flex justify-between items-center px-6 py-4 bg-slate-900/60 border-b border-white/5 backdrop-blur-md z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+      <header className="flex justify-between items-center gap-3 px-3 py-2.5 sm:px-6 sm:py-4 bg-slate-900/60 border-b border-white/5 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="hidden sm:flex w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 items-center justify-center text-indigo-400">
             <Gear className="w-5 h-5 animate-pulse-slow" />
           </div>
-          <div>
-            <h1 className="font-extrabold text-lg md:text-xl text-white tracking-wide">
+          <div className="min-w-0">
+            <h1 className="font-extrabold text-base sm:text-lg md:text-xl text-white tracking-wide truncate">
               {translate('parent.title', language)}
             </h1>
-            <span className="text-[10px] text-white/40 tracking-wider uppercase font-semibold">
+            <span className="hidden sm:block text-[10px] text-white/40 tracking-wider uppercase font-semibold">
               Administration MVP
             </span>
           </div>
@@ -98,17 +99,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <button
           onClick={onClose}
-          className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 border border-rose-400/20 text-white font-bold rounded-xl active:scale-95 transition-all text-sm shadow-md"
+          aria-label={translate('btn.exit_parent', language)}
+          className={buttonClass('danger', 'md', 'shrink-0 px-3 sm:px-4 py-2 shadow-md')}
         >
           <LogOut className="w-4.5 h-4.5" />
-          <span>{translate('btn.exit_parent', language)}</span>
+          <span className="hidden sm:inline">{translate('btn.exit_parent', language)}</span>
+          <span className="sm:hidden">{translate('btn.exit_short', language)}</span>
         </button>
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden z-10">
-        {/* Sidebar Nav */}
-        <nav className="w-full md:w-64 bg-slate-900/30 border-b md:border-b-0 md:border-r border-white/5 p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible shrink-0 scrollbar-none">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden z-10">
+        {/* Navigation: equal tabs on phones / tablets, sidebar on large screens */}
+        <nav className="w-full lg:w-64 bg-slate-900/30 border-b lg:border-b-0 lg:border-r border-white/5 p-1.5 sm:p-3 lg:p-4 grid grid-cols-5 lg:flex lg:flex-col gap-1 sm:gap-2 shrink-0">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -116,22 +119,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-all whitespace-nowrap md:w-full ${
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                className={`flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-1 sm:gap-2 lg:gap-3 px-1 sm:px-3 lg:px-4 py-2 lg:py-3 rounded-xl font-bold text-[11px] sm:text-sm tracking-wide transition-all lg:w-full min-w-0 ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/10 border border-indigo-400/30'
                     : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
               >
-                <Icon className="w-4.5 h-4.5" />
-                <span>{item.label}</span>
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className="truncate max-w-full lg:hidden">{item.short}</span>
+                <span className="hidden lg:inline">{item.label}</span>
               </button>
             );
           })}
         </nav>
 
         {/* Tab Panel Window */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-900/10">
-          <div className="max-w-4xl mx-auto glass-panel p-6 border-white/5 bg-slate-900/40 shadow-2xl backdrop-blur-xl">
+        <main className="flex-1 overflow-y-auto p-2 sm:p-6 lg:p-8 bg-slate-900/10">
+          <div className="max-w-4xl mx-auto glass-panel p-3 sm:p-6 border-white/5 bg-slate-900/40 shadow-2xl backdrop-blur-xl">
             {activeTab === 'tasks' && (
               <TaskManager
                 tasks={tasks}

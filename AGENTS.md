@@ -36,6 +36,16 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   └── ReminderQueue.ts # Serial queue of reminder announcements
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
+    ├── ui/                 # UI kit (generic, no domain logic)
+    │   ├── cx.ts           # Class joiner + tailwind-merge (last class wins)
+    │   ├── theme.ts        # Child color themes (single table)
+    │   ├── layers.ts       # Named stacking layers (z-index tokens) + confetti z
+    │   ├── styles.ts       # fieldClass / buttonClass / iconButtonClass / chipClass
+    │   ├── controls.tsx    # IconButton, ConfirmIconButton
+    │   ├── useConfirmTap.ts # Two-tap confirmation hook
+    │   ├── Overlay.tsx     # Overlay (full-screen layer) and Modal (centered panel)
+    │   ├── Panel.tsx       # PanelHeader for Parent Mode sections
+    │   └── Pill.tsx        # Small rounded labels
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
@@ -80,7 +90,8 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        icon: string; // Emoji character
        order: number; // Sorting order inside its phase
        category?: 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
-       dueTime?: string; // "HH:MM", reminders when late
+       startTime?: string; // "HH:MM" expected start, one "time to start" reminder
+       dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
      }
      ```
@@ -168,8 +179,9 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 
 ## Reminders
 
-- `TaskDefinition.dueTime` (`"HH:MM"`, optional) and `settings.reminders` (`ReminderSettings`: `enabled`, `repeatMinutes`, `maxReminders`, `systemNotifications`; default `DEFAULT_REMINDERS`).
+- `TaskDefinition.startTime` / `dueTime` (`"HH:MM"`, optional, start before end: `isValidTimeWindow`) and `settings.reminders` (`ReminderSettings`: `enabled`, `repeatMinutes`, `maxReminders`, `systemNotifications`; default `DEFAULT_REMINDERS`).
 - `findOverdueTasks` lists, for every child, the tasks past their due time and not done (a child without a session today counts as not started; completed routines are skipped), sorted by due time, child, then routine order.
+- `findStartingTasks` lists tasks whose start time has passed and that are still `todo` (until their end time, when late reminders take over); `findReminderTasks` merges both lists by time. Items carry `kind: 'late' | 'start'`; a start is announced only once.
 - `planReminders` decides what to announce now from a per-day log (`{ count, lastAt }` per `date_child_task` key): first time overdue, then every `repeatMinutes`, at most `maxReminders`. Tasks of the same child are grouped into one batch.
 - `ReminderQueue` plays batches strictly one at a time (banner + chime + voice, waiting for any ongoing speech), merges pending batches of the same child and re-validates each batch against the database right before playing.
 - `useTaskReminders` ticks every 30 s, persists the log in `localStorage` (best effort) and is paused during Parent Mode. Reminders only run while the app is open; there is no push server.
@@ -179,6 +191,23 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 `settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
 ---
+
+## UI Kit
+
+Styles live in Tailwind classes, shared through `src/ui/` instead of being copied:
+
+- **Child colors**: `childTheme(color)` returns every class tied to a child's color (board background, card, bars, celebration, Parent Mode row). Add a color in `CHILD_THEMES` (+ its `.theme-*` background in `index.css`).
+- **Layers**: full-screen views use `<Overlay layer="…">` (`overlay` < `treasure` < `flying` < `banner` < `dialog` < `choice` < `reveal`, tokens in `tailwind.config.js`). Overlays lock the page scroll, and Escape closes only the top one. `<Modal>` is an Overlay with a centered glass panel and a close button (piggy bank, PIN pad). Confetti canvases use `CONFETTI_Z`.
+- **Parent Mode controls**: `fieldClass(size, extra, { editing })` for inputs/selects (`lg` creation forms, `md` settings, `sm` inline row editing), `buttonClass(variant, size, extra)`, `IconButton` (edit / success / neutral) and `ConfirmIconButton` for anything destructive (second tap within 3 s). `PanelHeader` for section titles.
+- **Child-facing pieces**: `ChildAvatar`, `Pill`, `ChildCard`, `TaskCard`, `BadgeDisc`.
+- `cx()` merges classes with tailwind-merge, so an `extra` class overrides the component's default for the same property (`cx('px-4', 'px-2')` → `px-2`).
+
+## Responsive Layout
+
+Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-screen views use `100dvh` so mobile browser bars don't hide content.
+
+- **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
+- **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
 
 ## Configuration Backup
 

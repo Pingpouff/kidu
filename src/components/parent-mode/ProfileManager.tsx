@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { ChildProfile } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, Star } from 'lucide-react';
+import { CHILD_COLORS, childTheme } from '../../ui/theme';
+import { ConfirmIconButton, IconButton } from '../../ui/controls';
+import { buttonClass, fieldClass } from '../../ui/styles';
+import { PanelHeader } from '../../ui/Panel';
+import { ChildAvatar } from '../common/ChildAvatar';
 
 interface ProfileManagerProps {
   profiles: ChildProfile[];
@@ -32,7 +37,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
   const [editAge, setEditAge] = useState<string>('');
   const [editStars, setEditStars] = useState<number>(0);
 
-  const colorsList: ChildProfile['color'][] = ['indigo', 'purple', 'rose', 'emerald', 'amber'];
+  const colorsList = CHILD_COLORS;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +87,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xl font-bold text-slate-100">
-        {translate('parent.children.title', language)}
-      </h3>
+      <PanelHeader title={translate('parent.children.title', language)} />
 
       {/* Profile Creation Form */}
       <form onSubmit={handleAdd} className="flex flex-col gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
@@ -95,7 +98,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder={translate('parent.children.name_placeholder', language)}
-            className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20 text-sm"
+            className={fieldClass('md')}
           />
           <input
             type="text"
@@ -104,19 +107,19 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
             value={newAvatar}
             onChange={(e) => setNewAvatar(e.target.value)}
             placeholder={translate('parent.children.avatar_placeholder', language)}
-            className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-center text-white placeholder:text-white/20 text-sm"
+            className={fieldClass('md', 'text-center')}
           />
           <input
             type="number"
             value={newAge}
             onChange={(e) => setNewAge(e.target.value)}
             placeholder={translate('parent.children.age', language)}
-            className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20 text-sm"
+            className={fieldClass('md')}
           />
           <select
             value={newColor}
             onChange={(e) => setNewColor(e.target.value as ChildProfile['color'])}
-            className="px-3 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
+            className={fieldClass('md', 'px-3')}
           >
             {colorsList.map((col) => (
               <option key={col} value={col}>
@@ -127,7 +130,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         </div>
         <button
           type="submit"
-          className="w-full sm:w-auto self-end px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all text-sm"
+          className={buttonClass('primary', 'md', 'w-full sm:w-auto self-end px-6')}
         >
           <Plus className="w-5 h-5" />
           <span>{translate('parent.children.add', language)}</span>
@@ -139,16 +142,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
         {profiles.map((profile) => {
           const isEditing = editingId === profile.id;
 
-          // Border color based on child theme selection
-          const borderColors = {
-            indigo: 'border-indigo-500/30 hover:bg-indigo-950/10',
-            purple: 'border-purple-500/30 hover:bg-purple-950/10',
-            rose: 'border-rose-500/30 hover:bg-rose-950/10',
-            emerald: 'border-emerald-500/30 hover:bg-emerald-950/10',
-            amber: 'border-amber-500/30 hover:bg-amber-950/10',
-          };
-
-          const themeBorder = borderColors[profile.color] || borderColors.indigo;
+          const themeBorder = childTheme(profile.color).managerRow;
 
           return (
             <div
@@ -162,14 +156,14 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
+                    className={fieldClass('sm', undefined, { editing: true })}
                   />
                   <input
                     type="text"
                     maxLength={4}
                     value={editAvatar}
                     onChange={(e) => setEditAvatar(e.target.value)}
-                    className="px-3 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-center text-white text-sm"
+                    className={fieldClass('sm', 'text-center', { editing: true })}
                   />
                   <div className="flex items-center gap-1.5 text-xs text-white/50">
                     <span>{translate('parent.children.age', language)}:</span>
@@ -177,7 +171,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       type="number"
                       value={editAge}
                       onChange={(e) => setEditAge(e.target.value)}
-                      className="w-16 px-2 py-1 bg-slate-900 border border-indigo-500/30 rounded text-center text-white"
+                      className={fieldClass('sm', 'w-16 text-center', { editing: true })}
                     />
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-white/50">
@@ -185,7 +179,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     <select
                       value={editColor}
                       onChange={(e) => setEditColor(e.target.value as ChildProfile['color'])}
-                      className="px-2 py-1 bg-slate-900 border border-indigo-500/30 rounded text-white text-xs"
+                      className={fieldClass('sm', undefined, { editing: true })}
                     >
                       {colorsList.map((c) => (
                         <option key={c} value={c}>
@@ -201,16 +195,14 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                       type="number"
                       value={editStars}
                       onChange={(e) => setEditStars(Number(e.target.value))}
-                      className="w-20 px-2 py-1 bg-slate-900 border border-indigo-500/30 rounded text-center text-white text-sm"
+                      className={fieldClass('sm', 'w-20 text-center', { editing: true })}
                     />
                   </div>
                 </div>
               ) : (
                 /* Static view */
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-3xl shadow-inner select-none">
-                    {profile.avatar}
-                  </div>
+                  <ChildAvatar avatar={profile.avatar} size="sm" tone="outlined" />
                   <div>
                     <h4 className="font-extrabold text-white text-lg">
                       {profile.name}
@@ -236,37 +228,24 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
               <div className="flex items-center gap-2 justify-end">
                 {isEditing ? (
                   <>
-                    <button
-                      onClick={() => saveEdit(profile)}
-                      aria-label="save changes"
-                      className="p-2 bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/20 rounded-xl text-emerald-400 hover:text-white transition-colors"
-                    >
+                    <IconButton tone="success" label="save changes" onClick={() => saveEdit(profile)}>
                       <Check className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={cancelEdit}
-                      aria-label="cancel"
-                      className="p-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-white/60 hover:text-white transition-colors"
-                    >
+                    </IconButton>
+                    <IconButton tone="neutral" label="cancel" onClick={cancelEdit}>
                       <X className="w-5 h-5" />
-                    </button>
+                    </IconButton>
                   </>
                 ) : (
                   <>
-                    <button
-                      onClick={() => startEdit(profile)}
-                      aria-label="edit profile"
-                      className="p-2 bg-white/5 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-500/30 rounded-xl text-white/50 hover:text-indigo-200 transition-colors"
-                    >
+                    <IconButton tone="edit" label="edit profile" onClick={() => startEdit(profile)}>
                       <Edit2 className="w-4.5 h-4.5" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteProfile(profile.id)}
-                      aria-label="delete profile"
-                      className="p-2 bg-white/5 hover:bg-rose-600 border border-white/10 hover:border-rose-500 rounded-xl text-rose-400 hover:text-white transition-colors"
-                    >
-                      <Trash2 className="w-4.5 h-4.5" />
-                    </button>
+                    </IconButton>
+                    <ConfirmIconButton
+                      label="delete profile"
+                      confirmText={translate('btn.confirm_delete', language)}
+                      icon={<Trash2 className="w-4.5 h-4.5" />}
+                      onConfirm={() => onDeleteProfile(profile.id)}
+                    />
                   </>
                 )}
               </div>

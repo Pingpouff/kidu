@@ -2,6 +2,8 @@ import React from 'react';
 import { HistoryEntry } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { Calendar, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { ConfirmIconButton } from '../../ui/controls';
+import { PanelHeader } from '../../ui/Panel';
 
 interface HistoryPanelProps {
   history: HistoryEntry[];
@@ -35,9 +37,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xl font-bold text-slate-100">
-        {translate('parent.history.title', language)}
-      </h3>
+      <PanelHeader title={translate('parent.history.title', language)} />
 
       {history.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-slate-500 gap-2 border border-dashed border-white/5 rounded-2xl">
@@ -83,13 +83,13 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={() => onDeleteHistory(entry.id)}
-                aria-label="delete history entry"
-                className="p-2 bg-white/5 hover:bg-rose-600 border border-white/10 hover:border-rose-500 rounded-xl text-rose-400 hover:text-white transition-colors ml-4"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <ConfirmIconButton
+                label="delete history entry"
+                confirmText={translate('btn.confirm_delete', language)}
+                icon={<Trash2 className="w-4 h-4" />}
+                onConfirm={() => onDeleteHistory(entry.id)}
+                className="ml-4"
+              />
             </div>
           ))}
         </div>

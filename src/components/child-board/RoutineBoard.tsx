@@ -21,6 +21,9 @@ import { ShopItem } from '../../domain/models';
 import { unspentBadges } from '../../domain/rewards';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
+import { childTheme } from '../../ui/theme';
+import { CONFETTI_Z } from '../../ui/layers';
+import { useConfirmTap } from '../../ui/useConfirmTap';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -66,7 +69,7 @@ const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> =
     <span
       ref={ref}
       aria-hidden="true"
-      className="fixed z-[70] text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
+      className="fixed z-flying text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
       style={{ left: from.left + from.width / 2, top: from.top + from.height / 3 }}
     >
       ⭐
@@ -90,19 +93,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onBuyShopItem,
   lateDefinitionIds,
 }) => {
-  const [confirmReset, setConfirmReset] = useState(false);
-
-  const handleResetClick = () => {
-    if (confirmReset) {
-      setConfirmReset(false);
-      onResetSession();
-    } else {
-      setConfirmReset(true);
-      setTimeout(() => {
-        setConfirmReset(false);
-      }, 3000);
-    }
-  };
+  // Resetting takes a second tap
+  const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
 
   // Set up dnd-kit touch-friendly sensors
   const sensors = useSensors(
@@ -143,16 +135,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     if (bannerTimer.current) clearTimeout(bannerTimer.current);
   }, []);
 
-  // Background style based on child color theme
-  const backgrounds = {
-    indigo: 'theme-indigo',
-    purple: 'theme-purple',
-    rose: 'theme-rose',
-    emerald: 'theme-emerald',
-    amber: 'theme-amber',
-  };
-
-  const bgTheme = backgrounds[profile.color] || backgrounds.indigo;
+  const bgTheme = childTheme(profile.color).board;
 
   // Split the routine into phases; only the current phase is shown on the board
   const phases = getRoutinePhases(session, tasksDefinitions);
@@ -271,7 +254,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         startVelocity: 28,
         ticks: 60,
         origin: { x: 0.83, y: 0.4 },
-        zIndex: 60,
+        zIndex: CONFETTI_Z.board,
       });
 
       // A star is earned only the first time the task is done today
@@ -346,7 +329,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={`w-full h-screen flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
+      <div className={`w-full h-[100dvh] flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
         {/* Night sky overlay during the bedtime phase */}
         <div
           aria-hidden="true"
@@ -380,28 +363,29 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           </div>
         )}
 
-        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-4 gap-2 relative">
+        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-2 sm:p-4 gap-1 sm:gap-2 relative">
         
         {/* Top Header Bar */}
-        <header className="flex items-center justify-between z-10">
+        <header className="flex items-center justify-between gap-1.5 sm:gap-3 z-10">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full text-white/80 hover:text-white transition-all active:scale-95"
+            aria-label={`${translate('btn.back', language)} — ${profile.name}`}
+            className="shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full text-white/80 hover:text-white transition-all active:scale-95"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-extrabold text-sm md:text-base">
-              {profile.avatar} {profile.name}
+              {profile.avatar}<span className="hidden sm:inline"> {profile.name}</span>
             </span>
           </button>
 
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex flex-col items-center gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
               {/* Star meter: stars collected toward the next medal */}
               <div
                 ref={starMeterRef}
                 data-testid="star-meter"
                 aria-label={translate('stars.meter', language)}
-                className="flex items-center gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-4 py-2 rounded-full font-black text-base md:text-lg"
+                className="flex items-center gap-1 sm:gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg"
               >
                 {Array.from({ length: starsPerMedal }, (_, i) => (
                   <span
@@ -411,7 +395,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                     ⭐
                   </span>
                 ))}
-                <span className="text-white/50 mx-0.5">→</span>
+                <span className="hidden sm:inline text-white/50 mx-0.5">→</span>
                 <span>🏅</span>
                 <span key={profile.medalCount ?? 0} className="animate-counter-bump inline-block" data-testid="medal-count">
                   {profile.medalCount ?? 0}
@@ -422,7 +406,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
               <button
                 onClick={() => setShowPiggy(true)}
                 aria-label={translate('piggy.title', language)}
-                className="flex items-center gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-4 py-2 rounded-full font-black text-base md:text-lg transition-all active:scale-95"
+                className="flex items-center gap-1.5 sm:gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg transition-all active:scale-95"
               >
                 <span key={unspentBadges(profile).length} className="animate-wiggle inline-block">🐷</span>
                 <span data-testid="piggy-header-count">{unspentBadges(profile).length}</span>
@@ -435,7 +419,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="shrink-0 flex items-center gap-1.5 sm:gap-3">
             <button
               onClick={handleResetClick}
               aria-label="reset routine"
@@ -454,9 +438,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             <button
               onClick={onEnterParentMode}
               aria-label={translate('btn.parent_mode', language)}
-              className="p-3 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/95 border border-white/10 rounded-full transition-all active:scale-95"
+              className="p-2 sm:p-3 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/95 border border-white/10 rounded-full transition-all active:scale-95"
             >
-              <Settings className="w-6 h-6" />
+              <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </header>
@@ -464,8 +448,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         {/* Current phase indicator */}
         {currentPhase && phases.length > 1 && (
           <div className="flex flex-col items-center gap-1.5 z-10" data-testid="phase-indicator">
-            <div className="flex items-center gap-3 text-white font-black text-lg md:text-2xl">
-              <span className="text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
+            <div className="flex items-center gap-2 sm:gap-3 text-white font-black text-base sm:text-lg md:text-2xl">
+              <span className="text-2xl sm:text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
               <span>
                 {translate('board.step', language)} {currentPhaseIndex + 1}/{phases.length}{colon}
                 {translate(`category.${currentPhase.category}`, language)}
@@ -491,7 +475,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           </div>
         )}
 
-        <main className="flex-1 my-4 flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden justify-center items-stretch py-2">
+        {/* Phones: one scrolling column, "doing" first. Tablets and up: three columns side by side */}
+        <main className="flex-1 min-h-0 my-1 sm:my-4 flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 overflow-y-auto sm:overflow-y-hidden overflow-x-hidden sm:justify-center items-stretch py-1 sm:py-2 scrollbar-thin">
           <BoardColumn
             id="todo"
             title={translate('col.todo', language)}
@@ -499,6 +484,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             colorTheme="yellow"
             count={todoTasks.length}
             isDragging={isDragging}
+            emptyHint="✨"
           >
             {todoTasks.map((t) => (
               <TaskCard
@@ -520,6 +506,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             colorTheme="orange"
             count={doingTasks.length}
             isDragging={isDragging}
+            className="order-first sm:order-none"
+            emptyHint={`👆 ${translate('board.tap_hint', language)}`}
           >
             {doingTasks.map((t) => (
               <TaskCard
@@ -541,6 +529,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             colorTheme="emerald"
             count={doneTasks.length}
             isDragging={isDragging}
+            emptyHint="✨"
           >
             {doneTasks.map((t) => (
               <TaskCard
@@ -557,7 +546,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         </main>
 
         {/* Bottom Progress Bar */}
-        <footer className="w-full max-w-4xl mx-auto px-4 pb-2 z-10">
+        <footer className="w-full max-w-4xl mx-auto px-1 sm:px-4 pb-1 sm:pb-2 z-10">
           <ProgressBar
             progress={progressPct}
             avatar={profile.avatar}

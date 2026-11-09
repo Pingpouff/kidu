@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { completeTask, enterParentMode } from './helpers';
+import { completeTask, enterParentMode, openTaskForm } from './helpers';
 
 test.describe('Personal tasks and selection screen summary', () => {
   test('a task can be assigned to one child only', async ({ page }) => {
@@ -10,6 +10,7 @@ test.describe('Personal tasks and selection screen summary', () => {
     const homework = page.getByTestId('task-group-after_school').getByTestId('task-row').filter({ hasText: 'Faire ses devoirs' });
     await expect(homework.getByTestId('task-assignees')).toContainText('Léo');
 
+    await openTaskForm(page);
     // New task for Emma only
     const form = page.locator('form').filter({ has: page.locator('input[placeholder*="Nom de la tâche"]') });
     await form.locator('input[placeholder*="Nom de la tâche"]').fill('Nourrir le chat');

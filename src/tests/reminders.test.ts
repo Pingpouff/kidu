@@ -3,7 +3,10 @@ import { ChildProfile, ReminderSettings, RoutineSession, TaskDefinition } from '
 import {
   dueTimeToEpoch,
   findOverdueTasks,
+  findReminderTasks,
+  findStartingTasks,
   isValidDueTime,
+  isValidTimeWindow,
   planReminders,
   pruneReminderLog,
   ReminderLog,
@@ -215,5 +218,60 @@ describe('Reminder queue', () => {
     for (let i = 0; i < 6; i++) await flush();
     console.error = errors;
     expect(played).toEqual(['emma']);
+  });
+});
+
+describe('Start times', () => {
+  const windowDefs: TaskDefinition[] = [
+    { id: 'homework', labelKey: '', defaultLabel: 'Devoirs', icon: '✏️', order: 1, startTime: '18:15', dueTime: '18:45' },
+    { id: 'bath', labelKey: '', defaultLabel: 'Bain', icon: '🛁', order: 2, startTime: '18:30' },
+  ];
+  const sessionWith = (childId: string, statuses: Record<string, 'todo' | 'doing' | 'done'>): RoutineSession => ({
+    id: `${DATE}_${childId}`,
+    childId,
+    date: DATE,
+    isCompleted: false,
+    tasks: windowDefs.map((d) => ({ id: `${childId}_${d.id}`, definitionId: d.id, status: statuses[d.id] ?? 'todo' })),
+  });
+
+  it('checks that the start is before the end', () => {
+    expect(isValidTimeWindow('18:00', '18:30')).toBe(true);
+    expect(isValidTimeWindow('18:30', '18:30')).toBe(false);
+    expect(isValidTimeWindow('19:00', '18:30')).toBe(false);
+    expect(isValidTimeWindow('18:00', undefined)).toBe(true);
+    expect(isValidTimeWindow(undefined, '18:00')).toBe(true);
+    expect(isValidTimeWindow('8:00', undefined)).toBe(false);
+  });
+
+  it('lists tasks whose start time has passed and that are not started', () => {
+    const starting = findStartingTasks(at('18:35'), DATE, profiles, [sessionWith('leo', { homework: 'doing' })], windowDefs);
+    expect(starting.map((t) => `${t.childId}:${t.definitionId}:${t.kind}`)).toEqual([
+      'emma:homework:start',
+      'leo:bath:start',
+      'emma:bath:start',
+    ]);
+    expect(findStartingTasks(at('18:10'), DATE, profiles, [], windowDefs)).toEqual([]);
+  });
+
+  it('hands over to late reminders once the end time has passed', () => {
+    const all = findReminderTasks(at('18:50'), DATE, [profiles[0]], [], windowDefs);
+    expect(all.map((t) => `${t.definitionId}:${t.kind}`)).toEqual(['bath:start', 'homework:late']); // by time: 18:30, 18:45
+  });
+
+  it('announces a start only once', () => {
+    let log: ReminderLog = {};
+    const tasks = findStartingTasks(at('18:20'), DATE, [profiles[0]], [], windowDefs);
+    const first = planReminders(tasks, log, at('18:20'), settings);
+    log = first.log;
+    expect(first.batches).toHaveLength(1);
+    expect(planReminders(tasks, log, at('18:40'), settings).batches).toEqual([]);
+  });
+
+  it('says it is time to start, alone or after late tasks', () => {
+    expect(reminderText('Léo', [], 'fr', ['Bain'])).toBe("Léo, c'est le moment de commencer : Bain !");
+    expect(reminderText('Léo', ['Devoirs'], 'fr', ['Bain', 'Dents'])).toBe(
+      "Léo, c'est l'heure : Devoirs ! Et c'est le moment de commencer : Bain et Dents !"
+    );
+    expect(reminderText('Leo', [], 'en', ['Bath'])).toBe('Leo, time to start: Bath!');
   });
 });
