@@ -17,6 +17,10 @@ import { RewardReveal } from './components/rewards/RewardReveal';
 import { BadgeChoice } from './components/rewards/BadgeChoice';
 import { ReminderBanner } from './components/child-board/ReminderBanner';
 import { useTaskReminders } from './hooks/useTaskReminders';
+import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
+import { APP_VERSION, ChangelogEntry, changesSince, previousVersion } from './domain/changelog';
+import { AppUpdateBanner } from './components/app/AppUpdateBanner';
+import { WhatsNewModal } from './components/app/WhatsNewModal';
 
 /** Rewards waiting to be revealed, one full-screen reveal at a time */
 type Reveal =
@@ -32,10 +36,20 @@ export default function App() {
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [revealsShown, setRevealsShown] = useState(0); // in the current batch
 
+  // New version waiting (service worker) and "What's new" after an update
+  const appUpdate = useAppUpdate();
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [lastSeenVersion] = useState(readLastSeenVersion); // read before it is overwritten below
+  const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
+
   // Seed DB on mount
   useEffect(() => {
-    seedDatabase().then(() => setDbSeeded(true));
-  }, []);
+    seedDatabase().then(({ freshInstall }) => {
+      setWhatsNew(changesSince(previousVersion(lastSeenVersion, freshInstall)));
+      saveLastSeenVersion(APP_VERSION);
+      setDbSeeded(true);
+    });
+  }, [lastSeenVersion]);
 
   // Fetch reactive data using Dexie live queries
   const profiles = useLiveQuery(() => db.profiles.toArray());
@@ -238,8 +252,14 @@ export default function App() {
 
   /* Router/State renderer logic */
 
+  // Never shown on a child's board: an update must not cut a routine
+  const updateBanner = appUpdate.updateAvailable && !updateDismissed && (parentMode || !activeProfile) && (
+    <AppUpdateBanner language={activeLang} onUpdate={appUpdate.applyUpdate} onLater={() => setUpdateDismissed(true)} />
+  );
+
   if (parentMode) {
     return (
+      <>
       <ParentDashboard
         profiles={profiles}
         tasks={tasks}
@@ -261,7 +281,10 @@ export default function App() {
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         onSaveShop={handleSaveShop}
+        appUpdate={appUpdate}
       />
+      {updateBanner}
+      </>
     );
   }
 
@@ -383,6 +406,12 @@ export default function App() {
           today={todayStr}
         />
       )}
+
+      {/* After an update: what changed (on the selection screen only) */}
+      {whatsNew.length > 0 && !activeProfile && (
+        <WhatsNewModal entries={whatsNew} language={activeLang} onClose={() => setWhatsNew([])} />
+      )}
+      {updateBanner}
     </>
   );
 }

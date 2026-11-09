@@ -9,7 +9,10 @@ import {
 } from '../../services/notifications';
 import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
-import { Save, AlertOctagon, Download, Upload, HardDrive } from 'lucide-react';
+import { Save, AlertOctagon, Download, Upload, HardDrive, Smartphone, RefreshCw, History } from 'lucide-react';
+import type { AppUpdate } from '../../services/appUpdate';
+import { APP_VERSION, CHANGELOG } from '../../domain/changelog';
+import { WhatsNewModal } from '../app/WhatsNewModal';
 import { buttonClass, fieldClass } from '../../ui/styles';
 import { PanelHeader } from '../../ui/Panel';
 
@@ -20,6 +23,7 @@ interface SettingsPanelProps {
   onResetAllData: () => Promise<void>;
   onExportBackup: (includeHistory: boolean) => Promise<void>;
   onImportBackup: (fileContent: string) => Promise<void>;
+  appUpdate?: AppUpdate;
 }
 
 type BackupStatus =
@@ -35,7 +39,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onResetAllData,
   onExportBackup,
   onImportBackup,
+  appUpdate,
 }) => {
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [pin, setPin] = useState(settings.parentPin);
   const [lang, setLang] = useState<Language>(settings.language);
   const [perMedal, setPerMedal] = useState<number>(starsPerMedal(settings));
@@ -449,6 +455,51 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       </div>
 
       {/* Divider */}
+      {/* App version and updates */}
+      <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3" data-testid="app-version">
+        <div className="flex items-center gap-3 text-indigo-300 font-extrabold text-sm uppercase tracking-wider">
+          <Smartphone className="w-5 h-5" />
+          <span>{translate('parent.app.title', language)}</span>
+        </div>
+        <p className="text-sm text-white/70">
+          {translate('parent.app.version', language)}{language === 'fr' ? ' : ' : ': '}<strong className="text-white">{APP_VERSION}</strong>
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          {appUpdate?.updateAvailable ? (
+            <button type="button" onClick={appUpdate.applyUpdate} className={buttonClass('success', 'sm')}>
+              <RefreshCw className="w-4 h-4" />
+              <span>{translate('update.apply', language)}</span>
+            </button>
+          ) : (
+            appUpdate && (
+              <button
+                type="button"
+                onClick={appUpdate.checkNow}
+                disabled={appUpdate.lastCheck === 'checking'}
+                className={buttonClass('secondary', 'sm')}
+              >
+                <RefreshCw className={`w-4 h-4 ${appUpdate.lastCheck === 'checking' ? 'animate-spin' : ''}`} />
+                <span>{translate(appUpdate.lastCheck === 'checking' ? 'parent.app.checking' : 'parent.app.check', language)}</span>
+              </button>
+            )
+          )}
+          <button type="button" onClick={() => setShowVersionHistory(true)} className={buttonClass('secondary', 'sm')}>
+            <History className="w-4 h-4" />
+            <span>{translate('parent.app.history', language)}</span>
+          </button>
+        </div>
+        {appUpdate?.updateAvailable && (
+          <p className="text-xs text-emerald-300">{translate('update.available', language)}</p>
+        )}
+        {!appUpdate?.updateAvailable && (appUpdate?.lastCheck === 'up_to_date' || appUpdate?.lastCheck === 'unavailable') && (
+          <p className="text-xs text-white/50">{translate(`parent.app.${appUpdate.lastCheck}`, language)}</p>
+        )}
+      </div>
+
+      {showVersionHistory && (
+        <WhatsNewModal entries={CHANGELOG} language={language} mode="history" onClose={() => setShowVersionHistory(false)} />
+      )}
+
       <hr className="border-white/5 my-2" />
 
       {/* Dangerous Operations Zone */}

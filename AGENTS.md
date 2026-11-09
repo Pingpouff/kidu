@@ -27,14 +27,16 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
-    │   └── backup.ts       # Backup file format, creation and validation
+    │   ├── backup.ts       # Backup file format, creation and validation
+    │   └── changelog.ts    # App version, bilingual changelog, "what's new" selection
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
     ├── services/
     │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
-    │   └── ReminderQueue.ts # Serial queue of reminder announcements
+    │   ├── ReminderQueue.ts # Serial queue of reminder announcements
+    │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
     ├── ui/                 # UI kit (generic, no domain logic)
@@ -50,6 +52,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
+    │   ├── app/            # Update banner and "What's new" window
     │   ├── child-board/    # Kid-facing board components
     │   ├── parent-mode/    # Parent settings dashboard components
     │   └── rewards/        # Fanfare and confetti celebrations
@@ -223,6 +226,15 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 
 - **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
 - **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
+
+## Versions, Changelog and Updates
+
+- **Version**: `package.json` `version` (semver), injected at build time as `__APP_VERSION__` (`define` in `vite.config.ts`) and exported as `APP_VERSION` from `domain/changelog.ts`.
+- **Changelog**: `CHANGELOG` in `domain/changelog.ts`, newest first, one entry per version with `fr` and `en` lines written for parents. `changesSince(lastSeen)` selects what to announce.
+- **Update prompt**: the PWA uses `registerType: 'prompt'`. `useAppUpdate` (`services/appUpdate.ts`, called once in `App.tsx`) registers the service worker, checks for a new version every hour and when the app comes back to the foreground, and exposes `updateAvailable` / `applyUpdate` / `checkNow`. `AppUpdateBanner` only shows on the selection screen and in Parent Mode, never on a child's board, so an update never reloads the page mid-routine. Settings → *App* shows the version, a "check for updates" button and the version history.
+- **What's new**: on startup, `App.tsx` compares `localStorage['kidu.lastSeenVersion']` with `APP_VERSION` and shows `WhatsNewModal` on the selection screen if versions were missed. A fresh install (`seedDatabase()` returns `freshInstall`) shows nothing; an install from before versions were tracked counts as `BASELINE_VERSION` (1.0.0).
+- **Releasing** (before merging `development` into `main`): bump `package.json` `version` and add the matching entry at the top of `CHANGELOG`. `src/tests/changelog.test.tsx` fails (and blocks the deploy) if they don't match.
+- The dev server doesn't run the service worker: to try the update flow, `npm run build && npm run preview`, then rebuild with a higher version.
 
 ## Configuration Backup
 

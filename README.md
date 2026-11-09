@@ -21,7 +21,8 @@ A visual, tablet-first Progressive Web App (PWA) designed to help young children
 - 🔒 **Parent Mode Numpad & Gesture Bypass**: Secure parent portal locked by a PIN pad, plus a 3-second long-press lock bypass gesture.
 - ⚙️ **Parent Portal**: Management dashboard to add/delete/reorder routine tasks, create/edit child profiles, inspect history logs, toggle languages (FR/EN), and configure rewards.
 - 💾 **Configuration Backup**: Export tasks, child profiles and settings (optionally with history) to a JSON file from *Parent Mode → Settings*, and import it back on the same or another device.
-- ✈️ **Offline-First (PWA)**: Implements service-worker caching via Workbox and IndexedDB local persistence (`dexie`).
+- ✈️ **Offline-First (PWA)**: installable app with service-worker caching via Workbox and IndexedDB local persistence (`dexie`).
+- 🔄 **Updates & what's new**: when a new version is published, a banner offers to update (never on a child's board, so a routine is never interrupted); after the update, a "What's new?" window lists the changes. *Parent Mode → Settings → App* shows the installed version, checks for updates and lists the version history.
 
 ---
 
