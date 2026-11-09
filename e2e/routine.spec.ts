@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openTaskForm } from './helpers';
 
 test.describe('Kids Evening Routine E2E Flow', () => {
   test('should synchronize task changes when activating the reset button', async ({ page }) => {
@@ -21,7 +22,8 @@ test.describe('Kids Evening Routine E2E Flow', () => {
     // Verify parent dashboard is visible
     await expect(page.locator('h1')).toContainText(/Tableau de bord/i);
 
-    // 4. Click the input field for the task name
+    // 4. Open the (folded) new task form, then fill the task name
+    await openTaskForm(page);
     const labelInput = page.locator('input[placeholder*="Nom de la tâche"]');
     await labelInput.fill('Habiller le doudou');
 

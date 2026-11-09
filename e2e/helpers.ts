@@ -40,3 +40,10 @@ export const completeTask = async (page: Page, label: string, { dismiss = true }
   await expect(card).toHaveCount(0); // label is hidden once done
   if (dismiss) await dismissRewards(page);
 };
+
+/** The "new task" form is folded by default */
+export const openTaskForm = async (page: Page) => {
+  const opener = page.getByTestId('open-task-form');
+  if (await opener.isVisible()) await opener.click();
+  await expect(page.locator('input[placeholder*="Nom de la tâche"]')).toBeVisible();
+};

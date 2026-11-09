@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { completeTask, dismissRewards, enterParentMode } from './helpers';
+import { completeTask, dismissRewards, enterParentMode, openTaskForm } from './helpers';
 
 test.describe('Routine phases', () => {
   test('shows one phase at a time and moves to the next when it is done', async ({ page }) => {
@@ -35,6 +35,7 @@ test.describe('Routine phases', () => {
     await page.goto('/');
     await enterParentMode(page);
 
+    await openTaskForm(page);
     await page.locator('input[placeholder*="Nom de la tâche"]').fill('Préparer le cartable');
     await page.locator('input[placeholder*="Emoji"]').click();
     await page.locator('button').filter({ hasText: '🧸' }).first().click();

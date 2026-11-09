@@ -67,12 +67,12 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-label={translate('piggy.title', language)}
         data-testid="piggy-bank"
-        className="glass-panel w-full max-w-3xl max-h-[92vh] overflow-y-auto p-5 md:p-8 flex flex-col gap-5 relative"
+        className="glass-panel w-full max-w-3xl max-h-[94dvh] overflow-y-auto p-4 sm:p-5 md:p-8 flex flex-col gap-5 relative"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -99,14 +99,14 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
           <span className="treasure-shine" aria-hidden="true" />
         </button>
 
-        <div className="flex gap-2 flex-wrap" role="tablist">
+        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2" role="tablist">
           {tabs.map((t) => (
             <button
               key={t.id}
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 rounded-full text-sm md:text-base font-extrabold border transition-all ${
+              className={`px-2 sm:px-4 py-2 rounded-full text-xs sm:text-sm md:text-base font-extrabold border transition-all whitespace-nowrap ${
                 tab === t.id ? 'bg-pink-500/30 border-pink-300/50 text-white' : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
               }`}
             >

@@ -182,6 +182,13 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 
 ---
 
+## Responsive Layout
+
+Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-screen views use `100dvh` so mobile browser bars don't hide content.
+
+- **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
+- **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
+
 ## Configuration Backup
 
 `domain/backup.ts` defines a versioned JSON format:
