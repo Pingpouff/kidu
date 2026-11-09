@@ -16,6 +16,28 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.5.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Bouton « À propos » sur l\'écran d\'accueil : version de l\'app, historique des versions, recherche de mise à jour et installation.',
+        'Invitation à installer l\'app sur l\'écran d\'accueil (Chrome, Edge, Android), et mode d\'emploi sur iPhone et iPad.',
+      ],
+      en: [
+        '"About" button on the home screen: app version, version history, update check and install.',
+        'Invitation to install the app on the home screen (Chrome, Edge, Android), with instructions on iPhone and iPad.',
+      ],
+    },
+  },
+  {
+    version: '1.4.1',
+    date: '2026-11-10',
+    changes: {
+      fr: ['Correction : le bouton « Mettre à jour » recharge bien l\'app, même juste après une première visite ou un rechargement forcé.'],
+      en: ['Fix: the "Update" button now reloads the app, even right after a first visit or a hard reload.'],
+    },
+  },
+  {
     version: '1.4.0',
     date: '2026-11-10',
     changes: {

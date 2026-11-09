@@ -33,9 +33,9 @@ export const AppSection: React.FC<AppSectionProps> = ({ language, appUpdate }) =
         </p>
         <div className="flex flex-wrap items-center gap-3">
           {appUpdate?.updateAvailable ? (
-            <button type="button" onClick={appUpdate.applyUpdate} className={buttonClass('success', 'sm')}>
-              <RefreshCw className="w-4 h-4" />
-              <span>{translate('update.apply', language)}</span>
+            <button type="button" onClick={appUpdate.applyUpdate} disabled={appUpdate.updating} className={buttonClass('success', 'sm')}>
+              <RefreshCw className={`w-4 h-4 ${appUpdate.updating ? 'animate-spin' : ''}`} />
+              <span>{translate(appUpdate.updating ? 'update.applying' : 'update.apply', language)}</span>
             </button>
           ) : (
             appUpdate && (

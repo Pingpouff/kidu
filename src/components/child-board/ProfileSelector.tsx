@@ -3,7 +3,7 @@ import { ChildProfile, ParentSettings, RoutineSession, TaskDefinition } from '..
 import { childSummary, greetingKey, upcomingDeadlines } from '../../domain/summary';
 import { ChildCard } from './ChildCard';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
-import { Settings } from 'lucide-react';
+import { Info, Settings } from 'lucide-react';
 
 interface ProfileSelectorProps {
   profiles: ChildProfile[];
@@ -17,6 +17,10 @@ interface ProfileSelectorProps {
   sessions?: RoutineSession[];
   settings?: ParentSettings;
   today?: string;
+  /** Opens the "About" window (version, history, install) */
+  onShowAbout?: () => void;
+  /** Shown under the top bar, e.g. the invitation to install the app */
+  banner?: React.ReactNode;
 }
 
 /** Re-renders every 30 s so late / upcoming tasks stay up to date. */
@@ -39,6 +43,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   sessions = [],
   settings,
   today,
+  onShowAbout,
+  banner,
 }) => {
   const now = useNow();
   const date = today ?? new Date(now).toISOString().slice(0, 10);
@@ -79,14 +85,28 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
         <div className="text-3xl md:text-4xl font-black text-white/80 tabular-nums" data-testid="home-clock">
           🕰️ {timeFormat.format(now)}
         </div>
-        <button
-          onClick={onEnterParentMode}
-          aria-label={translate('btn.parent_mode', language)}
-          className="p-4 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/90 border border-white/10 rounded-full transition-all duration-200"
-        >
-          <Settings className="w-8 h-8" />
-        </button>
+        <div className="flex items-center gap-3">
+          {onShowAbout && (
+            <button
+              onClick={onShowAbout}
+              aria-label={translate('about.button', language)}
+              data-testid="about-button"
+              className="p-4 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/90 border border-white/10 rounded-full transition-all duration-200"
+            >
+              <Info className="w-8 h-8" />
+            </button>
+          )}
+          <button
+            onClick={onEnterParentMode}
+            aria-label={translate('btn.parent_mode', language)}
+            className="p-4 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/90 border border-white/10 rounded-full transition-all duration-200"
+          >
+            <Settings className="w-8 h-8" />
+          </button>
+        </div>
       </div>
+
+      {banner}
 
       <div className="flex-1 flex flex-col items-center w-full max-w-5xl mx-auto z-10 gap-8">
         <h1 className="text-3xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-indigo-300 drop-shadow">

@@ -19,6 +19,9 @@ import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './servic
 import { APP_VERSION, ChangelogEntry, changesSince, previousVersion } from './domain/changelog';
 import { AppUpdateBanner } from './components/app/AppUpdateBanner';
 import { requestPersistentStorage } from './services/storage';
+import { dismissInstallInvite, installInviteDismissed, useInstallState } from './services/install';
+import { AboutModal } from './components/app/AboutModal';
+import { InstallBanner } from './components/app/InstallBanner';
 import { WhatsNewModal } from './components/app/WhatsNewModal';
 
 /** Rewards waiting to be revealed, one full-screen reveal at a time */
@@ -44,6 +47,11 @@ export default function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [lastSeenVersion] = useState(readLastSeenVersion); // read before it is overwritten below
   const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
+
+  // "About" window and the invitation to install the app
+  const install = useInstallState();
+  const [showAbout, setShowAbout] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(() => installInviteDismissed());
 
   // Ask the browser to keep our data (no automatic eviction)
   useEffect(() => {
@@ -262,7 +270,12 @@ export default function App() {
 
   // Never shown on a child's board: an update must not cut a routine
   const updateBanner = appUpdate.updateAvailable && !updateDismissed && (parentMode || !activeProfile) && (
-    <AppUpdateBanner language={activeLang} onUpdate={appUpdate.applyUpdate} onLater={() => setUpdateDismissed(true)} />
+    <AppUpdateBanner
+      language={activeLang}
+      onUpdate={appUpdate.applyUpdate}
+      updating={appUpdate.updating}
+      onLater={() => setUpdateDismissed(true)}
+    />
   );
 
   if (parentMode) {
@@ -415,7 +428,24 @@ export default function App() {
           sessions={allSessions ?? []}
           settings={settings}
           today={todayStr}
+          onShowAbout={() => setShowAbout(true)}
+          banner={
+            !installDismissed && (
+              <InstallBanner
+                install={install}
+                language={activeLang}
+                onDismiss={() => {
+                  dismissInstallInvite();
+                  setInstallDismissed(true);
+                }}
+              />
+            )
+          }
         />
+      )}
+
+      {showAbout && !activeProfile && (
+        <AboutModal language={activeLang} install={install} appUpdate={appUpdate} onClose={() => setShowAbout(false)} />
       )}
 
       {/* After an update: what changed (on the selection screen only) */}
