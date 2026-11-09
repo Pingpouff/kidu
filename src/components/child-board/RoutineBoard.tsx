@@ -24,6 +24,10 @@ import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
 import { childTheme } from '../../ui/theme';
 import { CONFETTI_Z } from '../../ui/layers';
 import { useConfirmTap } from '../../ui/useConfirmTap';
+import { CardColor } from '../../domain/models';
+import { CardOutcome, cardsOn } from '../../domain/cards';
+import { CardGiver } from '../cards/CardGiver';
+import { CardReveal } from '../cards/CardReveal';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -41,6 +45,8 @@ interface RoutineBoardProps {
   onBuyShopItem: (itemId: string) => Promise<void>;
   /** Definition ids of this child's tasks that are past their due time */
   lateDefinitionIds?: Set<string>;
+  /** A parent gives a yellow / red card (after PIN check) */
+  onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
 }
 
 /* A star flying from the "done" column to the star meter */
@@ -92,6 +98,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   parentPin,
   onBuyShopItem,
   lateDefinitionIds,
+  onGiveCard,
 }) => {
   // Resetting takes a second tap
   const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
@@ -120,6 +127,15 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
   }, []);
   const [showPiggy, setShowPiggy] = useState(false);
+  const [showCardGiver, setShowCardGiver] = useState(false);
+  const [cardReveal, setCardReveal] = useState<{ outcome: CardOutcome; lostProgress: number; reason?: string } | null>(null);
+  const tonightCards = cardsOn(profile, session.date);
+
+  const handleGiveCard = async (color: CardColor, reason?: string) => {
+    setShowCardGiver(false);
+    const result = await onGiveCard(color, reason);
+    if (result) setCardReveal({ ...result, reason: reason?.trim() || undefined });
+  };
   const [flyingStars, setFlyingStars] = useState<{ key: number; from: DOMRect; to: DOMRect }[]>([]);
   const [nearMedalHint, setNearMedalHint] = useState(false);
   const starMeterRef = useRef<HTMLDivElement>(null);
@@ -336,6 +352,28 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 bedtime-sky ${isBedtime ? 'opacity-100' : 'opacity-0'}`}
         />
 
+        {showCardGiver && (
+          <CardGiver
+            profile={profile}
+            tonight={tonightCards}
+            parentPin={parentPin}
+            language={language}
+            onGive={handleGiveCard}
+            onClose={() => setShowCardGiver(false)}
+          />
+        )}
+
+        {cardReveal && (
+          <CardReveal
+            profile={profile}
+            outcome={cardReveal.outcome}
+            reason={cardReveal.reason}
+            lostProgress={cardReveal.lostProgress}
+            language={language}
+            onDismiss={() => setCardReveal(null)}
+          />
+        )}
+
         {showPiggy && (
           <PiggyBank
             profile={profile}
@@ -420,6 +458,20 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           </div>
 
           <div className="shrink-0 flex items-center gap-1.5 sm:gap-3">
+            {/* Tonight's cards; tapping lets a parent give one (PIN required) */}
+            <button
+              onClick={() => setShowCardGiver(true)}
+              aria-label={translate('cards.give', language)}
+              title={translate('cards.tonight', language)}
+              data-testid="give-card"
+              data-yellow={tonightCards.yellow}
+              data-red={tonightCards.red}
+              className="flex items-center gap-1 px-2.5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full transition-all active:scale-95"
+            >
+              <span className={`w-2.5 h-3.5 sm:w-3 sm:h-4 rounded-[3px] ${tonightCards.yellow > 0 ? 'bg-yellow-400 shadow shadow-yellow-500/50' : 'border border-yellow-300/40'}`} />
+              {tonightCards.yellow > 1 && <span className="text-[10px] font-black text-yellow-300">×{tonightCards.yellow}</span>}
+              <span className={`w-2.5 h-3.5 sm:w-3 sm:h-4 rounded-[3px] ${tonightCards.red > 0 ? 'bg-red-500 shadow shadow-red-500/50' : 'border border-red-400/40'}`} />
+            </button>
             <button
               onClick={handleResetClick}
               aria-label="reset routine"

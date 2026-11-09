@@ -255,6 +255,7 @@ export default function App() {
         onUpdateProfile={handleUpdateProfile}
         onDeleteProfile={handleDeleteProfile}
         onDeleteHistory={handleDeleteHistory}
+        onWithdrawCard={(childId, cardId) => routineRepository.withdrawCard(childId, cardId)}
         onSaveSettings={handleSaveSettings}
         onResetAllData={handleResetAllData}
         onExportBackup={handleExportBackup}
@@ -367,6 +368,7 @@ export default function App() {
             await routineRepository.buyShopItem(activeProfile.id, itemId);
           }}
           lateDefinitionIds={activeLateIds}
+          onGiveCard={(color, reason) => routineRepository.giveCard(activeProfile.id, color, activeSession.date, reason)}
         />
       ) : (
         <ProfileSelector
