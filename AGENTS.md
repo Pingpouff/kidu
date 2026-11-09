@@ -20,12 +20,16 @@ This documentation helps developers and agentic AI systems understand the codeba
     ├── domain/
     │   ├── models.ts       # Type interfaces for data structures
     │   ├── routine.ts      # Pure business rules (stateless)
+    │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
+    │   ├── badges.ts       # Badge catalog (universes) and offer drawing
+    │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   └── backup.ts       # Backup file format, creation and validation
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
     ├── services/
-    │   └── ReminderService.ts # Audio oscillators and TTS fallback
+    │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
+    │   └── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
@@ -128,6 +132,23 @@ Tasks belong to one of three fixed phases, run in order: `after_school` → `mea
 - `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.
 - The child board only shows the current phase's tasks, with a step indicator, a "step complete" banner/sound/voice when a phase ends, and a night-sky overlay during `bedtime`. Overall progress and the final celebration still cover the whole routine.
 - In Parent Mode, tasks are grouped by phase and can only be reordered inside their phase. The phase is chosen when creating or editing a task.
+
+---
+
+## Rewards
+
+All rules are pure functions in `domain/rewards.ts`, persisted by `routineRepository.saveSessionWithRewards` in a single transaction.
+
+- **Stars**: one per task the first time it reaches `done` on a given day. `RoutineTask.rewarded` marks it; the flag survives undo/redo, session resets and task-list syncs, and the repository merges it from the stored session to resist stale UI copies.
+- **Medals**: every `settings.rewards.starsPerMedal` stars (default 3). `profile.starProgress` holds the remainder, `profile.medalCount` the total.
+- **Badges**: each medal queues an offer of 3 badges from distinct universes (`profile.badgeOffers`, drawn by `drawBadgeOffer`, preferring badges not owned yet). The child picks one (`chooseBadge`) → `profile.badges`.
+- **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the hold bypass). Spent badges stay in the album with `spentAt`/`spentOn`.
+- **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
+- `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
+
+## Feedback Settings
+
+`settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
 ---
 

@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
-import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings } from '../domain/models';
+import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings, DEFAULT_FEEDBACK } from '../domain/models';
+import { DEFAULT_STARS_PER_MEDAL, defaultShop } from '../domain/rewards';
 
 export class RoutineDatabase extends Dexie {
   profiles!: Table<ChildProfile, string>;
@@ -51,7 +52,10 @@ export const defaultSettings: ParentSettings = {
   rewards: {
     starsPerCompletion: 1,
     weeklyGoal: 5,
+    starsPerMedal: DEFAULT_STARS_PER_MEDAL,
   },
+  feedback: { ...DEFAULT_FEEDBACK },
+  shop: defaultShop('fr'),
 };
 
 /**

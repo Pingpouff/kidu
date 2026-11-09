@@ -203,6 +203,7 @@ export function syncSessionWithDefinitions(
         definitionId: def.id,
         status: existing.status,
         completedAt: existing.completedAt,
+        ...(existing.rewarded ? { rewarded: true } : {}),
       };
     } else {
       // Create new routine task

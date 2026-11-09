@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ParentSettings } from '../../domain/models';
+import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings } from '../../domain/models';
+import { starsPerMedal } from '../../domain/rewards';
 import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
 import { Save, AlertOctagon, Download, Upload, HardDrive } from 'lucide-react';
@@ -29,8 +30,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   const [pin, setPin] = useState(settings.parentPin);
   const [lang, setLang] = useState<Language>(settings.language);
-  const [starsPerComp, setStarsPerComp] = useState<number>(settings.rewards.starsPerCompletion);
-  const [weeklyGoal, setWeeklyGoal] = useState<number>(settings.rewards.weeklyGoal);
+  const [perMedal, setPerMedal] = useState<number>(starsPerMedal(settings));
+  const [feedback, setFeedback] = useState<FeedbackSettings>({ ...DEFAULT_FEEDBACK, ...settings.feedback });
+  const setFeedbackField = <K extends keyof FeedbackSettings>(key: K, value: FeedbackSettings[K]) =>
+    setFeedback((f) => ({ ...f, [key]: value }));
   
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -39,13 +42,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     e.preventDefault();
     if (pin.length !== 4 || isNaN(Number(pin))) return;
 
+    // Keep the fields edited elsewhere (shop, …)
     await onSaveSettings({
+      ...settings,
       parentPin: pin,
       language: lang,
       rewards: {
-        starsPerCompletion: Number(starsPerComp),
-        weeklyGoal: Number(weeklyGoal),
+        ...settings.rewards,
+        starsPerMedal: Math.max(1, Number(perMedal)),
       },
+      feedback,
     });
 
     setSavedSuccess(true);
@@ -143,39 +149,73 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             </select>
           </div>
 
-          {/* Stars Per Completion */}
+          {/* Stars needed for a medal */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-              {translate('parent.settings.stars_per_completion', language)}
+            <label htmlFor="stars-per-medal" className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+              {translate('parent.settings.stars_per_medal', language)}
             </label>
             <input
+              id="stars-per-medal"
               type="number"
               min={1}
-              max={5}
+              max={10}
               required
-              value={starsPerComp}
-              onChange={(e) => setStarsPerComp(Number(e.target.value))}
-              className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
-            />
-          </div>
-
-          {/* Weekly goal */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-              {translate('parent.settings.weekly_goal', language)}
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={30}
-              required
-              value={weeklyGoal}
-              onChange={(e) => setWeeklyGoal(Number(e.target.value))}
+              value={perMedal}
+              onChange={(e) => setPerMedal(Number(e.target.value))}
               className="px-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
             />
           </div>
 
         </div>
+
+        {/* Sounds & animations */}
+        <fieldset className="flex flex-col gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
+          <legend className="px-2 text-xs font-bold text-slate-400 uppercase tracking-wide">
+            {translate('parent.feedback.title', language)}
+          </legend>
+          <p className="text-xs text-white/50 leading-relaxed -mt-1">
+            {translate('parent.feedback.description', language)}
+          </p>
+          {([
+            ['sounds', 'parent.feedback.sounds'],
+            ['voice', 'parent.feedback.voice'],
+            ['songs', 'parent.feedback.songs'],
+          ] as const).map(([key, labelKey]) => (
+            <label key={key} className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={feedback[key]}
+                onChange={(e) => setFeedbackField(key, e.target.checked)}
+                className="w-4 h-4 accent-indigo-500"
+              />
+              {translate(labelKey, language)}
+            </label>
+          ))}
+          <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+            <span>{translate('parent.feedback.volume', language)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.1}
+              value={feedback.volume}
+              onChange={(e) => setFeedbackField('volume', Number(e.target.value))}
+              className="w-40 accent-indigo-500"
+            />
+            <span className="text-white/50 text-xs w-10">{Math.round(feedback.volume * 100)}%</span>
+          </label>
+          <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+            <span>{translate('parent.feedback.animations', language)}</span>
+            <select
+              value={feedback.animations}
+              onChange={(e) => setFeedbackField('animations', e.target.value as FeedbackSettings['animations'])}
+              className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-white text-sm"
+            >
+              <option value="full">{translate('parent.feedback.animations_full', language)}</option>
+              <option value="reduced">{translate('parent.feedback.animations_reduced', language)}</option>
+            </select>
+          </label>
+        </fieldset>
 
         {/* Action Button Row */}
         <div className="flex items-center gap-4 mt-2">

@@ -1,14 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-
-// Taps a card twice: todo → doing → done
-const completeTask = async (page: Page, label: string) => {
-  const card = page.getByRole('button').filter({ hasText: label });
-  await card.click();
-  await expect(card).toContainText('⏰');
-  // The "doing" card pulses continuously, so it never becomes "stable" for Playwright
-  await card.click({ force: true });
-  await expect(card).toHaveCount(0); // label is hidden once done
-};
+import { test, expect } from '@playwright/test';
+import { completeTask, dismissRewards, enterParentMode } from './helpers';
 
 test.describe('Routine phases', () => {
   test('shows one phase at a time and moves to the next when it is done', async ({ page }) => {
@@ -25,12 +16,15 @@ test.describe('Routine phases', () => {
     await expect(page.locator('main')).not.toContainText('Mettre la table');
     await expect(page.locator('main')).not.toContainText('Se brosser les dents');
 
-    for (const label of ['Vider son cartable', 'Prendre son goûter', 'Faire ses devoirs', 'Prendre son bain']) {
+    for (const label of ['Vider son cartable', 'Prendre son goûter', 'Faire ses devoirs']) {
       await completeTask(page, label);
     }
+    // Keep reward screens open for the last one: the step banner only lasts 2.5 s
+    await completeTask(page, 'Prendre son bain', { dismiss: false });
 
     // Phase complete banner, then the meal phase
     await expect(page.getByTestId('phase-banner')).toContainText('Étape terminée');
+    await dismissRewards(page);
     await expect(indicator).toContainText('Étape 2/3');
     await expect(indicator).toContainText('Repas');
     await expect(page.locator('main')).toContainText('Mettre la table');
@@ -39,10 +33,7 @@ test.describe('Routine phases', () => {
 
   test('lets the parent assign a category to a new task', async ({ page }) => {
     await page.goto('/');
-    await page.locator('button[aria-label="Mode Parent"]').click();
-    for (const digit of ['1', '2', '3', '4']) {
-      await page.getByRole('button', { name: digit, exact: true }).click();
-    }
+    await enterParentMode(page);
 
     await page.locator('input[placeholder*="Nom de la tâche"]').fill('Préparer le cartable');
     await page.locator('input[placeholder*="Emoji"]').click();

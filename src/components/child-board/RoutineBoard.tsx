@@ -16,6 +16,10 @@ import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
 import { reminderService } from '../../services/ReminderService';
+import { PiggyBank } from '../rewards/PiggyBank';
+import { ShopItem } from '../../domain/models';
+import { unspentBadges } from '../../domain/rewards';
+import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
 
 interface RoutineBoardProps {
@@ -28,7 +32,45 @@ interface RoutineBoardProps {
   onEnterParentMode: () => void;
   onRoutineComplete: () => void;
   onResetSession: () => void;
+  starsPerMedal: number;
+  shop: ShopItem[];
+  parentPin: string;
+  onBuyShopItem: (itemId: string) => Promise<void>;
 }
+
+/* A star flying from the "done" column to the star meter */
+const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> = ({ from, to, onDone }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.animate !== 'function') {
+      onDone();
+      return;
+    }
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 3);
+    const animation = el.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+        { transform: 'translate(-50%, -50%) scale(1.8)', opacity: 1, offset: 0.2 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.8) rotate(360deg)`, opacity: 1 },
+      ],
+      { duration: 900, easing: 'cubic-bezier(0.5, 0, 0.3, 1)' }
+    );
+    animation.onfinish = onDone;
+    return () => animation.cancel();
+  }, [from, to, onDone]);
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className="fixed z-[70] text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
+      style={{ left: from.left + from.width / 2, top: from.top + from.height / 3 }}
+    >
+      ⭐
+    </span>
+  );
+};
 
 export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   profile,
@@ -40,6 +82,10 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onEnterParentMode,
   onRoutineComplete,
   onResetSession,
+  starsPerMedal,
+  shop,
+  parentPin,
+  onBuyShopItem,
 }) => {
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -71,6 +117,21 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   );
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  // Burst + cheer on the card that was just completed
+  const [celebration, setCelebration] = useState<{ taskId: string; cheer: string; key: number } | null>(null);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+  }, []);
+  const [showPiggy, setShowPiggy] = useState(false);
+  const [flyingStars, setFlyingStars] = useState<{ key: number; from: DOMRect; to: DOMRect }[]>([]);
+  const [nearMedalHint, setNearMedalHint] = useState(false);
+  const starMeterRef = useRef<HTMLDivElement>(null);
+  const removeFlyingStar = React.useCallback((key: number) => {
+    setFlyingStars((stars) => stars.filter((s) => s.key !== key));
+    reminderService.playStarSound();
+  }, []);
 
   // Short banner shown when a phase is completed
   const [phaseBanner, setPhaseBanner] = useState<TaskCategory | null>(null);
@@ -192,6 +253,48 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
     onUpdateSession(updatedSession);
 
+    // Celebrate the task that was just moved to "done"
+    const newlyDone = updatedTasks.find(
+      (t) => t.status === 'done' && session.tasks.find((old) => old.id === t.id)?.status !== 'done'
+    );
+    if (newlyDone) {
+      const cheer = translate(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
+      setCelebration({ taskId: newlyDone.id, cheer, key: Date.now() });
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+      celebrationTimer.current = setTimeout(() => setCelebration(null), 1300);
+      fireConfetti({
+        particleCount: 30,
+        spread: 70,
+        startVelocity: 28,
+        ticks: 60,
+        origin: { x: 0.83, y: 0.4 },
+        zIndex: 60,
+      });
+
+      // A star is earned only the first time the task is done today
+      if (!newlyDone.rewarded) {
+        const from = document.querySelector('[data-column="done"]')?.getBoundingClientRect();
+        const to = starMeterRef.current?.getBoundingClientRect();
+        if (from && to && richMotion()) {
+          setFlyingStars((stars) => [...stars, { key: Date.now(), from, to }]);
+        } else {
+          reminderService.playStarSound();
+        }
+
+        const progress = (profile.starProgress ?? 0) + 1;
+        const oneLeft = starsPerMedal > 1 && progress === starsPerMedal - 1;
+        setNearMedalHint(oneLeft);
+        if (oneLeft) {
+          reminderService.triggerVoiceReminder(
+            language === 'fr' ? 'Plus qu\'une étoile pour gagner une médaille !' : 'Just one more star to win a medal!',
+            language === 'fr' ? 'fr-FR' : 'en-US'
+          );
+        } else if (progress < starsPerMedal && !isCompleted) {
+          reminderService.encourage(profile.name, language);
+        }
+      }
+    }
+
     // A phase was just completed but the routine goes on: celebrate and announce the next phase
     const updatedPhases = getRoutinePhases(updatedSession, tasksDefinitions);
     const justCompletedPhase = !isCompleted
@@ -247,6 +350,21 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 bedtime-sky ${isBedtime ? 'opacity-100' : 'opacity-0'}`}
         />
 
+        {showPiggy && (
+          <PiggyBank
+            profile={profile}
+            shop={shop}
+            parentPin={parentPin}
+            language={language}
+            onBuy={onBuyShopItem}
+            onClose={() => setShowPiggy(false)}
+          />
+        )}
+
+        {flyingStars.map((star) => (
+          <FlyingStar key={star.key} from={star.from} to={star.to} onDone={() => removeFlyingStar(star.key)} />
+        ))}
+
         {/* Phase completed banner */}
         {phaseBanner && (
           <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" role="status" data-testid="phase-banner">
@@ -273,10 +391,45 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </span>
           </button>
 
-          {/* Sparkly Star count display */}
-          <div className="flex items-center gap-2 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-5 py-2 rounded-full font-black tracking-wider text-base md:text-lg animate-float">
-            <span>⭐</span>
-            <span>{profile.stars}</span>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Star meter: stars collected toward the next medal */}
+              <div
+                ref={starMeterRef}
+                data-testid="star-meter"
+                aria-label={translate('stars.meter', language)}
+                className="flex items-center gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-4 py-2 rounded-full font-black text-base md:text-lg"
+              >
+                {Array.from({ length: starsPerMedal }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`transition-all duration-300 ${i < (profile.starProgress ?? 0) ? '' : 'grayscale opacity-30'}`}
+                  >
+                    ⭐
+                  </span>
+                ))}
+                <span className="text-white/50 mx-0.5">→</span>
+                <span>🏅</span>
+                <span key={profile.medalCount ?? 0} className="animate-counter-bump inline-block" data-testid="medal-count">
+                  {profile.medalCount ?? 0}
+                </span>
+              </div>
+
+              {/* Piggy bank */}
+              <button
+                onClick={() => setShowPiggy(true)}
+                aria-label={translate('piggy.title', language)}
+                className="flex items-center gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-4 py-2 rounded-full font-black text-base md:text-lg transition-all active:scale-95"
+              >
+                <span key={unspentBadges(profile).length} className="animate-wiggle inline-block">🐷</span>
+                <span data-testid="piggy-header-count">{unspentBadges(profile).length}</span>
+              </button>
+            </div>
+            {nearMedalHint && (
+              <span className="text-xs md:text-sm font-bold text-yellow-200 animate-fade-up [animation-delay:0s]">
+                {translate('stars.one_left', language)}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -351,6 +504,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
               />
             ))}
           </BoardColumn>
@@ -370,6 +524,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
               />
             ))}
           </BoardColumn>
@@ -389,6 +544,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
               />
             ))}
           </BoardColumn>

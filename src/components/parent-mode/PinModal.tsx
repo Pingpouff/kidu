@@ -7,6 +7,11 @@ interface PinModalProps {
   language: Language;
   onSuccess: () => void;
   onClose: () => void;
+  /** The 3-second hold shortcut; disabled when a parent must really approve (shop) */
+  allowHoldBypass?: boolean;
+  /** Optional custom title/instruction (defaults to the parent mode texts) */
+  title?: string;
+  instruction?: string;
 }
 
 export const PinModal: React.FC<PinModalProps> = ({
@@ -14,6 +19,9 @@ export const PinModal: React.FC<PinModalProps> = ({
   language,
   onSuccess,
   onClose,
+  allowHoldBypass = true,
+  title,
+  instruction,
 }) => {
   const [pin, setPin] = useState<string>('');
   const [error, setError] = useState<boolean>(false);
@@ -49,6 +57,7 @@ export const PinModal: React.FC<PinModalProps> = ({
 
   // Hold-to-unlock triggers
   const startHolding = () => {
+    if (!allowHoldBypass) return;
     setIsHolding(true);
     setHoldProgress(0);
     const holdDuration = 3000; // 3 seconds
@@ -129,10 +138,10 @@ export const PinModal: React.FC<PinModalProps> = ({
           </div>
 
           <h2 className="text-xl font-extrabold text-white mt-2">
-            {translate('pin.title', language)}
+            {title ?? translate('pin.title', language)}
           </h2>
           <p className="text-xs text-white/40 max-w-[250px] leading-relaxed">
-            {translate('pin.instruction', language)}
+            {instruction ?? translate('pin.instruction', language)}
           </p>
         </div>
 

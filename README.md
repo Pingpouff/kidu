@@ -4,6 +4,8 @@ A visual, tablet-first Progressive Web App (PWA) designed to help young children
 
 ## Core Features
 
+- ⭐ **Stars → 🏅 Medals → 🐷 Badges**: every finished task gives a star (once per task and per day); every 3 stars make a medal; each medal lets the child pick one badge out of three (dinosaurs, space, ocean, dragons, unicorns, vehicles, jungle, farm, superheroes, candy land). Badges go into the child's **piggy bank** and are exchanged for real-life rewards from the parent's **shop** (each exchange approved with the parent PIN). An album keeps every badge ever won, and 🏆 trophies reward streaks and milestones. It replaces the paper sticker chart on the fridge.
+- 🎉 **Fun feedback, parent-controlled**: star bursts and cheers on each task, a star flying to the meter, medal reveals, spoken encouragements and an original bedtime song with on-screen lyrics. In *Parent Mode → Settings → Sounds & animations*, parents can switch off short sounds, voice or the song, set the volume, and choose reduced animations.
 - 🗺️ **Routine Steps**: The evening is split into three steps — *After school* 🎒, *Meal* 🍽️, *Bedtime* 🌙. The child only sees the current step's tasks, gets a mini-celebration when a step is done, and the sky darkens for bedtime.
 - 🧒 **Visual Routine Board**: A kid-friendly Kanban board (To Do, Doing, Done) relying on huge emojis and icons rather than textual labels.
 - 🦄 **Kid Customization**: Animal avatars and tailored profile colors (Indigo, Purple, Rose, Emerald, Amber).

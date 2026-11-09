@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import confetti from 'canvas-confetti';
+import React, { useEffect, useState } from 'react';
+import { reminderService } from '../../services/ReminderService';
+import { fireConfetti, richMotion } from '../../services/effects';
 import { ChildProfile } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 
@@ -16,7 +17,27 @@ export const Celebration: React.FC<CelebrationProps> = ({
   onDismiss,
   starsEarned,
 }) => {
+  // Bedtime song with karaoke lyrics (if the parent allows songs)
+  const [songLine, setSongLine] = useState(-1);
+  const [songPlaying, setSongPlaying] = useState(false);
   useEffect(() => {
+    // Let the victory fanfare and voice finish first
+    const start = setTimeout(() => {
+      const playing = reminderService.playBedtimeSong(language, (line) => {
+        setSongLine(line);
+        if (line === -1) setSongPlaying(false);
+      });
+      setSongPlaying(playing);
+    }, 4500);
+    return () => {
+      clearTimeout(start);
+      reminderService.stopSong();
+    };
+  }, [language]);
+  const lyrics = reminderService.bedtimeLyrics[language];
+
+  useEffect(() => {
+    if (!richMotion()) return;
     // Fire confetti bursts
     const duration = 3 * 1000;
     const animationEnd = Date.now() + duration;
@@ -36,12 +57,12 @@ export const Celebration: React.FC<CelebrationProps> = ({
       const particleCount = 40 * (timeLeft / duration);
 
       // Confetti from left and right corners
-      confetti({
+      fireConfetti({
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
       });
-      confetti({
+      fireConfetti({
         ...defaults,
         particleCount,
         origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
@@ -92,18 +113,30 @@ export const Celebration: React.FC<CelebrationProps> = ({
             : `Great job ${profile.name}! You completed your entire routine!`}
         </p>
 
-        {/* Stars earned block */}
+        {/* Stars earned tonight */}
         <div className="flex items-center gap-3 bg-black/40 px-6 py-3 rounded-full border border-yellow-500/40 text-yellow-300 font-extrabold text-2xl animate-float">
           <span>+ {starsEarned}</span>
           <span className="text-3xl text-yellow-400">🌟</span>
+          <span className="text-white/40">·</span>
+          <span>🏅 {profile.medalCount ?? 0}</span>
         </div>
 
-        {/* Stars accumulation hint */}
-        <p className="text-sm md:text-base text-yellow-200/60 font-semibold italic mt-2">
-          {language === 'fr'
-            ? `Tu as maintenant un total de ${profile.stars + starsEarned} étoiles !`
-            : `You now have a total of ${profile.stars + starsEarned} stars!`}
-        </p>
+        {/* Bedtime song lyrics, highlighted line by line */}
+        {songPlaying && (
+          <div className="flex flex-col gap-1 text-center" data-testid="bedtime-song">
+            <span className="text-xs uppercase tracking-widest text-white/40 font-bold">🎵 {language === 'fr' ? 'La chanson du dodo' : 'The bedtime song'}</span>
+            {lyrics.map((line, i) => (
+              <span
+                key={i}
+                className={`text-base md:text-xl font-bold transition-all duration-500 ${
+                  i === songLine ? 'text-yellow-200 scale-105' : i < songLine ? 'text-white/50' : 'text-white/25'
+                }`}
+              >
+                {line}
+              </span>
+            ))}
+          </div>
+        )}
 
       </div>
 

@@ -1,7 +1,9 @@
 import { db, getSettings } from './db';
-import { RoutineSession, HistoryEntry } from '../domain/models';
+import { RoutineSession, HistoryEntry, ChildProfile } from '../domain/models';
 import { BackupFile, createBackup } from '../domain/backup';
-import { initSession, calculateHistory, awardStars, syncSessionWithDefinitions } from '../domain/routine';
+import { TrophyId, computeTrophyStats, findNewTrophies } from '../domain/trophies';
+import { initSession, calculateHistory, syncSessionWithDefinitions } from '../domain/routine';
+import { applyTaskRewards, chooseBadge, spendBadges, starsPerMedal, shopItems } from '../domain/rewards';
 
 export const routineRepository = {
   /**
@@ -37,30 +39,107 @@ export const routineRepository = {
     if (!session) return undefined;
 
     const definitions = await db.tasks.toArray();
-    const reseted = initSession(session.childId, session.date, definitions);
+    const fresh = initSession(session.childId, session.date, definitions);
+    // Keep the "star already given" marks so a reset can't be used to earn stars twice
+    const rewarded = new Set(session.tasks.filter((t) => t.rewarded).map((t) => t.definitionId));
+    const reseted = {
+      ...fresh,
+      tasks: fresh.tasks.map((t) => (rewarded.has(t.definitionId) ? { ...t, rewarded: true } : t)),
+    };
     await db.sessions.put(reseted);
     return reseted;
   },
 
   /**
-   * Records a session to history and awards stars to the child profile if completed.
+   * Saves a session update and gives the rewards it unlocks:
+   * one star per newly completed task, a medal (+ badge offer) every N stars.
+   * "Star already given" marks stored in the database are kept even if the
+   * caller's copy of the session is slightly stale (fast taps).
    */
-  async recordHistoryAndAwardStars(session: RoutineSession, childName: string, starsToAward: number): Promise<HistoryEntry> {
-    const historyEntry = calculateHistory(session, childName);
-    
-    // Save to history table
-    await db.history.put(historyEntry);
+  async saveSessionWithRewards(session: RoutineSession): Promise<{ starsGained: number; medalsGained: number }> {
+    return db.transaction('rw', [db.sessions, db.profiles, db.settings], async () => {
+      const stored = await db.sessions.get(session.id);
+      const alreadyRewarded = new Set(stored?.tasks.filter((t) => t.rewarded).map((t) => t.id));
+      const merged: RoutineSession = {
+        ...session,
+        tasks: session.tasks.map((t) => (alreadyRewarded.has(t.id) ? { ...t, rewarded: true } : t)),
+      };
 
-    // If completed and completed for the first time in this session, award stars
-    if (session.isCompleted) {
-      const profile = await db.profiles.get(session.childId);
-      if (profile) {
-        const updatedProfile = awardStars(profile, starsToAward);
-        await db.profiles.put(updatedProfile);
+      const [profile, settings] = await Promise.all([
+        db.profiles.get(session.childId),
+        db.settings.get('current'),
+      ]);
+      if (!profile) {
+        await db.sessions.put(merged);
+        return { starsGained: 0, medalsGained: 0 };
       }
-    }
 
+      const result = applyTaskRewards(merged, profile, starsPerMedal(settings));
+      await db.sessions.put(result.session);
+      if (result.starsGained > 0) await db.profiles.put(result.profile);
+      return { starsGained: result.starsGained, medalsGained: result.medalsGained };
+    });
+  },
+
+  /**
+   * Records a completed session in the history.
+   */
+  async recordHistory(session: RoutineSession, childName: string): Promise<HistoryEntry> {
+    const historyEntry = calculateHistory(session, childName);
+    await db.history.put(historyEntry);
     return historyEntry;
+  },
+
+  /**
+   * The child picks a badge from their oldest pending offer.
+   */
+  async chooseBadge(childId: string, badgeId: string): Promise<ChildProfile | undefined> {
+    return db.transaction('rw', db.profiles, async () => {
+      const profile = await db.profiles.get(childId);
+      if (!profile) return undefined;
+      const updated = chooseBadge(profile, badgeId);
+      await db.profiles.put(updated);
+      return updated;
+    });
+  },
+
+  /**
+   * Exchanges badges from the child's piggy bank for a shop reward.
+   */
+  async buyShopItem(childId: string, itemId: string): Promise<ChildProfile | undefined> {
+    return db.transaction('rw', [db.profiles, db.settings], async () => {
+      const [profile, settings] = await Promise.all([db.profiles.get(childId), db.settings.get('current')]);
+      const item = shopItems(settings).find((i) => i.id === itemId);
+      if (!profile || !item) return undefined;
+      const updated = spendBadges(profile, item);
+      await db.profiles.put(updated);
+      return updated;
+    });
+  },
+
+  /**
+   * Checks a child's sessions for newly unlocked trophies, saves them on the
+   * profile and returns their ids (empty when nothing new was earned).
+   */
+  async awardNewTrophies(childId: string): Promise<TrophyId[]> {
+    return db.transaction('rw', [db.profiles, db.sessions, db.tasks], async () => {
+      const profile = await db.profiles.get(childId);
+      if (!profile) return [];
+
+      const [sessions, definitions] = await Promise.all([
+        db.sessions.where('childId').equals(childId).toArray(),
+        db.tasks.toArray(),
+      ]);
+      const newTrophies = findNewTrophies(computeTrophyStats(sessions, definitions), profile.trophies);
+      if (newTrophies.length === 0) return [];
+
+      const now = Date.now();
+      await db.profiles.put({
+        ...profile,
+        trophies: [...(profile.trophies ?? []), ...newTrophies.map((id) => ({ id, earnedAt: now }))],
+      });
+      return newTrophies;
+    });
   },
 
   /**

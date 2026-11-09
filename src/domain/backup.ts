@@ -1,4 +1,16 @@
-import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry, TaskCategory, TASK_CATEGORIES } from './models';
+import { TROPHY_IDS, TrophyId, EarnedTrophy } from './trophies';
+import { isBadgeId } from './badges';
+import {
+  ChildProfile,
+  TaskDefinition,
+  ParentSettings,
+  HistoryEntry,
+  TaskCategory,
+  TASK_CATEGORIES,
+  OwnedBadge,
+  ShopItem,
+  FeedbackSettings,
+} from './models';
 
 export const BACKUP_APP_ID = 'kidu';
 export const BACKUP_VERSION = 1;
@@ -52,6 +64,8 @@ export function createBackup(
         parentPin: settings.parentPin,
         language: settings.language,
         rewards: { ...settings.rewards },
+        ...(settings.feedback ? { feedback: { ...settings.feedback } } : {}),
+        ...(settings.shop ? { shop: settings.shop.map((i) => ({ ...i })) } : {}),
       },
       tasks: [...tasks].sort((a, b) => a.order - b.order),
       profiles: [...profiles],
@@ -77,19 +91,53 @@ const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.is
 
 function parseSettings(raw: unknown): ParentSettings {
   if (!isObject(raw) || !isObject(raw.rewards)) throw new BackupError('invalid_settings');
-  const { parentPin, language, rewards } = raw;
+  const { parentPin, language, rewards, feedback, shop } = raw;
   if (!isString(parentPin) || !/^\d{4}$/.test(parentPin)) throw new BackupError('invalid_settings');
   if (language !== 'fr' && language !== 'en') throw new BackupError('invalid_settings');
   if (!isNumber(rewards.starsPerCompletion) || !isNumber(rewards.weeklyGoal)) {
     throw new BackupError('invalid_settings');
   }
+  if (rewards.starsPerMedal !== undefined && (!isNumber(rewards.starsPerMedal) || rewards.starsPerMedal < 1)) {
+    throw new BackupError('invalid_settings');
+  }
+  if (
+    feedback !== undefined &&
+    (!isObject(feedback) ||
+      typeof feedback.sounds !== 'boolean' ||
+      typeof feedback.voice !== 'boolean' ||
+      typeof feedback.songs !== 'boolean' ||
+      !isNumber(feedback.volume) || feedback.volume < 0 || feedback.volume > 1 ||
+      (feedback.animations !== 'full' && feedback.animations !== 'reduced'))
+  ) {
+    throw new BackupError('invalid_settings');
+  }
+  if (shop !== undefined && !Array.isArray(shop)) throw new BackupError('invalid_settings');
+  const parsedShop = shop?.map((item): ShopItem => {
+    if (!isObject(item) || !isString(item.id) || !isString(item.label) || !isString(item.icon) || !isNumber(item.cost) || item.cost < 1) {
+      throw new BackupError('invalid_settings');
+    }
+    return { id: item.id, label: item.label, icon: item.icon, cost: item.cost };
+  });
   return {
     parentPin,
     language,
     rewards: {
       starsPerCompletion: rewards.starsPerCompletion,
       weeklyGoal: rewards.weeklyGoal,
+      ...(isNumber(rewards.starsPerMedal) ? { starsPerMedal: rewards.starsPerMedal } : {}),
     },
+    ...(isObject(feedback)
+      ? {
+          feedback: {
+            sounds: feedback.sounds as boolean,
+            voice: feedback.voice as boolean,
+            songs: feedback.songs as boolean,
+            volume: feedback.volume as number,
+            animations: feedback.animations as FeedbackSettings['animations'],
+          },
+        }
+      : {}),
+    ...(parsedShop ? { shop: parsedShop } : {}),
   };
 }
 
@@ -123,6 +171,11 @@ function parseTasks(raw: unknown): TaskDefinition[] {
 
 function parseProfiles(raw: unknown): ChildProfile[] {
   if (!Array.isArray(raw)) throw new BackupError('invalid_profiles');
+  const fail = (): never => {
+    throw new BackupError('invalid_profiles');
+  };
+  const optionalNumber = (v: unknown) => (v === undefined || isNumber(v) ? (v as number | undefined) : fail());
+
   const profiles = raw.map((p): ChildProfile => {
     if (
       !isObject(p) ||
@@ -130,18 +183,55 @@ function parseProfiles(raw: unknown): ChildProfile[] {
       !isString(p.name) ||
       !isString(p.avatar) ||
       !PROFILE_COLORS.includes(p.color as ChildProfile['color']) ||
-      !isNumber(p.stars) ||
-      (p.age !== undefined && !isNumber(p.age))
+      !isNumber(p.stars)
     ) {
-      throw new BackupError('invalid_profiles');
+      return fail();
     }
+    const age = optionalNumber(p.age);
+    const starProgress = optionalNumber(p.starProgress);
+    const medalCount = optionalNumber(p.medalCount);
+
+    const trophies = p.trophies === undefined ? undefined : (Array.isArray(p.trophies) ? p.trophies : fail()).map(
+      (m: unknown): EarnedTrophy =>
+        isObject(m) && TROPHY_IDS.includes(m.id as TrophyId) && isNumber(m.earnedAt)
+          ? { id: m.id as TrophyId, earnedAt: m.earnedAt }
+          : fail()
+    );
+    const badgeOffers = p.badgeOffers === undefined ? undefined : (Array.isArray(p.badgeOffers) ? p.badgeOffers : fail()).map(
+      (offer: unknown): string[] =>
+        Array.isArray(offer) && offer.length > 0 && offer.every(isBadgeId) ? [...offer] : fail()
+    );
+    const badges = p.badges === undefined ? undefined : (Array.isArray(p.badges) ? p.badges : fail()).map(
+      (b: unknown): OwnedBadge => {
+        if (
+          !isObject(b) || !isString(b.uid) || !isBadgeId(b.badgeId) || !isNumber(b.earnedAt) ||
+          (b.spentAt !== undefined && !isNumber(b.spentAt)) ||
+          (b.spentOn !== undefined && !isString(b.spentOn))
+        ) {
+          return fail();
+        }
+        return {
+          uid: b.uid,
+          badgeId: b.badgeId,
+          earnedAt: b.earnedAt,
+          ...(isNumber(b.spentAt) ? { spentAt: b.spentAt } : {}),
+          ...(isString(b.spentOn) ? { spentOn: b.spentOn } : {}),
+        };
+      }
+    );
+
     return {
       id: p.id,
       name: p.name,
       avatar: p.avatar,
       color: p.color as ChildProfile['color'],
       stars: p.stars,
-      ...(isNumber(p.age) ? { age: p.age } : {}),
+      ...(age !== undefined ? { age } : {}),
+      ...(starProgress !== undefined ? { starProgress } : {}),
+      ...(medalCount !== undefined ? { medalCount } : {}),
+      ...(badgeOffers ? { badgeOffers } : {}),
+      ...(badges ? { badges } : {}),
+      ...(trophies ? { trophies } : {}),
     };
   });
   if (new Set(profiles.map((p) => p.id)).size !== profiles.length) throw new BackupError('invalid_profiles');
