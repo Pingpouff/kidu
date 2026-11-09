@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { TaskDefinition } from '../../domain/models';
+import { TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
+import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { translate, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
@@ -41,12 +42,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newIcon, setNewIcon] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [showNewPicker, setShowNewPicker] = useState(false);
+  const [newCategory, setNewCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editIcon, setEditIcon] = useState('');
   const [editLabel, setEditLabel] = useState('');
   const [editOrder, setEditOrder] = useState<number>(1);
+  const [editCategory, setEditCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
   const [showEditPicker, setShowEditPicker] = useState(false);
 
   // Setup sensors for desktop & mobile touch support
@@ -73,6 +76,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       labelKey: '', // Empty indicates custom user label
       defaultLabel: newLabel.trim(),
       order: tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) + 1 : 1,
+      category: newCategory,
     });
 
     setNewIcon('');
@@ -84,6 +88,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditIcon(task.icon);
     setEditLabel(task.labelKey ? translate(task.labelKey, language) : task.defaultLabel);
     setEditOrder(task.order);
+    setEditCategory(getTaskCategory(task));
   };
 
   const cancelEdit = () => {
@@ -99,6 +104,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       defaultLabel: editLabel.trim(),
       labelKey: '', // Custom label overrides key translation
       order: Number(editOrder),
+      category: editCategory,
     });
 
     setEditingId(null);
@@ -108,11 +114,13 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const sorted = [...tasks].sort((a, b) => a.order - b.order);
+    const sorted = sortDefinitions(tasks);
     const oldIndex = sorted.findIndex((t) => t.id === active.id);
     const newIndex = sorted.findIndex((t) => t.id === over.id);
 
     if (oldIndex === -1 || newIndex === -1) return;
+    // Tasks are only reordered inside their own phase
+    if (getTaskCategory(sorted[oldIndex]) !== getTaskCategory(sorted[newIndex])) return;
 
     const reordered = arrayMove(sorted, oldIndex, newIndex);
 
@@ -125,8 +133,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     await onReorderTasks(updatedTasks);
   };
 
-  // Sort tasks in layout according to database schema order
-  const sortedTasks = [...tasks].sort((a, b) => a.order - b.order);
+  // Group tasks by phase, sorted by order inside each phase
+  const sortedTasks = sortDefinitions(tasks);
+  const groups = TASK_CATEGORIES
+    .map((category) => ({
+      category,
+      tasks: sortedTasks.filter((t) => getTaskCategory(t) === category),
+    }))
+    .filter((g) => g.tasks.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,6 +177,12 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           placeholder={translate('parent.tasks.label_placeholder', language)}
           className="flex-1 px-4 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
         />
+        <CategorySelect
+          value={newCategory}
+          onChange={setNewCategory}
+          language={language}
+          className="px-3 py-3 bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:border-indigo-500 text-white text-sm"
+        />
         <button
           type="submit"
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/20 text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -178,37 +198,72 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext
-          items={sortedTasks.map((t) => t.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="flex flex-col gap-3 max-h-[380px] overflow-y-auto scrollbar-thin pr-1">
-            {sortedTasks.map((task) => (
-              <SortableTaskRow
-                key={task.id}
-                task={task}
-                language={language}
-                editingId={editingId}
-                showEditPicker={showEditPicker}
-                editIcon={editIcon}
-                editLabel={editLabel}
-                editOrder={editOrder}
-                setShowEditPicker={setShowEditPicker}
-                setEditIcon={setEditIcon}
-                setEditLabel={setEditLabel}
-                setEditOrder={setEditOrder}
-                startEdit={startEdit}
-                cancelEdit={cancelEdit}
-                saveEdit={saveEdit}
-                onDeleteTask={onDeleteTask}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="flex flex-col gap-5 max-h-[460px] overflow-y-auto scrollbar-thin pr-1">
+          {groups.map((group) => (
+            <section key={group.category} className="flex flex-col gap-3" data-testid={`task-group-${group.category}`}>
+              <h4 className="flex items-center gap-2 text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+                <span className="text-base">{CATEGORY_ICONS[group.category]}</span>
+                {translate(`category.${group.category}`, language)}
+              </h4>
+              <SortableContext
+                items={group.tasks.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="flex flex-col gap-3">
+                  {group.tasks.map((task) => (
+                    <SortableTaskRow
+                      key={task.id}
+                      task={task}
+                      language={language}
+                      editingId={editingId}
+                      showEditPicker={showEditPicker}
+                      editIcon={editIcon}
+                      editLabel={editLabel}
+                      editOrder={editOrder}
+                      editCategory={editCategory}
+                      setEditCategory={setEditCategory}
+                      setShowEditPicker={setShowEditPicker}
+                      setEditIcon={setEditIcon}
+                      setEditLabel={setEditLabel}
+                      setEditOrder={setEditOrder}
+                      startEdit={startEdit}
+                      cancelEdit={cancelEdit}
+                      saveEdit={saveEdit}
+                      onDeleteTask={onDeleteTask}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </section>
+          ))}
+        </div>
       </DndContext>
     </div>
   );
 };
+
+/* Phase selector shared by the creation and edit forms */
+interface CategorySelectProps {
+  value: TaskCategory;
+  onChange: (category: TaskCategory) => void;
+  language: Language;
+  className: string;
+}
+
+const CategorySelect: React.FC<CategorySelectProps> = ({ value, onChange, language, className }) => (
+  <select
+    value={value}
+    onChange={(e) => onChange(e.target.value as TaskCategory)}
+    aria-label={translate('parent.tasks.category', language)}
+    className={className}
+  >
+    {TASK_CATEGORIES.map((category) => (
+      <option key={category} value={category}>
+        {CATEGORY_ICONS[category]} {translate(`category.${category}`, language)}
+      </option>
+    ))}
+  </select>
+);
 
 /* Sortable Task Row Item Wrapper Component */
 interface SortableTaskRowProps {
@@ -219,6 +274,8 @@ interface SortableTaskRowProps {
   editIcon: string;
   editLabel: string;
   editOrder: number;
+  editCategory: TaskCategory;
+  setEditCategory: (val: TaskCategory) => void;
   setShowEditPicker: (show: boolean) => void;
   setEditIcon: (val: string) => void;
   setEditLabel: (val: string) => void;
@@ -237,6 +294,8 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   editIcon,
   editLabel,
   editOrder,
+  editCategory,
+  setEditCategory,
   setShowEditPicker,
   setEditIcon,
   setEditLabel,
@@ -323,6 +382,12 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               value={editLabel}
               onChange={(e) => setEditLabel(e.target.value)}
               className="flex-1 px-3 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
+            />
+            <CategorySelect
+              value={editCategory}
+              onChange={setEditCategory}
+              language={language}
+              className="px-2 py-1.5 bg-slate-900 border border-indigo-500/30 rounded-lg text-white text-sm"
             />
             <div className="flex items-center gap-1.5 text-xs text-white/50">
               <span>{translate('parent.tasks.order', language)}:</span>

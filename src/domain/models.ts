@@ -9,6 +9,18 @@ export interface ChildProfile {
   stars: number; // Cumulative star balance
 }
 
+/**
+ * Routine phases, in the order the child goes through them.
+ */
+export const TASK_CATEGORIES = ['after_school', 'meal', 'bedtime'] as const;
+export type TaskCategory = typeof TASK_CATEGORIES[number];
+
+export const CATEGORY_ICONS: Record<TaskCategory, string> = {
+  after_school: '🎒',
+  meal: '🍽️',
+  bedtime: '🌙',
+};
+
 export interface TaskDefinition {
   id: string;
   labelKey: string;     // Translation key, e.g. "task.brush_teeth"
@@ -16,6 +28,7 @@ export interface TaskDefinition {
   icon: string;         // Emoji character, e.g. "🪥", "🧸", "📚"
   helperTextKey?: string; // Optional simple description key
   order: number;
+  category?: TaskCategory; // Missing on tasks created before categories existed: treated as 'bedtime'
 }
 
 export interface RoutineTask {

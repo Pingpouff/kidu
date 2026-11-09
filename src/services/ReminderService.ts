@@ -72,6 +72,16 @@ class ReminderService {
   }
 
   /**
+   * Sound played when a routine phase (e.g. "After school") is completed.
+   */
+  public playPhaseCompleteSound() {
+    this.playTone(392.0, 0.2, 'triangle'); // G4
+    this.playTone(523.25, 0.2, 'triangle', 0.1); // C5
+    this.playTone(659.25, 0.2, 'triangle', 0.2); // E5
+    this.playTone(783.99, 0.45, 'sine', 0.3); // G5
+  }
+
+  /**
    * Sound played when the entire routine session is completed.
    */
   public playRoutineSuccessSound() {

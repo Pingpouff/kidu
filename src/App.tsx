@@ -114,6 +114,7 @@ export default function App() {
         await db.tasks.put(t);
       }
     });
+    await routineRepository.syncAllActiveSessionsForToday(todayStr);
   };
 
   const handleDeleteTask = async (id: string) => {

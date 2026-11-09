@@ -27,6 +27,23 @@ export const translations = {
     'task.read_story': 'Lire l\'histoire',
     'task.cuddle': 'Câlins et calme',
     'task.lights_off': 'Éteindre la lumière',
+    'task.unpack_bag': 'Vider son cartable',
+    'task.snack': 'Prendre son goûter',
+    'task.homework': 'Faire ses devoirs',
+    'task.bath': 'Prendre son bain',
+    'task.wash_hands': 'Se laver les mains',
+    'task.set_table': 'Mettre la table',
+    'task.clear_plate': 'Débarrasser son assiette',
+
+    // Routine phases
+    'category.after_school': 'Après l\'école',
+    'category.meal': 'Repas',
+    'category.bedtime': 'Coucher',
+    'board.step': 'Étape',
+    'board.next': 'Ensuite',
+    'board.last_step': 'Dernière étape !',
+    'board.phase_done': 'Étape terminée !',
+    'parent.tasks.category': 'Catégorie',
 
     // Parent PIN pad
     'pin.title': 'Accès Parent',
@@ -119,6 +136,23 @@ export const translations = {
     'task.read_story': 'Read bedtime story',
     'task.cuddle': 'Cuddle & calm time',
     'task.lights_off': 'Lights off',
+    'task.unpack_bag': 'Empty your school bag',
+    'task.snack': 'Have your snack',
+    'task.homework': 'Do your homework',
+    'task.bath': 'Take a bath',
+    'task.wash_hands': 'Wash your hands',
+    'task.set_table': 'Set the table',
+    'task.clear_plate': 'Clear your plate',
+
+    // Routine phases
+    'category.after_school': 'After school',
+    'category.meal': 'Meal',
+    'category.bedtime': 'Bedtime',
+    'board.step': 'Step',
+    'board.next': 'Next',
+    'board.last_step': 'Last step!',
+    'board.phase_done': 'Step complete!',
+    'parent.tasks.category': 'Category',
 
     // Parent PIN pad
     'pin.title': 'Parent Access',
