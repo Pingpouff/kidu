@@ -165,4 +165,5 @@ export interface ParentSettings {
   feedback?: FeedbackSettings; // default: DEFAULT_FEEDBACK
   shop?: ShopItem[]; // Real-life rewards bought with badges
   reminders?: ReminderSettings; // default: DEFAULT_REMINDERS
+  lastBackupAt?: number; // epoch of the last export (not part of backup files)
 }

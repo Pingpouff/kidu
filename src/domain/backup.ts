@@ -354,3 +354,14 @@ export function parseBackup(text: string): BackupFile {
     },
   };
 }
+
+/** Remind parents to back up after this many days (or if they never did). */
+export const BACKUP_REMINDER_DAYS = 30;
+/** Below this many history days, there is little to lose: no reminder yet. */
+export const BACKUP_REMINDER_MIN_HISTORY = 3;
+
+/** True when the parent should be reminded to export a backup. */
+export function isBackupDue(lastBackupAt: number | undefined, historyCount: number, now: number): boolean {
+  if (historyCount < BACKUP_REMINDER_MIN_HISTORY) return false;
+  return lastBackupAt === undefined || now - lastBackupAt > BACKUP_REMINDER_DAYS * 24 * 60 * 60 * 1000;
+}

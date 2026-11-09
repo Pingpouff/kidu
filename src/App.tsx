@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedDatabase, saveSettings } from './persistence/db';
 import { routineRepository } from './persistence/routineRepository';
 import { ChildProfile, TaskDefinition, ParentSettings, RoutineSession, ShopItem } from './domain/models';
 import { ProfileSelector } from './components/child-board/ProfileSelector';
 import { RoutineBoard } from './components/child-board/RoutineBoard';
-import { Celebration } from './components/rewards/Celebration';
 import { PinModal } from './components/parent-mode/PinModal';
-import { Dashboard as ParentDashboard } from './components/parent-mode/Dashboard';
 import { reminderService } from './services/ReminderService';
 import { backupFileName, parseBackup } from './domain/backup';
 import { TrophyId, TROPHY_ICONS } from './domain/trophies';
@@ -20,12 +18,17 @@ import { useTaskReminders } from './hooks/useTaskReminders';
 import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
 import { APP_VERSION, ChangelogEntry, changesSince, previousVersion } from './domain/changelog';
 import { AppUpdateBanner } from './components/app/AppUpdateBanner';
+import { requestPersistentStorage } from './services/storage';
 import { WhatsNewModal } from './components/app/WhatsNewModal';
 
 /** Rewards waiting to be revealed, one full-screen reveal at a time */
 type Reveal =
   | { kind: 'medal'; childId: string; key: string }
   | { kind: 'trophy'; childId: string; id: TrophyId; key: string };
+
+// Loaded on demand: Parent Mode and the end-of-day celebration aren't needed to start the app
+const ParentDashboard = lazy(() => import('./components/parent-mode/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Celebration = lazy(() => import('./components/rewards/Celebration').then((m) => ({ default: m.Celebration })));
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
@@ -41,6 +44,11 @@ export default function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [lastSeenVersion] = useState(readLastSeenVersion); // read before it is overwritten below
   const [whatsNew, setWhatsNew] = useState<ChangelogEntry[]>([]);
+
+  // Ask the browser to keep our data (no automatic eviction)
+  useEffect(() => {
+    requestPersistentStorage();
+  }, []);
 
   // Seed DB on mount
   useEffect(() => {
@@ -240,6 +248,7 @@ export default function App() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    await saveSettings({ ...settings, lastBackupAt: Date.now() });
   };
 
   // Throws a BackupError when the file is not a valid backup
@@ -259,6 +268,7 @@ export default function App() {
   if (parentMode) {
     return (
       <>
+      <Suspense fallback={<div className="w-full h-[100dvh] bg-slate-950" />}>
       <ParentDashboard
         profiles={profiles}
         tasks={tasks}
@@ -282,6 +292,7 @@ export default function App() {
         onSaveShop={handleSaveShop}
         appUpdate={appUpdate}
       />
+      </Suspense>
       {updateBanner}
       </>
     );
@@ -291,6 +302,7 @@ export default function App() {
     <>
       {/* 1. Celebration Layer overlay */}
       {celebrationActive && activeProfile && (
+        <Suspense fallback={null}>
         <Celebration
           profile={activeProfile}
           language={activeLang}
@@ -300,6 +312,7 @@ export default function App() {
             setActiveProfileId(null); // return to select child screen
           }}
         />
+        </Suspense>
       )}
 
       {/* Medal / trophy reveal, above the routine celebration */}

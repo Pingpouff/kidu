@@ -5,12 +5,15 @@ interface ProgressBarProps {
   progress: number; // 0 to 100
   avatar: string; // Emoji character of the active child
   colorTheme: ChildColor;
+  /** Accessible name of the bar */
+  label?: string;
 }
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
   avatar,
   colorTheme,
+  label,
 }) => {
   // Theme gradients for progress fill
 
@@ -20,7 +23,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const pct = Math.min(100, Math.max(0, progress));
 
   return (
-    <div className="w-full bg-black/30 border border-white/10 rounded-full p-2 backdrop-blur-md relative shadow-inner">
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(pct)}
+      className="w-full bg-black/30 border border-white/10 rounded-full p-2 backdrop-blur-md relative shadow-inner"
+    >
       {/* Path Line Track */}
       <div className="w-full h-8 bg-white/5 rounded-full overflow-hidden relative">
         {/* Fill Progress */}

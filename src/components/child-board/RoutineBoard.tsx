@@ -9,8 +9,8 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
-import { getRoutinePhases, getCurrentPhaseIndex, skipPhase, unskipPhase, withCompletion } from '../../domain/routine';
+import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory, TaskStatus } from '../../domain/models';
+import { getRoutinePhases, getCurrentPhaseIndex, moveTask, skipPhase, unskipPhase, withCompletion } from '../../domain/routine';
 import { PinModal } from '../parent-mode/PinModal';
 import { translate, translateDynamic, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
@@ -30,6 +30,8 @@ import { CardOutcome, tonightCardState } from '../../domain/cards';
 import { CardBanner } from '../cards/CardBanner';
 import { CardGiver } from '../cards/CardGiver';
 import { CardReveal } from '../cards/CardReveal';
+import { PhaseIndicator } from './PhaseIndicator';
+import { StarMeter } from './StarMeter';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -50,6 +52,9 @@ interface RoutineBoardProps {
   /** A parent gives a yellow / red card (after PIN check) */
   onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
 }
+
+/** Tap-to-progress order */
+const NEXT_STATUS: Record<TaskStatus, TaskStatus> = { todo: 'doing', doing: 'done', done: 'todo' };
 
 /* A star flying from the "done" column to the star meter */
 const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> = ({ from, to, onDone }) => {
@@ -163,10 +168,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   const phases = getRoutinePhases(session, tasksDefinitions);
   const currentPhaseIndex = getCurrentPhaseIndex(phases);
   const currentPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex] : null;
-  const nextPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex + 1] : undefined;
   const visibleTasks = currentPhase ? currentPhase.tasks : session.tasks;
   const isBedtime = currentPhase?.category === 'bedtime';
-  const colon = language === 'fr' ? ' : ' : ': ';
 
   // Filter tasks into their respective columns
   const todoTasks = visibleTasks.filter((t) => t.status === 'todo');
@@ -178,35 +181,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     return tasksDefinitions.find((d) => d.id === defId)!;
   };
 
-  // Tap-to-progress: Moves task sequentially
-  const handleTaskTap = (task: RoutineTask) => {
-    let nextStatus: 'todo' | 'doing' | 'done';
-    if (task.status === 'todo') {
-      nextStatus = 'doing';
-      reminderService.playMoveSound();
-    } else if (task.status === 'doing') {
-      nextStatus = 'done';
-      reminderService.playTaskDoneSound();
-    } else {
-      nextStatus = 'todo';
-      reminderService.playResetSound();
-    }
-
-    const updatedTasks = session.tasks.map((t) => {
-      if (t.id === task.id) {
-        return {
-          ...t,
-          status: nextStatus,
-          completedAt: nextStatus === 'done' ? Date.now() : undefined,
-        };
-      }
-      return t;
-    });
-
-    triggerSessionUpdate(updatedTasks);
+  // One path for taps and drags: sound by destination, then the domain move
+  const moveTo = (task: RoutineTask, status: TaskStatus) => {
+    if (task.status === status) return;
+    if (status === 'done') reminderService.playTaskDoneSound();
+    else if (status === 'doing') reminderService.playMoveSound();
+    else reminderService.playResetSound();
+    triggerSessionUpdate(moveTask(session, task.id, status, tasksDefinitions).tasks);
   };
 
-  // Drag-and-drop end trigger
+  // Tap-to-progress: todo → doing → done → todo
+  const handleTaskTap = (task: RoutineTask) => moveTo(task, NEXT_STATUS[task.status]);
+
+  // Drag-and-drop
   const handleDragStart = (event: DragStartEvent) => {
     setActiveDragId(event.active.id as string);
   };
@@ -214,36 +201,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragId(null);
-
     if (!over) return;
-
-    const taskId = active.id as string;
-    const targetStatus = over.id as 'todo' | 'doing' | 'done';
-
-    const task = session.tasks.find((t) => t.id === taskId);
-    if (!task || task.status === targetStatus) return;
-
-    // Trigger audio cues based on destination
-    if (targetStatus === 'done') {
-      reminderService.playTaskDoneSound();
-    } else if (targetStatus === 'doing') {
-      reminderService.playMoveSound();
-    } else {
-      reminderService.playResetSound();
-    }
-
-    const updatedTasks = session.tasks.map((t) => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          status: targetStatus,
-          completedAt: targetStatus === 'done' ? Date.now() : undefined,
-        };
-      }
-      return t;
-    });
-
-    triggerSessionUpdate(updatedTasks);
+    const task = session.tasks.find((t) => t.id === active.id);
+    if (task) moveTo(task, over.id as TaskStatus);
   };
 
   const applyPhaseAction = (action: { kind: 'skip' | 'resume'; category: TaskCategory }) => {
@@ -462,34 +422,14 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
           <div className="flex flex-col items-center gap-1 min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-              {/* Star meter: stars collected toward the next medal */}
-              <div
+              <StarMeter
                 ref={starMeterRef}
-                data-testid="star-meter"
-                aria-label={translate('stars.meter', language)}
-                className="relative flex items-center gap-1 sm:gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg"
-              >
-                {tonightCards.level === 'red' && (
-                  <span
-                    data-testid="star-meter-card"
-                    aria-hidden="true"
-                    className="referee-card size-sm is-red absolute -bottom-2 -right-2 rotate-12 animate-card-sticker ring-1 ring-white/60"
-                  />
-                )}
-                {Array.from({ length: starsPerMedal }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`transition-all duration-300 ${i < (profile.starProgress ?? 0) ? '' : 'grayscale opacity-30'}`}
-                  >
-                    ⭐
-                  </span>
-                ))}
-                <span className="hidden sm:inline text-white/50 mx-0.5">→</span>
-                <span>🏅</span>
-                <span key={profile.medalCount ?? 0} className="animate-counter-bump inline-block" data-testid="medal-count">
-                  {profile.medalCount ?? 0}
-                </span>
-              </div>
+                starProgress={profile.starProgress ?? 0}
+                starsPerMedal={starsPerMedal}
+                medalCount={profile.medalCount ?? 0}
+                redCard={tonightCards.level === 'red'}
+                language={language}
+              />
 
               {/* Piggy bank */}
               <button
@@ -557,70 +497,13 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
         {/* Current phase indicator */}
         {currentPhase && phases.length > 1 && (
-          <div className="flex flex-col items-center gap-1.5 z-10" data-testid="phase-indicator">
-            <div className="flex items-center gap-2 sm:gap-3 text-white font-black text-base sm:text-lg md:text-2xl">
-              <span className="text-2xl sm:text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
-              <span>
-                {translate('board.step', language)} {currentPhaseIndex + 1}/{phases.length}{colon}
-                {translate(`category.${currentPhase.category}`, language)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 font-bold">
-              <div className="flex gap-1.5">
-                {phases.map((p, i) => (
-                  <span
-                    key={p.category}
-                    data-testid="phase-dot"
-                    data-state={p.isSkipped ? 'skipped' : p.isCompleted ? 'done' : i === currentPhaseIndex ? 'current' : 'todo'}
-                    aria-label={`${translate(`category.${p.category}`, language)} : ${translate(
-                      p.isSkipped ? 'board.skipped' : p.isCompleted ? 'board.step_done' : i === currentPhaseIndex ? 'board.step_current' : 'board.step_todo',
-                      language
-                    )}`}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      p.isSkipped
-                        ? 'bg-transparent border border-white/50'
-                        : p.isCompleted
-                          ? 'bg-emerald-400'
-                          : i === currentPhaseIndex
-                            ? 'bg-yellow-300'
-                            : 'bg-white/20'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span>
-                {nextPhase
-                  ? `${translate('board.next', language)}${colon}${translate(`category.${nextPhase.category}`, language)} ${CATEGORY_ICONS[nextPhase.category]}`
-                  : translate('board.last_step', language)}
-              </span>
-            </div>
-            {/* Parent controls: skip the current step, resume a skipped one */}
-            <div className="flex flex-wrap justify-center gap-2 text-[11px] sm:text-xs font-bold">
-              {!currentPhase.isCompleted && !currentPhase.isSkipped && (
-                <button
-                  type="button"
-                  data-testid="skip-phase"
-                  onClick={() => setPhaseAction({ kind: 'skip', category: currentPhase.category })}
-                  className="px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/15"
-                >
-                  ⏭ {translate('board.skip_phase', language)}
-                </button>
-              )}
-              {phases
-                .filter((p) => p.isSkipped)
-                .map((p) => (
-                  <button
-                    key={p.category}
-                    type="button"
-                    data-testid="resume-phase"
-                    onClick={() => setPhaseAction({ kind: 'resume', category: p.category })}
-                    className="px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/15"
-                  >
-                    ↺ {translate('board.resume_phase', language, { phase: translate(`category.${p.category}`, language) })}
-                  </button>
-                ))}
-            </div>
-          </div>
+          <PhaseIndicator
+            phases={phases}
+            currentIndex={currentPhaseIndex}
+            language={language}
+            onSkip={(category) => setPhaseAction({ kind: 'skip', category })}
+            onResume={(category) => setPhaseAction({ kind: 'resume', category })}
+          />
         )}
 
         <CardBanner
@@ -705,6 +588,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             progress={progressPct}
             avatar={profile.avatar}
             colorTheme={profile.color}
+            label={translate('board.progress', language)}
           />
         </footer>
 

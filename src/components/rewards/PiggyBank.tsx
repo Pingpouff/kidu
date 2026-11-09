@@ -7,10 +7,12 @@ import { TROPHY_IDS, TROPHY_ICONS } from '../../domain/trophies';
 import { translate, Language } from '../../i18n/dictionary';
 import { PinModal } from '../parent-mode/PinModal';
 import { BadgeDisc } from './BadgeChoice';
-import { TreasureView } from './TreasureView';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti } from '../../services/effects';
 import { CONFETTI_Z } from '../../ui/layers';
+
+// Loaded on demand, when the child opens their treasure
+const TreasureView = React.lazy(() => import('./TreasureView').then((m) => ({ default: m.TreasureView })));
 
 interface PiggyBankProps {
   profile: ChildProfile;
@@ -236,7 +238,11 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
         )}
       </Modal>
 
-      {showTreasure && <TreasureView profile={profile} language={language} onClose={() => setShowTreasure(false)} />}
+      {showTreasure && (
+        <React.Suspense fallback={null}>
+          <TreasureView profile={profile} language={language} onClose={() => setShowTreasure(false)} />
+        </React.Suspense>
+      )}
 
       {buying && (
         <PinModal
