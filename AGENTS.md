@@ -27,14 +27,16 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
-    │   └── backup.ts       # Backup file format, creation and validation
+    │   ├── backup.ts       # Backup file format, creation and validation
+    │   └── changelog.ts    # App version, bilingual changelog, "what's new" selection
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
     ├── services/
     │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
-    │   └── ReminderQueue.ts # Serial queue of reminder announcements
+    │   ├── ReminderQueue.ts # Serial queue of reminder announcements
+    │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
     ├── ui/                 # UI kit (generic, no domain logic)
@@ -50,6 +52,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     ├── i18n/
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
+    │   ├── app/            # Update banner and "What's new" window
     │   ├── child-board/    # Kid-facing board components
     │   ├── parent-mode/    # Parent settings dashboard components
     │   └── rewards/        # Fanfare and confetti celebrations
@@ -90,7 +93,7 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        defaultLabel: string; // Fallback label
        icon: string; // Emoji character
        order: number; // Sorting order inside its phase
-       category?: 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
+       category?: 'morning' | 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
        startTime?: string; // "HH:MM" expected start, one "time to start" reminder
        dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
@@ -146,7 +149,10 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
 
 ## Routine Phases
 
-Tasks belong to one of three fixed phases, run in order: `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`).
+Tasks belong to one of four fixed phases, run in order: `morning` → `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`). A day's session holds every phase, so the evening phases show up once the morning one is done.
+
+- Default morning tasks: get dressed, breakfast, brush teeth, shoes & coat. Existing databases get them once through the Dexie `version(2)` upgrade in `persistence/db.ts` (skipped if a morning task already exists).
+- Each phase has a "finish it 10 times" trophy (`morning_10`, `after_school_10`, …).
 
 - `sortDefinitions` orders tasks by phase, then by `order`; sessions are built and synced with it.
 - `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.
@@ -187,7 +193,7 @@ Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: Behavior
 - A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
 - `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
 - Parent Mode → History lists recent cards (`CardHistory`); `withdrawCard` removes a card given by mistake (with the red it triggered) and gives the stars back, up to just below a medal.
-- The selection screen shows tonight's cards on each child's card (`ChildSummary.cards`).
+- **Visible all evening** (`tonightCardState(profile, date)`: level `none`/`yellow`/`red`, counts, last reason, stars lost): a colored frame around the board (`card-frame-*`), a `CardBanner` under the step indicator (tap → `CardReveal` again), a red card stuck on the star counter with "stars back to zero" after a red, and `CardReveal mode="reminder"` (no whistle, short voice, closes after 5 s) every time the board opens. On the selection screen, the card is stuck on the child's avatar, the child card gets a yellow/red ring and shows the reason (`ChildSummary.cards`). Everything disappears the next evening.
 
 ## Reminders
 
@@ -220,6 +226,15 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 
 - **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
 - **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
+
+## Versions, Changelog and Updates
+
+- **Version**: `package.json` `version` (semver), injected at build time as `__APP_VERSION__` (`define` in `vite.config.ts`) and exported as `APP_VERSION` from `domain/changelog.ts`.
+- **Changelog**: `CHANGELOG` in `domain/changelog.ts`, newest first, one entry per version with `fr` and `en` lines written for parents. `changesSince(lastSeen)` selects what to announce.
+- **Update prompt**: the PWA uses `registerType: 'prompt'`. `useAppUpdate` (`services/appUpdate.ts`, called once in `App.tsx`) registers the service worker, checks for a new version every hour and when the app comes back to the foreground, and exposes `updateAvailable` / `applyUpdate` / `checkNow`. `AppUpdateBanner` only shows on the selection screen and in Parent Mode, never on a child's board, so an update never reloads the page mid-routine. Settings → *App* shows the version, a "check for updates" button and the version history.
+- **What's new**: on startup, `App.tsx` compares `localStorage['kidu.lastSeenVersion']` with `APP_VERSION` and shows `WhatsNewModal` on the selection screen if versions were missed. A fresh install (`seedDatabase()` returns `freshInstall`) shows nothing; an install from before versions were tracked counts as `BASELINE_VERSION` (1.0.0).
+- **Releasing** (before merging `development` into `main`): bump `package.json` `version` and add the matching entry at the top of `CHANGELOG`. `src/tests/changelog.test.tsx` fails (and blocks the deploy) if they don't match.
+- The dev server doesn't run the service worker: to try the update flow, `npm run build && npm run preview`, then rebuild with a higher version.
 
 ## Configuration Backup
 

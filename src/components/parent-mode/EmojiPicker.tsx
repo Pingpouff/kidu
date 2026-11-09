@@ -22,6 +22,7 @@ const ROUTINE_EMOJIS: EmojiItem[] = [
   { emoji: '🩹', keywords: ['bandage', 'plaster', 'pansement', 'bobo', 'soigner'] },
   
   // Bedtime & Sleep
+  { emoji: '☀️', keywords: ['morning', 'sun', 'wake', 'matin', 'soleil', 'reveil', 'lever'] },
   { emoji: '🛏️', keywords: ['bed', 'sleep', 'lit', 'dodo', 'sleeping', 'coucher', 'dormir'] },
   { emoji: '🌙', keywords: ['night', 'moon', 'sleep', 'lune', 'nuit', 'sommeil'] },
   { emoji: '💤', keywords: ['sleep', 'dodo', 'zzz', 'calm', 'dormir', 'nuit'] },

@@ -11,6 +11,7 @@ import { ShopItem } from '../../domain/models';
 import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
 import { buttonClass } from '../../ui/styles';
 import { CardHistory } from './CardHistory';
+import type { AppUpdate } from '../../services/appUpdate';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -41,6 +42,8 @@ interface DashboardProps {
   onExportBackup: (includeHistory: boolean) => Promise<void>;
   onImportBackup: (fileContent: string) => Promise<void>;
   onSaveShop: (shop: ShopItem[]) => Promise<void>;
+  /** Service worker update state (absent in tests) */
+  appUpdate?: AppUpdate;
 }
 
 type TabId = 'tasks' | 'children' | 'shop' | 'history' | 'settings';
@@ -66,6 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onExportBackup,
   onImportBackup,
   onSaveShop,
+  appUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
 
@@ -187,6 +191,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onResetAllData={onResetAllData}
                 onExportBackup={onExportBackup}
                 onImportBackup={onImportBackup}
+                appUpdate={appUpdate}
               />
             )}
           </div>

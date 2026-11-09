@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { completeTask, enterParentMode, openTaskForm } from './helpers';
+import { completeTask, enterParentMode, openTaskForm, removeMorningTasks } from './helpers';
 
 test.describe('Personal tasks and selection screen summary', () => {
   test('a task can be assigned to one child only', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     await enterParentMode(page);
 
     // Seeded example: homework is Léo's only
@@ -40,11 +41,12 @@ test.describe('Personal tasks and selection screen summary', () => {
 
   test('the selection screen sums up where each child is', async ({ page }) => {
     await page.goto('/');
+    await removeMorningTasks(page);
     const leo = page.getByTestId('child-card-leo');
     const emma = page.getByTestId('child-card-emma');
     await expect(leo.getByTestId('home-progress')).toContainText('Pas encore commencé');
-    await expect(leo.getByTestId('home-progress')).toContainText('0/15');
-    await expect(emma.getByTestId('home-progress')).toContainText('0/14'); // no homework for Emma
+    await expect(leo.getByTestId('home-progress')).toContainText('0/18');
+    await expect(emma.getByTestId('home-progress')).toContainText('0/17'); // no homework for Emma
     await expect(leo.getByTestId('home-next')).toContainText('Vider son cartable');
     await expect(page.getByTestId('home-tonight')).toBeVisible();
 
@@ -56,7 +58,7 @@ test.describe('Personal tasks and selection screen summary', () => {
     await page.locator('header').getByRole('button').first().click();
 
     await expect(leo.getByTestId('home-progress')).toContainText('Étape 1/3');
-    await expect(leo.getByTestId('home-progress')).toContainText('1/15');
+    await expect(leo.getByTestId('home-progress')).toContainText('1/18');
     await expect(leo.getByTestId('home-doing')).toContainText('Prendre son goûter');
     await expect(leo).toContainText('Médaille dans 2');
     await expect(emma.getByTestId('home-progress')).toContainText('Pas encore commencé');

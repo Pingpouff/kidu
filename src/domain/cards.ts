@@ -15,6 +15,30 @@ export interface CardsTonight {
   cards: BehaviorCard[];
 }
 
+/** What the child got tonight, for the reminders on screen (banner, frame, home card…). */
+export interface TonightCardState {
+  /** The most serious card of the evening: a red outranks yellows */
+  level: 'none' | CardColor;
+  yellow: number;
+  red: number;
+  /** Reason of the last card given tonight, if any */
+  lastReason?: string;
+  /** Stars toward the next medal taken away tonight by red cards */
+  lostProgress: number;
+}
+
+export function tonightCardState(profile: ChildProfile, date: string): TonightCardState {
+  const { cards, yellow, red } = cardsOn(profile, date);
+  const lastReason = [...cards].reverse().find((c) => c.reason)?.reason;
+  return {
+    level: red > 0 ? 'red' : yellow > 0 ? 'yellow' : 'none',
+    yellow,
+    red,
+    ...(lastReason ? { lastReason } : {}),
+    lostProgress: cards.reduce((sum, c) => sum + (c.lostProgress ?? 0), 0),
+  };
+}
+
 /** What happened when a card was given (drives the referee animation). */
 export type CardOutcome = 'yellow' | 'second_yellow' | 'red';
 

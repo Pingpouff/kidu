@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChildProfile } from '../../domain/models';
 import { CardOutcome } from '../../domain/cards';
 import { translate, Language } from '../../i18n/dictionary';
@@ -14,28 +14,47 @@ interface CardRevealProps {
   lostProgress: number;
   language: Language;
   onDismiss: () => void;
+  /** `given`: the card was just given (whistle). `reminder`: a quiet reminder of tonight's card that closes by itself. */
+  mode?: 'given' | 'reminder';
 }
+
+const REMINDER_MS = 5000;
 
 /**
  * The referee moment: the card is raised in front of the child, with a whistle
  * and a spoken sentence. A second yellow shows the yellow, then the red.
  */
-export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason, lostProgress, language, onDismiss }) => {
-  // For a second yellow, start on the yellow card and switch to red
-  const [showRed, setShowRed] = useState(outcome === 'red');
+export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason, lostProgress, language, onDismiss, mode = 'given' }) => {
+  const isReminder = mode === 'reminder';
+  // For a second yellow just given, start on the yellow card and switch to red
+  const [showRed, setShowRed] = useState(outcome === 'red' || (isReminder && outcome === 'second_yellow'));
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
 
   useEffect(() => {
     const lang = language === 'fr' ? 'fr-FR' : 'en-US';
+    const red = outcome !== 'yellow';
+    if (isReminder) {
+      // Quiet: no whistle, a short spoken reminder, then it closes by itself
+      const key = red ? 'cards.spoken_reminder_red' : 'cards.spoken_reminder_yellow';
+      reminderService.triggerVoiceReminder(translate(key, language).replace('{name}', profile.name), lang);
+      const timer = setTimeout(() => dismissRef.current(), REMINDER_MS);
+      return () => clearTimeout(timer);
+    }
     const key = outcome === 'yellow' ? 'cards.spoken_yellow' : outcome === 'red' ? 'cards.spoken_red' : 'cards.spoken_second';
     reminderService.playWhistleSound(outcome === 'yellow' ? 1 : 2);
     reminderService.triggerVoiceReminder(translate(key, language).replace('{name}', profile.name), lang);
     if (outcome !== 'second_yellow') return;
     const timer = setTimeout(() => setShowRed(true), richMotion() ? 1300 : 0);
     return () => clearTimeout(timer);
-  }, [outcome, profile.name, language]);
+  }, [outcome, profile.name, language, isReminder]);
 
   const isRed = showRed;
-  const title = outcome === 'second_yellow' && isRed ? translate('cards.second_yellow', language) : translate(isRed ? 'cards.red' : 'cards.yellow', language);
+  const title = isReminder
+    ? translate(isRed ? 'cards.reminder_title_red' : 'cards.reminder_title_yellow', language)
+    : outcome === 'second_yellow' && isRed
+      ? translate('cards.second_yellow', language)
+      : translate(isRed ? 'cards.red' : 'cards.yellow', language);
 
   return (
     <Overlay
@@ -45,6 +64,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason
       aria-label={title}
       data-testid="card-reveal"
       data-card={isRed ? 'red' : 'yellow'}
+      data-mode={mode}
       className={cx(
         'flex flex-col items-center justify-center gap-6 p-6 text-center cursor-pointer select-none backdrop-blur-sm transition-colors duration-500',
         isRed ? 'bg-red-950/90' : 'bg-yellow-950/85'
