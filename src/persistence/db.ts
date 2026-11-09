@@ -79,13 +79,23 @@ export const defaultSettings: ParentSettings = {
   shop: defaultShop('fr'),
 };
 
+let seeding: Promise<{ freshInstall: boolean }> | null = null;
+
 /**
  * Initializes and seeds the database with default data if empty.
+ * Runs once per page load (React StrictMode mounts twice in development).
+ * `freshInstall` is true when there were no settings yet (first launch).
  */
-export async function seedDatabase() {
+export function seedDatabase(): Promise<{ freshInstall: boolean }> {
+  seeding ??= seed();
+  return seeding;
+}
+
+async function seed(): Promise<{ freshInstall: boolean }> {
   // 1. Settings seeding
   const settingsCount = await db.settings.count();
-  if (settingsCount === 0) {
+  const freshInstall = settingsCount === 0;
+  if (freshInstall) {
     await db.settings.put({ ...defaultSettings, id: 'current' });
   }
 
@@ -118,6 +128,7 @@ export async function seedDatabase() {
     ];
     await db.profiles.bulkPut(seedProfiles);
   }
+  return { freshInstall };
 }
 
 /**
