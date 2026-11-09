@@ -1,4 +1,71 @@
-import { ChildProfile, TaskDefinition, RoutineSession, RoutineTask, TaskStatus, HistoryEntry } from './models';
+import {
+  ChildProfile,
+  TaskDefinition,
+  RoutineSession,
+  RoutineTask,
+  TaskStatus,
+  HistoryEntry,
+  TaskCategory,
+  TASK_CATEGORIES,
+} from './models';
+
+/**
+ * Category of a task definition. Tasks created before categories existed
+ * (or whose definition was removed) belong to the bedtime phase.
+ */
+export function getTaskCategory(definition: TaskDefinition | undefined): TaskCategory {
+  return definition?.category ?? 'bedtime';
+}
+
+/**
+ * Sorts task definitions by routine phase, then by their order inside the phase.
+ */
+export function sortDefinitions(definitions: TaskDefinition[]): TaskDefinition[] {
+  return [...definitions].sort((a, b) => {
+    const byCategory =
+      TASK_CATEGORIES.indexOf(getTaskCategory(a)) - TASK_CATEGORIES.indexOf(getTaskCategory(b));
+    return byCategory !== 0 ? byCategory : a.order - b.order;
+  });
+}
+
+export interface RoutinePhase {
+  category: TaskCategory;
+  tasks: RoutineTask[];
+  isCompleted: boolean;
+}
+
+/**
+ * Splits a session into its phases (only categories that contain tasks),
+ * in routine order.
+ */
+export function getRoutinePhases(
+  session: RoutineSession,
+  definitions: TaskDefinition[]
+): RoutinePhase[] {
+  const categoryOf = (task: RoutineTask) =>
+    getTaskCategory(definitions.find((d) => d.id === task.definitionId));
+
+  return TASK_CATEGORIES
+    .map((category) => {
+      const tasks = session.tasks.filter((t) => categoryOf(t) === category);
+      return {
+        category,
+        tasks,
+        isCompleted: tasks.every((t) => t.status === 'done'),
+      };
+    })
+    .filter((phase) => phase.tasks.length > 0);
+}
+
+/**
+ * Index of the phase the child is working on: the first one not completed.
+ * When everything is done, stays on the last phase. Returns -1 when there are no tasks.
+ */
+export function getCurrentPhaseIndex(phases: RoutinePhase[]): number {
+  if (phases.length === 0) return -1;
+  const index = phases.findIndex((p) => !p.isCompleted);
+  return index === -1 ? phases.length - 1 : index;
+}
 
 /**
  * Initializes a new routine session for a child with active task definitions.
@@ -8,7 +75,7 @@ export function initSession(
   date: string,
   definitions: TaskDefinition[]
 ): RoutineSession {
-  const sortedDefs = [...definitions].sort((a, b) => a.order - b.order);
+  const sortedDefs = sortDefinitions(definitions);
   const tasks: RoutineTask[] = sortedDefs.map((def) => ({
     id: `${childId}_${def.id}_${date}`,
     definitionId: def.id,
@@ -121,8 +188,8 @@ export function syncSessionWithDefinitions(
   session: RoutineSession,
   definitions: TaskDefinition[]
 ): RoutineSession {
-  // Sort definitions by order
-  const sortedDefs = [...definitions].sort((a, b) => a.order - b.order);
+  // Sort definitions by phase, then order
+  const sortedDefs = sortDefinitions(definitions);
 
   // Build the new tasks list
   const newTasks: RoutineTask[] = sortedDefs.map((def) => {

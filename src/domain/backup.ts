@@ -1,4 +1,4 @@
-import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry } from './models';
+import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry, TaskCategory, TASK_CATEGORIES } from './models';
 
 export const BACKUP_APP_ID = 'kidu';
 export const BACKUP_VERSION = 1;
@@ -102,7 +102,8 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       !isString(t.defaultLabel) ||
       !isString(t.icon) ||
       !isNumber(t.order) ||
-      (t.labelKey !== undefined && !isString(t.labelKey))
+      (t.labelKey !== undefined && !isString(t.labelKey)) ||
+      (t.category !== undefined && !TASK_CATEGORIES.includes(t.category as TaskCategory))
     ) {
       throw new BackupError('invalid_tasks');
     }
@@ -113,6 +114,7 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       icon: t.icon,
       order: t.order,
       ...(isString(t.helperTextKey) ? { helperTextKey: t.helperTextKey } : {}),
+      ...(t.category !== undefined ? { category: t.category as TaskCategory } : {}),
     };
   });
   if (new Set(tasks.map((t) => t.id)).size !== tasks.length) throw new BackupError('invalid_tasks');

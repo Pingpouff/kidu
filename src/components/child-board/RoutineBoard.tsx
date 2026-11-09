@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -9,7 +9,8 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition } from '../../domain/models';
+import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
+import { getRoutinePhases, getCurrentPhaseIndex } from '../../domain/routine';
 import { translate, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
@@ -71,6 +72,13 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
+  // Short banner shown when a phase is completed
+  const [phaseBanner, setPhaseBanner] = useState<TaskCategory | null>(null);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+  }, []);
+
   // Background style based on child color theme
   const backgrounds = {
     indigo: 'theme-indigo',
@@ -82,10 +90,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   const bgTheme = backgrounds[profile.color] || backgrounds.indigo;
 
+  // Split the routine into phases; only the current phase is shown on the board
+  const phases = getRoutinePhases(session, tasksDefinitions);
+  const currentPhaseIndex = getCurrentPhaseIndex(phases);
+  const currentPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex] : null;
+  const nextPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex + 1] : undefined;
+  const visibleTasks = currentPhase ? currentPhase.tasks : session.tasks;
+  const isBedtime = currentPhase?.category === 'bedtime';
+  const colon = language === 'fr' ? ' : ' : ': ';
+
   // Filter tasks into their respective columns
-  const todoTasks = session.tasks.filter((t) => t.status === 'todo');
-  const doingTasks = session.tasks.filter((t) => t.status === 'doing');
-  const doneTasks = session.tasks.filter((t) => t.status === 'done');
+  const todoTasks = visibleTasks.filter((t) => t.status === 'todo');
+  const doingTasks = visibleTasks.filter((t) => t.status === 'doing');
+  const doneTasks = visibleTasks.filter((t) => t.status === 'done');
 
   // Find task definition by definition ID
   const getDefinition = (defId: string) => {
@@ -175,6 +192,26 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
     onUpdateSession(updatedSession);
 
+    // A phase was just completed but the routine goes on: celebrate and announce the next phase
+    const updatedPhases = getRoutinePhases(updatedSession, tasksDefinitions);
+    const justCompletedPhase = !isCompleted
+      ? phases.find((p, i) => !p.isCompleted && updatedPhases[i]?.category === p.category && updatedPhases[i].isCompleted)
+      : undefined;
+    if (justCompletedPhase) {
+      const upcoming = updatedPhases[getCurrentPhaseIndex(updatedPhases)];
+      reminderService.playPhaseCompleteSound();
+      const nextLabel = translate(`category.${upcoming.category}`, language);
+      reminderService.triggerVoiceReminder(
+        language === 'fr'
+          ? `Bravo ${profile.name} ! Maintenant : ${nextLabel} !`
+          : `Well done ${profile.name}! Now: ${nextLabel}!`,
+        language === 'fr' ? 'fr-FR' : 'en-US'
+      );
+      setPhaseBanner(justCompletedPhase.category);
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+      bannerTimer.current = setTimeout(() => setPhaseBanner(null), 2500);
+    }
+
     // If session transitions from incomplete to complete, celebrate!
     if (isCompleted && !wasCompleted) {
       reminderService.playRoutineSuccessSound();
@@ -190,9 +227,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     }
   };
 
-  // Calculate routine progress percentage
+  // Calculate overall routine progress percentage (all phases)
   const totalCount = session.tasks.length;
-  const doneCount = doneTasks.length;
+  const doneCount = session.tasks.filter((t) => t.status === 'done').length;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   // Active draggable element for the overlay
@@ -204,7 +241,25 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={`w-full h-screen flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
-        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-4 gap-2">
+        {/* Night sky overlay during the bedtime phase */}
+        <div
+          aria-hidden="true"
+          className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 bedtime-sky ${isBedtime ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {/* Phase completed banner */}
+        {phaseBanner && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" role="status" data-testid="phase-banner">
+            <div className="glass-panel px-8 py-6 flex flex-col items-center gap-2 animate-bounce border-yellow-400/40">
+              <span className="text-6xl">{CATEGORY_ICONS[phaseBanner]}</span>
+              <span className="text-2xl font-black text-yellow-300">
+                {translate('board.phase_done', language)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-4 gap-2 relative">
         
         {/* Top Header Bar */}
         <header className="flex items-center justify-between z-10">
@@ -249,6 +304,36 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </button>
           </div>
         </header>
+
+        {/* Current phase indicator */}
+        {currentPhase && phases.length > 1 && (
+          <div className="flex flex-col items-center gap-1.5 z-10" data-testid="phase-indicator">
+            <div className="flex items-center gap-3 text-white font-black text-lg md:text-2xl">
+              <span className="text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
+              <span>
+                {translate('board.step', language)} {currentPhaseIndex + 1}/{phases.length}{colon}
+                {translate(`category.${currentPhase.category}`, language)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 font-bold">
+              <div className="flex gap-1.5">
+                {phases.map((p, i) => (
+                  <span
+                    key={p.category}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      p.isCompleted ? 'bg-emerald-400' : i === currentPhaseIndex ? 'bg-yellow-300' : 'bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span>
+                {nextPhase
+                  ? `${translate('board.next', language)}${colon}${translate(`category.${nextPhase.category}`, language)} ${CATEGORY_ICONS[nextPhase.category]}`
+                  : translate('board.last_step', language)}
+              </span>
+            </div>
+          </div>
+        )}
 
         <main className="flex-1 my-4 flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden justify-center items-stretch py-2">
           <BoardColumn

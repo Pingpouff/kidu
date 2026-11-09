@@ -4,6 +4,7 @@ A visual, tablet-first Progressive Web App (PWA) designed to help young children
 
 ## Core Features
 
+- 🗺️ **Routine Steps**: The evening is split into three steps — *After school* 🎒, *Meal* 🍽️, *Bedtime* 🌙. The child only sees the current step's tasks, gets a mini-celebration when a step is done, and the sky darkens for bedtime.
 - 🧒 **Visual Routine Board**: A kid-friendly Kanban board (To Do, Doing, Done) relying on huge emojis and icons rather than textual labels.
 - 🦄 **Kid Customization**: Animal avatars and tailored profile colors (Indigo, Purple, Rose, Emerald, Amber).
 - 🛸 **Springy Progress Slider**: A sliding avatar indicator that follows the child's progress towards a golden finish-line star.

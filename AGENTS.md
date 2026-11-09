@@ -68,7 +68,8 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        labelKey?: string; // Dictionary key (e.g. 'task.teeth')
        defaultLabel: string; // Fallback label
        icon: string; // Emoji character
-       order: number; // Sorting order
+       order: number; // Sorting order inside its phase
+       category?: 'after_school' | 'meal' | 'bedtime'; // Routine phase, missing = 'bedtime'
      }
      ```
 
@@ -116,6 +117,17 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        };
      }
      ```
+
+---
+
+## Routine Phases
+
+Tasks belong to one of three fixed phases, run in order: `after_school` → `meal` → `bedtime` (`TASK_CATEGORIES` in `domain/models.ts`).
+
+- `sortDefinitions` orders tasks by phase, then by `order`; sessions are built and synced with it.
+- `getRoutinePhases(session, definitions)` returns the non-empty phases; `getCurrentPhaseIndex` returns the first one not completed.
+- The child board only shows the current phase's tasks, with a step indicator, a "step complete" banner/sound/voice when a phase ends, and a night-sky overlay during `bedtime`. Overall progress and the final celebration still cover the whole routine.
+- In Parent Mode, tasks are grouped by phase and can only be reordered inside their phase. The phase is chosen when creating or editing a task.
 
 ---
 

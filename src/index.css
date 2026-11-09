@@ -66,6 +66,25 @@
   background: linear-gradient(135deg, #451a03 0%, #0f172a 60%, #020617 100%);
 }
 
+/* Bedtime phase: darker night sky with softly twinkling stars */
+.bedtime-sky {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 62%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 47% 12%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 66% 38%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(2px 2px at 82% 22%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 91% 70%, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 6% 84%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.55) 0%, rgba(2, 6, 23, 0.25) 100%);
+  animation: twinkle 6s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 /* Micro-animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

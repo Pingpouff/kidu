@@ -24,9 +24,6 @@ export const routineRepository = {
    */
   async createSession(childId: string, dateStr: string): Promise<RoutineSession> {
     const definitions = await db.tasks.toArray();
-    // Sort tasks by order
-    definitions.sort((a, b) => a.order - b.order);
-    
     const session = initSession(childId, dateStr, definitions);
     await db.sessions.put(session);
     return session;
@@ -40,8 +37,6 @@ export const routineRepository = {
     if (!session) return undefined;
 
     const definitions = await db.tasks.toArray();
-    definitions.sort((a, b) => a.order - b.order);
-
     const reseted = initSession(session.childId, session.date, definitions);
     await db.sessions.put(reseted);
     return reseted;
