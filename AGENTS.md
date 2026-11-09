@@ -37,6 +37,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── ReminderService.ts # Synthesized sounds, voice, bedtime song (respects feedback settings)
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
     │   ├── ReminderQueue.ts # Serial queue of reminder announcements
+    │   ├── storage.ts      # Persistent storage request / status
     │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
     ├── hooks/
     │   └── useTaskReminders.ts # Clock + overdue detection + queue wiring
@@ -54,8 +55,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   └── dictionary.ts   # Translations dictionary
     ├── components/
     │   ├── app/            # Update banner and "What's new" window
-    │   ├── child-board/    # Kid-facing board components
-    │   ├── parent-mode/    # Parent settings dashboard components
+    │   ├── child-board/    # Kid-facing board (RoutineBoard, PhaseIndicator, StarMeter, TaskCard…)
+    │   ├── parent-mode/    # Parent dashboard; settings/ (Backup, App, Danger zone) and tasks/ (fields, DayPicker, SortableTaskRow)
     │   └── rewards/        # Fanfare and confetti celebrations
     └── tests/
         ├── domain.test.ts  # Vitest unit test suite
@@ -257,6 +258,17 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 - **What's new**: on startup, `App.tsx` compares `localStorage['kidu.lastSeenVersion']` with `APP_VERSION` and shows `WhatsNewModal` on the selection screen if versions were missed. A fresh install (`seedDatabase()` returns `freshInstall`) shows nothing; an install from before versions were tracked counts as `BASELINE_VERSION` (1.0.0).
 - **Releasing** (before merging `development` into `main`): bump `package.json` `version` and add the matching entry at the top of `CHANGELOG`. `src/tests/changelog.test.tsx` fails (and blocks the deploy) if they don't match.
 - The dev server doesn't run the service worker: to try the update flow, `npm run build && npm run preview`, then rebuild with a higher version.
+
+## Data Safety
+
+- `requestPersistentStorage()` (`services/storage.ts`) runs at startup so the browser doesn't evict IndexedDB; Settings → *App* shows the status.
+- `settings.lastBackupAt` is set on every export (it is not written into backup files). `isBackupDue` (`domain/backup.ts`) — at least 3 history days and no export for 30 days — shows a "back up now" banner in Parent Mode.
+
+## Performance, CI and Accessibility
+
+- Parent Mode (`Dashboard`), `Celebration`, `TreasureView` and `canvas-confetti` are loaded on demand (`React.lazy` / dynamic `import()`); the service worker still precaches every chunk for offline use.
+- `.github/workflows/ci.yml` runs lint, `tsc -b`, unit and e2e tests on every push to `development` and on pull requests; `deploy-pages.yml` does the same before deploying `main`.
+- Task cards have an accessible name and status and react to Enter / Space; the progress bar is a `progressbar`; the star meter announces its count. `Overlay` moves focus inside when it opens, keeps Tab inside the top overlay and gives focus back on close.
 
 ## Configuration Backup
 

@@ -16,6 +16,24 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.4.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Données mieux protégées : l\'app demande au navigateur de ne pas les effacer, et rappelle de faire une sauvegarde au bout de 30 jours.',
+        'Date de la dernière sauvegarde et état de la protection dans Paramètres.',
+        'Démarrage plus léger : le Mode Parent et les animations se chargent seulement quand on en a besoin.',
+        'Accessibilité : cartes de tâche lisibles par les lecteurs d\'écran et utilisables au clavier, focus géré dans les fenêtres, textes plus contrastés.',
+      ],
+      en: [
+        'Better protected data: the app asks the browser not to clear it, and reminds you to back up after 30 days.',
+        'Date of the last backup and protection status in Settings.',
+        'Lighter start: Parent Mode and animations load only when needed.',
+        'Accessibility: task cards readable by screen readers and usable with the keyboard, focus kept in dialogs, higher-contrast texts.',
+      ],
+    },
+  },
+  {
     version: '1.3.0',
     date: '2026-11-10',
     changes: {

@@ -150,7 +150,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                     <span className="flex-1 min-w-0 truncate font-bold text-white">
                       {label(d.definitionId)}
                       {d.startTime && d.dueTime && (
-                        <span className="ml-2 text-xs font-semibold text-white/40">
+                        <span className="ml-2 text-xs font-semibold text-white/60">
                           {d.startTime}–{d.dueTime}
                         </span>
                       )}
@@ -169,7 +169,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       </div>
 
       {/* Footer message */}
-      <div className="text-center text-white/30 text-sm z-10">
+      <div className="text-center text-white/50 text-sm z-10">
         {translate('home.footer', language)}
       </div>
     </div>

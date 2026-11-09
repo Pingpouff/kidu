@@ -21,7 +21,7 @@ A visual, tablet-first Progressive Web App (PWA) designed to help young children
 - 🔊 **Web Audio Synthesizer**: Native sound synthesis for task transitions (bright chimes, rising progression notes, reset sweeps) and text-to-speech fallback praise.
 - 🔒 **Parent Mode PIN**: the parent portal is locked by a PIN pad; 3 wrong PINs lock it for 30 seconds. A forgotten PIN can be bypassed with a grown-up question (a multiplication such as 14 × 7), which young children can't answer. Parent Mode asks to replace the default PIN.
 - ⚙️ **Parent Portal**: Management dashboard to add/delete/reorder routine tasks, create/edit child profiles, inspect history logs, toggle languages (FR/EN), and configure rewards.
-- 💾 **Configuration Backup**: Export tasks, child profiles and settings (optionally with history) to a JSON file from *Parent Mode → Settings*, and import it back on the same or another device.
+- 💾 **Configuration Backup**: Export tasks, child profiles and settings (optionally with history) to a JSON file from *Parent Mode → Settings*, and import it back on the same or another device. The app asks the browser to protect its data from automatic clean-up, and Parent Mode reminds you to back up when the last export is more than 30 days old.
 - ✈️ **Offline-First (PWA)**: installable app with service-worker caching via Workbox and IndexedDB local persistence (`dexie`).
 - 🔄 **Updates & what's new**: when a new version is published, a banner offers to update (never on a child's board, so a routine is never interrupted); after the update, a "What's new?" window lists the changes. *Parent Mode → Settings → App* shows the installed version, checks for updates and lists the version history.
 

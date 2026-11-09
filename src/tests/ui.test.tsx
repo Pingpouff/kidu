@@ -42,6 +42,31 @@ describe('UI kit', () => {
     expect(screen.getByRole('dialog', { name: 'Tirelire' })).toBe(screen.getByTestId('panel'));
   });
 
+  it('moves focus into an overlay, keeps Tab inside, and gives it back on close', () => {
+    const outside = document.createElement('button');
+    outside.textContent = 'ouvrir';
+    document.body.appendChild(outside);
+    outside.focus();
+
+    const { unmount } = render(
+      <Modal label="Code" closeLabel="Fermer" onClose={() => {}}>
+        <button>un</button>
+        <button>deux</button>
+      </Modal>
+    );
+    const close = screen.getByRole('button', { name: 'Fermer' });
+    expect(document.activeElement).toBe(close); // first focusable element
+    screen.getByRole('button', { name: 'deux' }).focus();
+    fireEvent.keyDown(window, { key: 'Tab' });
+    expect(document.activeElement).toBe(close); // wraps around
+    fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'deux' }));
+
+    unmount();
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+  });
+
   it('has a theme for every child color and falls back to indigo', () => {
     for (const color of CHILD_COLORS) expect(childTheme(color).board).toBe(`theme-${color}`);
     expect(childTheme('unknown')).toBe(childTheme('indigo'));
