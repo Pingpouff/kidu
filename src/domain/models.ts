@@ -59,6 +59,7 @@ export interface TaskDefinition {
   order: number;
   category?: TaskCategory; // Missing on tasks created before categories existed: treated as 'bedtime'
   dueTime?: string; // "HH:MM" local time; reminders start when the task isn't done by then
+  assignedTo?: string[]; // Child ids. Missing or empty = common task, done by every child
 }
 
 export interface RoutineTask {

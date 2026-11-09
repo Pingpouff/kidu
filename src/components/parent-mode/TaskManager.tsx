@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
+import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { translate, Language } from '../../i18n/dictionary';
 import { Plus, Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface TaskManagerProps {
   tasks: TaskDefinition[];
+  profiles: ChildProfile[];
   language: Language;
   onAddTask: (task: Omit<TaskDefinition, 'id'>) => Promise<void>;
   onUpdateTask: (task: TaskDefinition) => Promise<void>;
@@ -32,6 +33,7 @@ interface TaskManagerProps {
 
 export const TaskManager: React.FC<TaskManagerProps> = ({
   tasks,
+  profiles,
   language,
   onAddTask,
   onUpdateTask,
@@ -44,6 +46,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [showNewPicker, setShowNewPicker] = useState(false);
   const [newCategory, setNewCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
   const [newDueTime, setNewDueTime] = useState('');
+  const [newAssigned, setNewAssigned] = useState<string[]>([]); // empty = every child
 
   // Editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editOrder, setEditOrder] = useState<number>(1);
   const [editCategory, setEditCategory] = useState<TaskCategory>(TASK_CATEGORIES[0]);
   const [editDueTime, setEditDueTime] = useState('');
+  const [editAssigned, setEditAssigned] = useState<string[]>([]);
   const [showEditPicker, setShowEditPicker] = useState(false);
 
   // Setup sensors for desktop & mobile touch support
@@ -80,6 +84,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       order: tasks.length > 0 ? Math.max(...tasks.map((t) => t.order)) + 1 : 1,
       category: newCategory,
       ...(newDueTime ? { dueTime: newDueTime } : {}),
+      ...(newAssigned.length ? { assignedTo: newAssigned } : {}),
     });
 
     setNewIcon('');
@@ -93,6 +98,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditOrder(task.order);
     setEditCategory(getTaskCategory(task));
     setEditDueTime(task.dueTime ?? '');
+    setEditAssigned(task.assignedTo ?? []);
   };
 
   const cancelEdit = () => {
@@ -102,12 +108,14 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const saveEdit = async (task: TaskDefinition) => {
     if (!editIcon.trim() || !editLabel.trim()) return;
 
-    // Without a due time, the field is removed (no reminder)
+    // Without a due time / assignment, the field is removed (no reminder / common task)
     const rest = { ...task };
     delete rest.dueTime;
+    delete rest.assignedTo;
     await onUpdateTask({
       ...rest,
       ...(editDueTime ? { dueTime: editDueTime } : {}),
+      ...(editAssigned.length ? { assignedTo: editAssigned } : {}),
       icon: editIcon.trim(),
       defaultLabel: editLabel.trim(),
       labelKey: '', // Custom label overrides key translation
@@ -159,7 +167,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       </div>
 
       {/* Task Creation Form */}
-      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+      <form onSubmit={handleAdd} className="flex flex-col gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+        <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative sm:w-28">
           <input
             type="text"
@@ -206,6 +215,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
           <Plus className="w-5 h-5" />
           <span>{translate('btn.add', language)}</span>
         </button>
+        </div>
+        <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
       </form>
 
       {/* Task list list with DndContext */}
@@ -230,7 +241,10 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                     <SortableTaskRow
                       key={task.id}
                       task={task}
+                      profiles={profiles}
                       language={language}
+                      editAssigned={editAssigned}
+                      setEditAssigned={setEditAssigned}
                       editingId={editingId}
                       showEditPicker={showEditPicker}
                       editIcon={editIcon}
@@ -283,9 +297,50 @@ const CategorySelect: React.FC<CategorySelectProps> = ({ value, onChange, langua
   </select>
 );
 
+/**
+ * Who does the task: every child (default) or only some of them.
+ * Selecting every child explicitly comes back to a common task.
+ */
+interface AssigneePickerProps {
+  profiles: ChildProfile[];
+  value: string[]; // empty = every child
+  onChange: (ids: string[]) => void;
+  language: Language;
+  compact?: boolean;
+}
+
+export const AssigneePicker: React.FC<AssigneePickerProps> = ({ profiles, value, onChange, language, compact = false }) => {
+  const known = value.filter((id) => profiles.some((p) => p.id === id));
+  const toggle = (id: string) => {
+    const next = known.includes(id) ? known.filter((x) => x !== id) : [...known, id];
+    onChange(next.length === profiles.length ? [] : next);
+  };
+  const chip = (active: boolean) =>
+    `flex items-center gap-1.5 rounded-full border font-bold transition-colors ${compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm'} ${
+      active ? 'bg-indigo-500/30 border-indigo-400/60 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
+    }`;
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={translate('parent.tasks.assigned_to', language)}>
+      <span className="text-xs font-bold text-white/50">{translate('parent.tasks.assigned_to', language)}</span>
+      <button type="button" aria-pressed={known.length === 0} onClick={() => onChange([])} className={chip(known.length === 0)}>
+        👨‍👩‍👧 {translate('parent.tasks.everyone', language)}
+      </button>
+      {profiles.map((p) => (
+        <button key={p.id} type="button" aria-pressed={known.includes(p.id)} onClick={() => toggle(p.id)} className={chip(known.includes(p.id))}>
+          <span>{p.avatar}</span>
+          {p.name}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 /* Sortable Task Row Item Wrapper Component */
 interface SortableTaskRowProps {
   task: TaskDefinition;
+  profiles: ChildProfile[];
+  editAssigned: string[];
+  setEditAssigned: (ids: string[]) => void;
   language: Language;
   editingId: string | null;
   showEditPicker: boolean;
@@ -308,6 +363,9 @@ interface SortableTaskRowProps {
 
 const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   task,
+  profiles,
+  editAssigned,
+  setEditAssigned,
   language,
   editingId,
   showEditPicker,
@@ -361,6 +419,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
     <div
       ref={setNodeRef}
       style={style}
+      data-testid="task-row"
       className={`flex items-center justify-between p-3 bg-white/5 rounded-2xl border transition-all ${
         isEditing ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5 hover:bg-white/10'
       }`}
@@ -427,6 +486,9 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 className="w-12 px-1 py-1 bg-slate-900 border border-indigo-500/30 rounded text-center text-white"
               />
             </div>
+            <div className="basis-full">
+              <AssigneePicker profiles={profiles} value={editAssigned} onChange={setEditAssigned} language={language} compact />
+            </div>
           </div>
         ) : (
           /* Display Mode Row */
@@ -442,6 +504,18 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 # {task.order}
                 {task.dueTime && <span className="ml-2 text-amber-300">⏰ {task.dueTime}</span>}
               </span>
+              {(() => {
+                const assignees = profiles.filter((p) => task.assignedTo?.includes(p.id));
+                return assignees.length > 0 ? (
+                  <span
+                    className="ml-2 text-[11px] font-bold text-pink-200"
+                    data-testid="task-assignees"
+                    title={`${translate('parent.tasks.only_for', language)} ${assignees.map((p) => p.name).join(', ')}`}
+                  >
+                    👤 {assignees.map((p) => `${p.avatar} ${p.name}`).join(', ')}
+                  </span>
+                ) : null;
+              })()}
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@ import { db, getSettings } from './db';
 import { RoutineSession, HistoryEntry, ChildProfile } from '../domain/models';
 import { BackupFile, createBackup } from '../domain/backup';
 import { TrophyId, computeTrophyStats, findNewTrophies } from '../domain/trophies';
-import { initSession, calculateHistory, syncSessionWithDefinitions } from '../domain/routine';
+import { initSession, calculateHistory, syncSessionWithDefinitions, unassignChild } from '../domain/routine';
 import { applyTaskRewards, chooseBadge, spendBadges, starsPerMedal, shopItems } from '../domain/rewards';
 
 export const routineRepository = {
@@ -209,6 +209,19 @@ export const routineRepository = {
   /**
    * Cleans/resets the entire database.
    */
+  /**
+   * Deletes a child. Their personal tasks shared with other children stay for
+   * the others; tasks assigned only to them are deleted.
+   */
+  async deleteProfile(childId: string): Promise<void> {
+    await db.transaction('rw', [db.profiles, db.tasks], async () => {
+      await db.profiles.delete(childId);
+      const { updated, orphans } = unassignChild(await db.tasks.toArray(), childId);
+      if (updated.length) await db.tasks.bulkPut(updated);
+      if (orphans.length) await db.tasks.bulkDelete(orphans);
+    });
+  },
+
   async clearAllData(): Promise<void> {
     await db.sessions.clear();
     await db.history.clear();
