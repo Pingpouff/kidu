@@ -19,7 +19,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     ├── index.css           # Glassmorphism utilities and global styling
     ├── domain/
     │   ├── models.ts       # Type interfaces for data structures
-    │   └── routine.ts      # Pure business rules (stateless)
+    │   ├── routine.ts      # Pure business rules (stateless)
+    │   └── backup.ts       # Backup file format, creation and validation
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
@@ -32,7 +33,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── parent-mode/    # Parent settings dashboard components
     │   └── rewards/        # Fanfare and confetti celebrations
     └── tests/
-        └── domain.test.ts  # Vitest unit test suite
+        ├── domain.test.ts  # Vitest unit test suite
+        └── backup.test.ts  # Backup format tests
 ```
 
 ---
@@ -114,6 +116,30 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        };
      }
      ```
+
+---
+
+## Configuration Backup
+
+`domain/backup.ts` defines a versioned JSON format:
+
+```typescript
+interface BackupFile {
+  app: 'kidu';
+  version: number;      // BACKUP_VERSION, currently 1
+  exportedAt: string;   // ISO 8601
+  data: {
+    settings: ParentSettings; // without `id`
+    tasks: TaskDefinition[];
+    profiles: ChildProfile[];
+    history?: HistoryEntry[]; // only when exported with history
+  };
+}
+```
+
+- `parseBackup(text)` validates every field and drops unknown ones; it throws a `BackupError` with a `code` (`invalid_json`, `not_kidu_backup`, `unsupported_version`, `invalid_*`).
+- `routineRepository.importBackup` replaces settings, tasks and profiles in a single Dexie transaction, clears `sessions`, and replaces `history` only if present in the file.
+- When the format changes, bump `BACKUP_VERSION` and keep `parseBackup` able to read older versions.
 
 ---
 

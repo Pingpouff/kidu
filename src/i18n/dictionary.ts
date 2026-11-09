@@ -73,6 +73,19 @@ export const translations = {
     'parent.settings.reset_all_db': 'Réinitialiser toutes les données',
     'parent.settings.reset_db_confirm': 'Êtes-vous sûr ? Cela supprimera TOUTES les données (tâches, profils, historique).',
 
+    // Parent - Backup
+    'parent.backup.title': 'Sauvegarde de la configuration',
+    'parent.backup.description': 'Exportez les tâches, les profils et les paramètres dans un fichier, pour les restaurer plus tard ou sur un autre appareil.',
+    'parent.backup.include_history': 'Inclure l\'historique des routines',
+    'parent.backup.export': 'Exporter',
+    'parent.backup.import': 'Importer un fichier',
+    'parent.backup.import_confirm': 'L\'import remplacera les tâches, les profils et les paramètres actuels. La routine en cours du jour sera réinitialisée.',
+    'parent.backup.import_confirm_btn': 'Remplacer la configuration',
+    'parent.backup.import_success': 'Configuration importée !',
+    'parent.backup.export_success': 'Fichier exporté !',
+    'parent.backup.error': 'Ce fichier n\'est pas une sauvegarde Kidu valide.',
+    'parent.backup.error_version': 'Cette sauvegarde provient d\'une version plus récente de Kidu.',
+
     // Rewards & Celebrations
     'reward.congratulations': 'Félicitations ! 🌟',
     'reward.routine_finished': 'Tu as fini toute ta routine ! Bravo !',
@@ -151,6 +164,19 @@ export const translations = {
     'parent.settings.weekly_goal': 'Weekly star goal',
     'parent.settings.reset_all_db': 'Reset All Data',
     'parent.settings.reset_db_confirm': 'Are you sure? This will delete ALL data (tasks, profiles, history).',
+
+    // Parent - Backup
+    'parent.backup.title': 'Configuration backup',
+    'parent.backup.description': 'Export tasks, profiles and settings to a file to restore them later or on another device.',
+    'parent.backup.include_history': 'Include routine history',
+    'parent.backup.export': 'Export',
+    'parent.backup.import': 'Import a file',
+    'parent.backup.import_confirm': 'Importing will replace the current tasks, profiles and settings. Today\'s routine in progress will be reset.',
+    'parent.backup.import_confirm_btn': 'Replace configuration',
+    'parent.backup.import_success': 'Configuration imported!',
+    'parent.backup.export_success': 'File exported!',
+    'parent.backup.error': 'This file is not a valid Kidu backup.',
+    'parent.backup.error_version': 'This backup comes from a newer version of Kidu.',
 
     // Rewards & Celebrations
     'reward.congratulations': 'Congratulations! 🌟',
