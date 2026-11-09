@@ -5,6 +5,7 @@ import { ChildProfile } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { childTheme } from '../../ui/theme';
 import { CONFETTI_Z } from '../../ui/layers';
+import { Overlay } from '../../ui/Overlay';
 
 interface CelebrationProps {
   profile: ChildProfile;
@@ -77,9 +78,11 @@ export const Celebration: React.FC<CelebrationProps> = ({
   const bgGradient = childTheme(profile.color).celebration;
 
   return (
-    <div
+    <Overlay
+      layer="overlay"
       onClick={onDismiss}
-      className={`fixed inset-0 w-screen h-[100dvh] z-overlay flex flex-col justify-center items-center bg-gradient-to-b ${bgGradient} cursor-pointer p-6 select-none`}
+      onClose={onDismiss}
+      className={`flex flex-col justify-center items-center bg-gradient-to-b ${bgGradient} cursor-pointer p-6 select-none`}
     >
       {/* Floating sparkles */}
       <div className="absolute top-1/4 left-1/4 text-6xl animate-bounce pointer-events-none">✨</div>
@@ -138,6 +141,6 @@ export const Celebration: React.FC<CelebrationProps> = ({
       <div className="mt-12 text-white/50 text-base md:text-lg font-bold tracking-wide animate-pulse pointer-events-none uppercase">
         {language === 'fr' ? 'Tapote l\'écran pour continuer' : 'Tap screen to continue'}
       </div>
-    </div>
+    </Overlay>
   );
 };

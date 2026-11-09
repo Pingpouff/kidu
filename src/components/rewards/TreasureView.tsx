@@ -15,6 +15,7 @@ import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { CONFETTI_Z } from '../../ui/layers';
+import { Overlay } from '../../ui/Overlay';
 
 interface TreasureViewProps {
   profile: ChildProfile;
@@ -113,8 +114,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (!opened && (e.key === 'Enter' || e.key === ' ')) {
+      if (!opened && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         openChest();
       } else if (e.key === 'ArrowLeft') go(-1);
@@ -141,12 +141,13 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
   );
 
   return (
-    <div
-      role="dialog"
+    <Overlay
+      layer="treasure"
+      onClose={onClose}
       aria-label={`${translate('treasure.title', language)} ${profile.name}`}
       data-testid="treasure-view"
       ref={scroller}
-      className="fixed inset-0 z-treasure treasure-bg overflow-y-auto overflow-x-hidden select-none"
+      className="treasure-bg overflow-y-auto overflow-x-hidden select-none"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Twinkling sparkles in the background */}
@@ -369,6 +370,6 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
           </section>
         </div>
       )}
-    </div>
+    </Overlay>
   );
 };

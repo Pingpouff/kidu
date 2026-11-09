@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { translate, Language } from '../../i18n/dictionary';
-import { Lock, Delete, X, ShieldAlert } from 'lucide-react';
+import { Lock, Delete, ShieldAlert } from 'lucide-react';
+import { Modal } from '../../ui/Overlay';
 
 interface PinModalProps {
   correctPin: string;
@@ -93,16 +94,15 @@ export const PinModal: React.FC<PinModalProps> = ({
   }, []);
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-dialog flex items-center justify-center bg-black/80 backdrop-blur-sm select-none p-4">
-      <div className="w-full max-w-sm glass-panel p-6 border-white/10 flex flex-col items-center gap-6 relative">
-        
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    <Modal
+      layer="dialog"
+      label={title ?? translate('pin.title', language)}
+      onClose={onClose}
+      closeLabel={translate('btn.close', language)}
+      closeOnBackdrop={false}
+      backdropPadding="p-4"
+      panelClassName="max-w-sm p-6 border-white/10 flex flex-col items-center gap-6"
+    >
 
         {/* Modal Header */}
         <div className="flex flex-col items-center gap-2 text-center mt-2">
@@ -200,8 +200,6 @@ export const PinModal: React.FC<PinModalProps> = ({
             <Delete className="w-6 h-6" />
           </button>
         </div>
-
-      </div>
-    </div>
+    </Modal>
   );
 };

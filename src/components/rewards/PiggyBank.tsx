@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { Modal } from '../../ui/Overlay';
 import { ChildProfile, ShopItem } from '../../domain/models';
 import { getBadge } from '../../domain/badges';
 import { unspentBadges } from '../../domain/rewards';
@@ -68,21 +68,15 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-overlay flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-label={translate('piggy.title', language)}
-        data-testid="piggy-bank"
-        className="glass-panel w-full max-w-3xl max-h-[94dvh] overflow-y-auto p-4 sm:p-5 md:p-8 flex flex-col gap-5 relative"
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <Modal
+        label={translate('piggy.title', language)}
+        testId="piggy-bank"
+        onClose={onClose}
+        closeLabel={translate('btn.close', language)}
+        closeSize="lg"
+        panelClassName="max-w-3xl max-h-[94dvh] overflow-y-auto p-4 sm:p-5 md:p-8 flex flex-col gap-5"
       >
-        <button
-          onClick={onClose}
-          aria-label={translate('btn.close', language)}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-        >
-          <X className="w-7 h-7" />
-        </button>
 
         <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 pr-10">
           <span className="text-4xl animate-wiggle inline-block">🐷</span>
@@ -240,23 +234,21 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
             </div>
           </div>
         )}
-      </div>
+      </Modal>
 
       {showTreasure && <TreasureView profile={profile} language={language} onClose={() => setShowTreasure(false)} />}
 
       {buying && (
-        <div onClick={(e) => e.stopPropagation()}>
-          <PinModal
-            correctPin={parentPin}
-            language={language}
-            allowHoldBypass={false}
-            title={`${buying.icon} ${buying.label}`}
-            instruction={translate('piggy.parent_approval', language)}
-            onSuccess={handleApproved}
-            onClose={() => setBuying(null)}
-          />
-        </div>
+        <PinModal
+          correctPin={parentPin}
+          language={language}
+          allowHoldBypass={false}
+          title={`${buying.icon} ${buying.label}`}
+          instruction={translate('piggy.parent_approval', language)}
+          onSuccess={handleApproved}
+          onClose={() => setBuying(null)}
+        />
       )}
-    </div>
+    </>
   );
 };
