@@ -3,6 +3,7 @@ import { HistoryEntry } from '../../domain/models';
 import { translate, Language } from '../../i18n/dictionary';
 import { Calendar, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import { ConfirmIconButton } from '../../ui/controls';
+import { PanelHeader } from '../../ui/Panel';
 
 interface HistoryPanelProps {
   history: HistoryEntry[];
@@ -36,9 +37,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xl font-bold text-slate-100">
-        {translate('parent.history.title', language)}
-      </h3>
+      <PanelHeader title={translate('parent.history.title', language)} />
 
       {history.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-slate-500 gap-2 border border-dashed border-white/5 rounded-2xl">

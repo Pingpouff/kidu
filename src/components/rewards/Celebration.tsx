@@ -6,6 +6,7 @@ import { translate, Language } from '../../i18n/dictionary';
 import { childTheme } from '../../ui/theme';
 import { CONFETTI_Z } from '../../ui/layers';
 import { Overlay } from '../../ui/Overlay';
+import { ChildAvatar } from '../common/ChildAvatar';
 
 interface CelebrationProps {
   profile: ChildProfile;
@@ -94,9 +95,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
       <div className="glass-panel p-8 md:p-12 max-w-xl text-center flex flex-col items-center gap-6 shadow-2xl border-white/20 transform hover:scale-[1.01] transition-transform duration-300 pointer-events-none">
         
         {/* Child Avatar inside gold glow circle */}
-        <div className="w-28 h-28 md:w-32 md:h-32 bg-yellow-400/20 rounded-full flex items-center justify-center text-7xl md:text-8xl shadow-lg shadow-yellow-500/20 ring-4 ring-yellow-400/40 animate-pulse-slow">
-          {profile.avatar}
-        </div>
+        <ChildAvatar avatar={profile.avatar} size="lg" tone="gold" className="animate-pulse-slow" />
 
         {/* Large congratulations heading */}
         <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-yellow-300 drop-shadow animate-bounce">

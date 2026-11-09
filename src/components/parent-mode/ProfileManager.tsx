@@ -5,6 +5,8 @@ import { Plus, Trash2, Edit2, Check, X, Star } from 'lucide-react';
 import { CHILD_COLORS, childTheme } from '../../ui/theme';
 import { ConfirmIconButton, IconButton } from '../../ui/controls';
 import { buttonClass, fieldClass } from '../../ui/styles';
+import { PanelHeader } from '../../ui/Panel';
+import { ChildAvatar } from '../common/ChildAvatar';
 
 interface ProfileManagerProps {
   profiles: ChildProfile[];
@@ -85,9 +87,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xl font-bold text-slate-100">
-        {translate('parent.children.title', language)}
-      </h3>
+      <PanelHeader title={translate('parent.children.title', language)} />
 
       {/* Profile Creation Form */}
       <form onSubmit={handleAdd} className="flex flex-col gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
@@ -202,9 +202,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
               ) : (
                 /* Static view */
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-14 h-14 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-3xl shadow-inner select-none">
-                    {profile.avatar}
-                  </div>
+                  <ChildAvatar avatar={profile.avatar} size="sm" tone="outlined" />
                   <div>
                     <h4 className="font-extrabold text-white text-lg">
                       {profile.name}

@@ -16,6 +16,7 @@ import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { CONFETTI_Z } from '../../ui/layers';
 import { Overlay } from '../../ui/Overlay';
+import { Pill } from '../../ui/Pill';
 
 interface TreasureViewProps {
   profile: ChildProfile;
@@ -133,11 +134,11 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
   };
 
   const stat = (icon: string, value: number, label: string, testId: string) => (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15" data-testid={testId}>
+    <Pill tone="glass" className="gap-2 px-3 py-1.5" data-testid={testId}>
       <span className="text-xl">{icon}</span>
       <span className="text-lg font-black text-white">{value}</span>
       <span className="text-xs font-bold text-white/60 hidden sm:inline">{label}</span>
-    </div>
+    </Pill>
   );
 
   return (

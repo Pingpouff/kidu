@@ -11,6 +11,7 @@ import { BackupError, parseBackup } from '../../domain/backup';
 import { translate, Language } from '../../i18n/dictionary';
 import { Save, AlertOctagon, Download, Upload, HardDrive } from 'lucide-react';
 import { buttonClass, fieldClass } from '../../ui/styles';
+import { PanelHeader } from '../../ui/Panel';
 
 interface SettingsPanelProps {
   settings: ParentSettings;
@@ -149,9 +150,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="text-xl font-bold text-slate-100">
-        {translate('parent.settings.title', language)}
-      </h3>
+      <PanelHeader title={translate('parent.settings.title', language)} />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

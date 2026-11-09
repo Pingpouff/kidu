@@ -6,6 +6,7 @@ import { translate, Language } from '../../i18n/dictionary';
 import { EmojiPicker } from './EmojiPicker';
 import { ConfirmIconButton, IconButton } from '../../ui/controls';
 import { buttonClass, fieldClass } from '../../ui/styles';
+import { PanelHeader } from '../../ui/Panel';
 
 interface ShopManagerProps {
   shop: ShopItem[];
@@ -50,10 +51,7 @@ export const ShopManager: React.FC<ShopManagerProps> = ({ shop, profiles, langua
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h3 className="text-xl font-bold text-slate-100">{translate('parent.shop.title', language)}</h3>
-        <p className="text-xs text-white/50 mt-1 max-w-xl leading-relaxed">{translate('parent.shop.description', language)}</p>
-      </div>
+      <PanelHeader title={translate('parent.shop.title', language)} description={translate('parent.shop.description', language)} />
 
       {/* Piggy banks overview */}
       <div className="flex flex-wrap gap-3">

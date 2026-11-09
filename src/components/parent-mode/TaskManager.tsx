@@ -23,6 +23,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { PanelHeader } from '../../ui/Panel';
 
 interface TaskManagerProps {
   tasks: TaskDefinition[];
@@ -172,11 +173,10 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="flex justify-between items-center gap-3">
-        <h3 className="text-lg sm:text-xl font-bold text-slate-100">
-          {translate('parent.tasks.title', language)}
-        </h3>
-        {!showForm && (
+      <PanelHeader
+        title={translate('parent.tasks.title', language)}
+        className="items-center"
+        action={!showForm && (
           <button
             type="button"
             onClick={() => setShowForm(true)}
@@ -187,7 +187,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             {translate('parent.tasks.add', language)}
           </button>
         )}
-      </div>
+      />
 
       {/* Task Creation Form (folded by default so the list comes first) */}
       {showForm && (
