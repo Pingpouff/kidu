@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
 // "00:00" is always in the past during the day: the tasks are immediately late

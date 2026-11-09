@@ -72,10 +72,10 @@ describe('Routine phases', () => {
     let session = initSession('leo', '2026-11-09', definitions);
     expect(getCurrentPhaseIndex(getRoutinePhases(session, definitions))).toBe(0);
 
-    session = moveTask(session, taskId('snack'), 'done');
+    session = moveTask(session, taskId('snack'), 'done', definitions);
     expect(getCurrentPhaseIndex(getRoutinePhases(session, definitions))).toBe(0);
 
-    session = moveTask(session, taskId('homework'), 'done');
+    session = moveTask(session, taskId('homework'), 'done', definitions);
     const phases = getRoutinePhases(session, definitions);
     expect(phases[0].isCompleted).toBe(true);
     expect(getCurrentPhaseIndex(phases)).toBe(1);
@@ -84,7 +84,7 @@ describe('Routine phases', () => {
   it('stays on the last phase when the whole routine is done', () => {
     let session = initSession('leo', '2026-11-09', definitions);
     for (const t of session.tasks) {
-      session = moveTask(session, t.id, 'done');
+      session = moveTask(session, t.id, 'done', definitions);
     }
     expect(getCurrentPhaseIndex(getRoutinePhases(session, definitions))).toBe(2);
   });

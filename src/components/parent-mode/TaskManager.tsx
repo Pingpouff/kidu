@@ -52,6 +52,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newDueTime, setNewDueTime] = useState('');
   const [newStartTime, setNewStartTime] = useState('');
   const [newAssigned, setNewAssigned] = useState<string[]>([]); // empty = every child
+  const [newDays, setNewDays] = useState<number[]>([]); // empty = every day
   const [showForm, setShowForm] = useState(false);
 
   // Editing state
@@ -63,6 +64,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editDueTime, setEditDueTime] = useState('');
   const [editStartTime, setEditStartTime] = useState('');
   const [editAssigned, setEditAssigned] = useState<string[]>([]);
+  const [editDays, setEditDays] = useState<number[]>([]);
   const [showEditPicker, setShowEditPicker] = useState(false);
 
   // Setup sensors for desktop & mobile touch support
@@ -94,6 +96,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       ...(newStartTime ? { startTime: newStartTime } : {}),
       ...(newDueTime ? { dueTime: newDueTime } : {}),
       ...(newAssigned.length ? { assignedTo: newAssigned } : {}),
+      ...(newDays.length ? { days: newDays } : {}),
     });
 
     setNewIcon('');
@@ -109,6 +112,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditDueTime(task.dueTime ?? '');
     setEditStartTime(task.startTime ?? '');
     setEditAssigned(task.assignedTo ?? []);
+    setEditDays(task.days ?? []);
   };
 
   const cancelEdit = () => {
@@ -124,11 +128,13 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     delete rest.dueTime;
     delete rest.startTime;
     delete rest.assignedTo;
+    delete rest.days;
     await onUpdateTask({
       ...rest,
       ...(editStartTime ? { startTime: editStartTime } : {}),
       ...(editDueTime ? { dueTime: editDueTime } : {}),
       ...(editAssigned.length ? { assignedTo: editAssigned } : {}),
+      ...(editDays.length ? { days: editDays } : {}),
       icon: editIcon.trim(),
       defaultLabel: editLabel.trim(),
       labelKey: '', // Custom label overrides key translation
@@ -250,6 +256,7 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             inputClassName={fieldClass('md', 'px-2')}
           />
           <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
+          <DayPicker value={newDays} onChange={setNewDays} language={language} />
         </div>
       </form>
       )}
@@ -279,6 +286,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                       profiles={profiles}
                       language={language}
                       editAssigned={editAssigned}
+                      editDays={editDays}
+                      setEditDays={setEditDays}
                       setEditAssigned={setEditAssigned}
                       editingId={editingId}
                       showEditPicker={showEditPicker}
@@ -417,11 +426,63 @@ export const AssigneePicker: React.FC<AssigneePickerProps> = ({ profiles, value,
   );
 };
 
+/** Days of the week, Monday first (0 = Sunday … 6 = Saturday) */
+const WEEK = [1, 2, 3, 4, 5, 6, 0];
+const SCHOOL_DAYS = [1, 2, 3, 4, 5];
+
+/** Short localized day name ("lun.", "Mon") */
+const dayName = (day: number, language: Language) =>
+  new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' }).format(new Date(2023, 0, 1 + day)); // 2023-01-01 is a Sunday
+
+const sameDays = (a: number[], b: number[]) => a.length === b.length && b.every((d) => a.includes(d));
+
+/** "Mon → Fri", or the list of days in week order */
+const daysLabel = (days: number[], language: Language) =>
+  sameDays(days, SCHOOL_DAYS)
+    ? translate('parent.tasks.school_days', language)
+    : WEEK.filter((d) => days.includes(d)).map((d) => dayName(d, language)).join(' ');
+
+/**
+ * Days the task is planned. Empty = every day; choosing all seven days comes back to "every day".
+ */
+interface DayPickerProps {
+  value: number[];
+  onChange: (days: number[]) => void;
+  language: Language;
+  compact?: boolean;
+}
+
+export const DayPicker: React.FC<DayPickerProps> = ({ value, onChange, language, compact = false }) => {
+  const toggle = (day: number) => {
+    const next = value.includes(day) ? value.filter((d) => d !== day) : [...value, day];
+    onChange(next.length === 7 ? [] : WEEK.filter((d) => next.includes(d)));
+  };
+  const chip = (active: boolean) => chipClass(active, compact);
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={translate('parent.tasks.days', language)} data-testid="day-picker">
+      <span className="text-xs font-bold text-white/50">{translate('parent.tasks.days', language)}</span>
+      <button type="button" aria-pressed={value.length === 0} onClick={() => onChange([])} className={chip(value.length === 0)}>
+        {translate('parent.tasks.every_day', language)}
+      </button>
+      <button type="button" aria-pressed={sameDays(value, SCHOOL_DAYS)} onClick={() => onChange(SCHOOL_DAYS)} className={chip(sameDays(value, SCHOOL_DAYS))}>
+        {translate('parent.tasks.school_days', language)}
+      </button>
+      {WEEK.map((d) => (
+        <button key={d} type="button" aria-pressed={value.includes(d)} onClick={() => toggle(d)} className={chip(value.includes(d))}>
+          {dayName(d, language)}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 /* Sortable Task Row Item Wrapper Component */
 interface SortableTaskRowProps {
   task: TaskDefinition;
   profiles: ChildProfile[];
   editAssigned: string[];
+  editDays: number[];
+  setEditDays: (days: number[]) => void;
   setEditAssigned: (ids: string[]) => void;
   language: Language;
   editingId: string | null;
@@ -449,6 +510,8 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   task,
   profiles,
   editAssigned,
+  editDays,
+  setEditDays,
   setEditAssigned,
   language,
   editingId,
@@ -575,6 +638,7 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 inputClassName={fieldClass('sm', 'px-2', { editing: true })}
               />
               <AssigneePicker profiles={profiles} value={editAssigned} onChange={setEditAssigned} language={language} compact />
+              <DayPicker value={editDays} onChange={setEditDays} language={language} compact />
             </div>
           </div>
         ) : (
@@ -590,6 +654,11 @@ const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
                 {task.startTime && <span className="mr-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
                 {task.dueTime && <span className="mr-2 text-amber-300">⏰ {task.dueTime}</span>}
+                {task.days?.length ? (
+                  <span className="mr-2 text-emerald-300" data-testid="task-days">
+                    📅 {daysLabel(task.days, language)}
+                  </span>
+                ) : null}
               </span>
               {(() => {
                 const assignees = profiles.filter((p) => task.assignedTo?.includes(p.id));

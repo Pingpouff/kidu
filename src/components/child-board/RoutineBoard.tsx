@@ -10,7 +10,8 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
-import { getRoutinePhases, getCurrentPhaseIndex } from '../../domain/routine';
+import { getRoutinePhases, getCurrentPhaseIndex, skipPhase, unskipPhase, withCompletion } from '../../domain/routine';
+import { PinModal } from '../parent-mode/PinModal';
 import { translate, translateDynamic, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
@@ -129,6 +130,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   }, []);
   const [showPiggy, setShowPiggy] = useState(false);
   const [showCardGiver, setShowCardGiver] = useState(false);
+  // A parent skips the current step, or resumes a skipped one (PIN)
+  const [phaseAction, setPhaseAction] = useState<{ kind: 'skip' | 'resume'; category: TaskCategory } | null>(null);
   const [cardReveal, setCardReveal] = useState<{ outcome: CardOutcome; lostProgress: number; reason?: string } | null>(null);
   const tonightCards = tonightCardState(profile, session.date);
   // Every time the board opens with a card tonight, the card is shown again first
@@ -243,18 +246,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     triggerSessionUpdate(updatedTasks);
   };
 
-  // Utility to dispatch session updates and verify completeness
-  const triggerSessionUpdate = (updatedTasks: RoutineTask[]) => {
-    const wasCompleted = session.isCompleted;
-    const isCompleted = updatedTasks.every((t) => t.status === 'done');
-    const completedAt = isCompleted ? (session.completedAt || Date.now()) : undefined;
+  const applyPhaseAction = (action: { kind: 'skip' | 'resume'; category: TaskCategory }) => {
+    const changed =
+      action.kind === 'skip'
+        ? skipPhase(session, action.category, tasksDefinitions)
+        : unskipPhase(session, action.category, tasksDefinitions);
+    triggerSessionUpdate(changed.tasks, changed);
+  };
 
-    const updatedSession = {
-      ...session,
-      tasks: updatedTasks,
-      isCompleted,
-      completedAt,
-    };
+  // Utility to dispatch session updates and verify completeness
+  const triggerSessionUpdate = (updatedTasks: RoutineTask[], base: RoutineSession = session) => {
+    const wasCompleted = session.isCompleted;
+    const updatedSession = withCompletion({ ...base, tasks: updatedTasks }, tasksDefinitions);
+    const isCompleted = updatedSession.isCompleted;
 
     onUpdateSession(updatedSession);
 
@@ -409,6 +413,22 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           />
         )}
 
+        {phaseAction && (
+          <PinModal
+            correctPin={parentPin}
+            language={language}
+            title={translate(phaseAction.kind === 'skip' ? 'board.skip_title' : 'board.resume_title', language, {
+              phase: translate(`category.${phaseAction.category}`, language),
+            })}
+            instruction={translate('board.skip_instruction', language)}
+            onClose={() => setPhaseAction(null)}
+            onSuccess={() => {
+              applyPhaseAction(phaseAction);
+              setPhaseAction(null);
+            }}
+          />
+        )}
+
         {flyingStars.map((star) => (
           <FlyingStar key={star.key} from={star.from} to={star.to} onDone={() => removeFlyingStar(star.key)} />
         ))}
@@ -550,8 +570,20 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 {phases.map((p, i) => (
                   <span
                     key={p.category}
+                    data-testid="phase-dot"
+                    data-state={p.isSkipped ? 'skipped' : p.isCompleted ? 'done' : i === currentPhaseIndex ? 'current' : 'todo'}
+                    aria-label={`${translate(`category.${p.category}`, language)} : ${translate(
+                      p.isSkipped ? 'board.skipped' : p.isCompleted ? 'board.step_done' : i === currentPhaseIndex ? 'board.step_current' : 'board.step_todo',
+                      language
+                    )}`}
                     className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      p.isCompleted ? 'bg-emerald-400' : i === currentPhaseIndex ? 'bg-yellow-300' : 'bg-white/20'
+                      p.isSkipped
+                        ? 'bg-transparent border border-white/50'
+                        : p.isCompleted
+                          ? 'bg-emerald-400'
+                          : i === currentPhaseIndex
+                            ? 'bg-yellow-300'
+                            : 'bg-white/20'
                     }`}
                   />
                 ))}
@@ -561,6 +593,32 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                   ? `${translate('board.next', language)}${colon}${translate(`category.${nextPhase.category}`, language)} ${CATEGORY_ICONS[nextPhase.category]}`
                   : translate('board.last_step', language)}
               </span>
+            </div>
+            {/* Parent controls: skip the current step, resume a skipped one */}
+            <div className="flex flex-wrap justify-center gap-2 text-[11px] sm:text-xs font-bold">
+              {!currentPhase.isCompleted && !currentPhase.isSkipped && (
+                <button
+                  type="button"
+                  data-testid="skip-phase"
+                  onClick={() => setPhaseAction({ kind: 'skip', category: currentPhase.category })}
+                  className="px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/15"
+                >
+                  ⏭ {translate('board.skip_phase', language)}
+                </button>
+              )}
+              {phases
+                .filter((p) => p.isSkipped)
+                .map((p) => (
+                  <button
+                    key={p.category}
+                    type="button"
+                    data-testid="resume-phase"
+                    onClick={() => setPhaseAction({ kind: 'resume', category: p.category })}
+                    className="px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/15"
+                  >
+                    ↺ {translate('board.resume_phase', language, { phase: translate(`category.${p.category}`, language) })}
+                  </button>
+                ))}
             </div>
           </div>
         )}

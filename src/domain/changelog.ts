@@ -16,6 +16,26 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.3.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Bouton « Passer l\'étape » (avec le code parent) : un matin manqué ne bloque plus la soirée. Une étape passée peut être reprise.',
+        'Une journée compte pour la série dès que les autres étapes sont terminées, même si une étape a été passée.',
+        'Les tâches d\'une étape passée ne déclenchent plus de rappel de retard.',
+        'Jours par tâche : une tâche peut être limitée à certains jours (ex. cartable et devoirs du lundi au vendredi).',
+        'L\'historique montre aussi les journées partielles (ex. 9/12 tâches).',
+      ],
+      en: [
+        '"Skip this step" button (with the parent PIN): a missed morning no longer blocks the evening. A skipped step can be resumed.',
+        'A day counts for the streak once the other steps are done, even if a step was skipped.',
+        'Tasks of a skipped step no longer trigger late reminders.',
+        'Days per task: a task can be limited to some days (e.g. school bag and homework Monday to Friday).',
+        'The history also shows partial days (e.g. 9/12 tasks).',
+      ],
+    },
+  },
+  {
     version: '1.2.0',
     date: '2026-11-10',
     changes: {
