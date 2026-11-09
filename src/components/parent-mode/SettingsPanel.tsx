@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings } from '../../domain/models';
 import { starsPerMedal } from '../../domain/rewards';
+import { isValidPin } from '../../domain/parentGate';
 import {
   NotificationStatus,
   notificationStatus,
@@ -8,7 +9,7 @@ import {
   showSystemNotification,
 } from '../../services/notifications';
 import { BackupError, parseBackup } from '../../domain/backup';
-import { translate, Language } from '../../i18n/dictionary';
+import { translate, Language, TranslationKey } from '../../i18n/dictionary';
 import { Save, AlertOctagon, Download, Upload, HardDrive, Smartphone, RefreshCw, History } from 'lucide-react';
 import type { AppUpdate } from '../../services/appUpdate';
 import { APP_VERSION, CHANGELOG } from '../../domain/changelog';
@@ -29,8 +30,8 @@ interface SettingsPanelProps {
 type BackupStatus =
   | { kind: 'idle' }
   | { kind: 'confirm'; fileName: string; content: string }
-  | { kind: 'success'; messageKey: string }
-  | { kind: 'error'; messageKey: string };
+  | { kind: 'success'; messageKey: TranslationKey }
+  | { kind: 'error'; messageKey: TranslationKey };
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   settings,
@@ -43,6 +44,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [pin, setPin] = useState(settings.parentPin);
+  const [pinInvalid, setPinInvalid] = useState(false);
   const [lang, setLang] = useState<Language>(settings.language);
   const [perMedal, setPerMedal] = useState<number>(starsPerMedal(settings));
   const [feedback, setFeedback] = useState<FeedbackSettings>({ ...DEFAULT_FEEDBACK, ...settings.feedback });
@@ -80,7 +82,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin.length !== 4 || isNaN(Number(pin))) return;
+    if (!isValidPin(pin)) {
+      setPinInvalid(true);
+      return;
+    }
+    setPinInvalid(false);
 
     // Keep the fields edited elsewhere (shop, …)
     await onSaveSettings({
@@ -167,14 +173,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {translate('parent.settings.pin_label', language)}
             </label>
             <input
-              type="text"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
               maxLength={4}
               pattern="\d{4}"
               required
+              aria-label={translate('parent.settings.pin_label', language)}
+              aria-invalid={pinInvalid}
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              onChange={(e) => {
+                setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                setPinInvalid(false);
+              }}
               className={fieldClass('md', 'font-mono tracking-widest')}
             />
+            {pinInvalid && <p className="text-xs text-rose-400">{translate('parent.settings.pin_invalid', language)}</p>}
           </div>
 
           {/* Language selection dropdown */}
@@ -361,7 +375,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </button>
           {savedSuccess && (
             <span className="text-xs font-bold text-emerald-400 animate-pulse">
-              ✓ {language === 'fr' ? 'Paramètres sauvegardés !' : 'Settings saved!'}
+              ✓ {translate('parent.settings.saved', language)}
             </span>
           )}
         </div>
@@ -506,7 +520,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       <div className="bg-rose-950/15 border border-rose-500/20 p-5 rounded-2xl flex flex-col gap-3">
         <div className="flex items-center gap-3 text-rose-400 font-extrabold text-sm uppercase tracking-wider">
           <AlertOctagon className="w-5 h-5" />
-          <span>Zone de danger</span>
+          <span>{translate('parent.danger.title', language)}</span>
         </div>
         <p className="text-xs text-white/50 leading-relaxed max-w-xl">
           {translate('parent.settings.reset_db_confirm', language)}
@@ -522,7 +536,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             }`}
           >
             {showResetConfirm
-              ? (language === 'fr' ? 'Confirmer la suppression' : 'Confirm suppression')
+              ? translate('parent.danger.confirm', language)
               : translate('parent.settings.reset_all_db', language)}
           </button>
           

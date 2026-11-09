@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { RoutineTask, TaskDefinition } from '../../domain/models';
-import { translate, Language } from '../../i18n/dictionary';
+import { taskLabel, Language } from '../../i18n/dictionary';
 
 interface TaskCardProps {
   task: RoutineTask;
@@ -143,7 +143,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         {/* Small helper text label */}
         {task.status !== 'done' && (
           <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
-            {definition?.labelKey ? translate(definition.labelKey, language) : (definition?.defaultLabel || '')}
+            {taskLabel(definition, language)}
           </span>
         )}
       </div>

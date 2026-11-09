@@ -28,7 +28,8 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
     │   ├── backup.ts       # Backup file format, creation and validation
-    │   └── changelog.ts    # App version, bilingual changelog, "what's new" selection
+    │   ├── changelog.ts    # App version, bilingual changelog, "what's new" selection
+    │   └── parentGate.ts   # PIN lock-out, grown-up question, PIN format
     ├── persistence/
     │   ├── db.ts           # IndexedDB configuration and Dexie schema
     │   └── routineRepository.ts # Persistence and domain coordinator
@@ -179,7 +180,7 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **Stars**: one per task the first time it reaches `done` on a given day. `RoutineTask.rewarded` marks it; the flag survives undo/redo, session resets and task-list syncs, and the repository merges it from the stored session to resist stale UI copies.
 - **Medals**: every `settings.rewards.starsPerMedal` stars (default 3). `profile.starProgress` holds the remainder, `profile.medalCount` the total.
 - **Badges**: each medal queues an offer of 3 badges from distinct universes (`profile.badgeOffers`, drawn by `drawBadgeOffer`, preferring badges not owned yet). The child picks one (`chooseBadge`) → `profile.badges`.
-- **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the hold bypass). Spent badges stay in the album with `spentAt`/`spentOn`.
+- **Piggy bank & shop**: unspent badges can be exchanged for `settings.shop` items (`spendBadges`, oldest first, PIN-approved without the "forgot the PIN" question). Spent badges stay in the album with `spentAt`/`spentOn`.
 - **Trophies**: milestone achievements (`domain/trophies.ts`) computed from all the child's sessions, stored in `profile.trophies`.
 - **My treasure** (`components/rewards/TreasureView.tsx`, opened from the piggy bank): a chest to open, then a spotlight carousel of every trophy and badge (`treasureItems`: trophies first, one entry per badge kind with copies counted), totals, a rank (`treasureRank`) and per-universe collections (`collectionProgress`). Pure helpers live in `domain/treasure.ts`; extra sounds are `playChestOpenSound`, `playTreasureTapSound`, `playTreasureSwipeSound`.
 - `App.tsx` queues full-screen reveals (medals, then trophies) and shows the badge choice while the active profile has pending offers.
@@ -188,7 +189,7 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 
 Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: BehaviorCard[]`, whole history, kept in backups).
 
-- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the hold bypass).
+- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the "forgot the PIN" question).
 - **Yellow**: a warning, no effect. **Red**: `starProgress` goes back to 0 (stored in `lostProgress`); stars, medals, badges and trophies are never taken.
 - A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
 - `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
@@ -226,6 +227,17 @@ Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-scre
 
 - **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
 - **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
+
+## Parent Mode Access
+
+- `PinModal` checks the PIN client-side. Rules live in `domain/parentGate.ts`: 3 wrong attempts (`MAX_PIN_ATTEMPTS`) lock every PIN pad for 30 s (`PIN_LOCK_MS`); the guard is module-level in `PinModal.tsx`, so closing and reopening the pad doesn't reset it.
+- `allowForgotPin` (only `App.tsx`, to enter Parent Mode) shows "Code oublié ?": a grown-up multiplication (`makeChallenge`) replaces the PIN. Shop purchases and cards always require the PIN. There is no long-press bypass anymore.
+- Parent Mode shows a warning while the PIN is still the default `1234`; the settings field is a password field validated with `isValidPin`.
+
+## Translations
+
+- `translate(key, lang, vars?)` only accepts keys of the French dictionary (`TranslationKey`), so a typo doesn't compile; template keys such as `` `category.${c}` `` type-check when every value exists. Use `translateDynamic` for keys only known at runtime (`cheer.${n}`, stored `labelKey`s).
+- `{placeholders}` are filled from `vars`: `translate('badge.choose_spoken', lang, { name })`. Don't build sentences with `language === 'fr' ? … : …` in components.
 
 ## Versions, Changelog and Updates
 
