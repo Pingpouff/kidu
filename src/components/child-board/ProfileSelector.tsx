@@ -8,6 +8,8 @@ interface ProfileSelectorProps {
   onSelect: (profile: ChildProfile) => void;
   onEnterParentMode: () => void;
   language: Language;
+  /** Number of late tasks per child id */
+  lateCounts?: Record<string, number>;
 }
 
 export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
@@ -15,6 +17,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   onSelect,
   onEnterParentMode,
   language,
+  lateCounts = {},
 }) => {
   return (
     <div className="min-h-screen flex flex-col justify-between p-8 theme-indigo relative overflow-hidden select-none">
@@ -58,8 +61,18 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
               <button
                 key={profile.id}
                 onClick={() => onSelect(profile)}
-                className={`w-48 h-60 md:w-56 md:h-64 rounded-3xl border bg-gradient-to-b ${themeClasses} backdrop-blur-md shadow-xl flex flex-col justify-center items-center p-6 gap-4 transform active:scale-95 transition-all duration-300 group`}
+                className={`relative w-48 h-60 md:w-56 md:h-64 rounded-3xl border bg-gradient-to-b ${themeClasses} backdrop-blur-md shadow-xl flex flex-col justify-center items-center p-6 gap-4 transform active:scale-95 transition-all duration-300 group`}
               >
+                {/* Late tasks badge */}
+                {(lateCounts[profile.id] ?? 0) > 0 && (
+                  <span
+                    data-testid="profile-late"
+                    className="absolute -top-3 -right-3 flex items-center gap-1 bg-rose-500 text-white font-black text-sm px-3 py-1.5 rounded-full shadow-lg animate-wiggle"
+                  >
+                    ⏰ {lateCounts[profile.id]}
+                  </span>
+                )}
+
                 {/* Large Avatar container */}
                 <div className="w-24 h-24 md:w-28 md:h-28 bg-white/10 rounded-full flex items-center justify-center text-6xl md:text-7xl shadow-inner group-hover:scale-110 transition-transform duration-300">
                   {profile.avatar}

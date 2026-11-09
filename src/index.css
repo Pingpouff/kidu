@@ -66,6 +66,169 @@
   background: linear-gradient(135deg, #451a03 0%, #0f172a 60%, #020617 100%);
 }
 
+/* Bedtime phase: darker night sky with softly twinkling stars */
+.bedtime-sky {
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 28% 62%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 47% 12%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1px 1px at 66% 38%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(2px 2px at 82% 22%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 91% 70%, rgba(255, 255, 255, 0.5) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 6% 84%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.55) 0%, rgba(2, 6, 23, 0.25) 100%);
+  animation: twinkle 6s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Task completion: card pop, flying particles and floating cheer */
+@keyframes task-pop {
+  0% { transform: scale(0.85) rotate(0deg); }
+  40% { transform: scale(1.15) rotate(-4deg); }
+  70% { transform: scale(0.97) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.animate-task-pop {
+  animation: task-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes particle-burst {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2) rotate(var(--rot)); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  animation: particle-burst 0.9s ease-out forwards;
+}
+
+@keyframes cheer-float {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  20% { transform: translate(-50%, -10px) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -70px) scale(1); opacity: 0; }
+}
+.cheer {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: cheer-float 1.2s ease-out forwards;
+}
+
+/* Medal unlock */
+@keyframes medal-reveal {
+  0% { transform: scale(0) rotate(-200deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(15deg); opacity: 1; }
+  80% { transform: scale(0.95) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.animate-medal-reveal {
+  animation: medal-reveal 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes medal-rays {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.medal-rays {
+  background: repeating-conic-gradient(rgba(250, 204, 21, 0.18) 0deg 12deg, transparent 12deg 30deg);
+  border-radius: 9999px;
+  animation: medal-rays 12s linear infinite;
+}
+
+@keyframes fade-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out 0.5s both;
+}
+
+/* Badge choice: cards flip in one after the other */
+@keyframes card-flip-in {
+  0% { transform: perspective(600px) rotateY(90deg) scale(0.6); opacity: 0; }
+  70% { transform: perspective(600px) rotateY(-10deg) scale(1.05); opacity: 1; }
+  100% { transform: perspective(600px) rotateY(0deg) scale(1); opacity: 1; }
+}
+.animate-card-flip-in {
+  animation: card-flip-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out 2;
+}
+
+@keyframes chosen-zoom {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25) rotate(-6deg); }
+  100% { transform: scale(0.2) translateY(-120vh) rotate(20deg); opacity: 0; }
+}
+.animate-chosen {
+  animation: chosen-zoom 0.9s ease-in forwards;
+}
+
+@keyframes counter-bump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-counter-bump {
+  animation: counter-bump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Reduced motion: device setting OR parent's "reduced animations" setting */
+@media (prefers-reduced-motion: reduce) {
+  .animate-task-pop,
+  .particle,
+  .cheer,
+  .animate-medal-reveal,
+  .medal-rays,
+  .animate-fade-up,
+  .animate-card-flip-in,
+  .animate-wiggle,
+  .animate-chosen,
+  .animate-counter-bump {
+    animation: none;
+  }
+  .particle,
+  .cheer,
+  .medal-rays {
+    display: none;
+  }
+}
+
+.reduce-motion .animate-task-pop,
+.reduce-motion .animate-medal-reveal,
+.reduce-motion .animate-fade-up,
+.reduce-motion .animate-card-flip-in,
+.reduce-motion .animate-wiggle,
+.reduce-motion .animate-chosen,
+.reduce-motion .animate-counter-bump,
+.reduce-motion .animate-bounce,
+.reduce-motion .animate-float,
+.reduce-motion .animate-pulse-slow,
+.reduce-motion .animate-pop-shrink,
+.reduce-motion .bedtime-sky {
+  animation: none !important;
+}
+.reduce-motion .particle,
+.reduce-motion .cheer,
+.reduce-motion .medal-rays {
+  display: none;
+}
+
 /* Micro-animations */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -9,12 +9,17 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition } from '../../domain/models';
+import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory } from '../../domain/models';
+import { getRoutinePhases, getCurrentPhaseIndex } from '../../domain/routine';
 import { translate, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
 import { reminderService } from '../../services/ReminderService';
+import { PiggyBank } from '../rewards/PiggyBank';
+import { ShopItem } from '../../domain/models';
+import { unspentBadges } from '../../domain/rewards';
+import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
 
 interface RoutineBoardProps {
@@ -27,7 +32,47 @@ interface RoutineBoardProps {
   onEnterParentMode: () => void;
   onRoutineComplete: () => void;
   onResetSession: () => void;
+  starsPerMedal: number;
+  shop: ShopItem[];
+  parentPin: string;
+  onBuyShopItem: (itemId: string) => Promise<void>;
+  /** Definition ids of this child's tasks that are past their due time */
+  lateDefinitionIds?: Set<string>;
 }
+
+/* A star flying from the "done" column to the star meter */
+const FlyingStar: React.FC<{ from: DOMRect; to: DOMRect; onDone: () => void }> = ({ from, to, onDone }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.animate !== 'function') {
+      onDone();
+      return;
+    }
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 3);
+    const animation = el.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+        { transform: 'translate(-50%, -50%) scale(1.8)', opacity: 1, offset: 0.2 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.8) rotate(360deg)`, opacity: 1 },
+      ],
+      { duration: 900, easing: 'cubic-bezier(0.5, 0, 0.3, 1)' }
+    );
+    animation.onfinish = onDone;
+    return () => animation.cancel();
+  }, [from, to, onDone]);
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className="fixed z-[70] text-4xl pointer-events-none drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]"
+      style={{ left: from.left + from.width / 2, top: from.top + from.height / 3 }}
+    >
+      ⭐
+    </span>
+  );
+};
 
 export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   profile,
@@ -39,6 +84,11 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onEnterParentMode,
   onRoutineComplete,
   onResetSession,
+  starsPerMedal,
+  shop,
+  parentPin,
+  onBuyShopItem,
+  lateDefinitionIds,
 }) => {
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -71,6 +121,28 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
+  // Burst + cheer on the card that was just completed
+  const [celebration, setCelebration] = useState<{ taskId: string; cheer: string; key: number } | null>(null);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+  }, []);
+  const [showPiggy, setShowPiggy] = useState(false);
+  const [flyingStars, setFlyingStars] = useState<{ key: number; from: DOMRect; to: DOMRect }[]>([]);
+  const [nearMedalHint, setNearMedalHint] = useState(false);
+  const starMeterRef = useRef<HTMLDivElement>(null);
+  const removeFlyingStar = React.useCallback((key: number) => {
+    setFlyingStars((stars) => stars.filter((s) => s.key !== key));
+    reminderService.playStarSound();
+  }, []);
+
+  // Short banner shown when a phase is completed
+  const [phaseBanner, setPhaseBanner] = useState<TaskCategory | null>(null);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+  }, []);
+
   // Background style based on child color theme
   const backgrounds = {
     indigo: 'theme-indigo',
@@ -82,10 +154,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   const bgTheme = backgrounds[profile.color] || backgrounds.indigo;
 
+  // Split the routine into phases; only the current phase is shown on the board
+  const phases = getRoutinePhases(session, tasksDefinitions);
+  const currentPhaseIndex = getCurrentPhaseIndex(phases);
+  const currentPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex] : null;
+  const nextPhase = currentPhaseIndex >= 0 ? phases[currentPhaseIndex + 1] : undefined;
+  const visibleTasks = currentPhase ? currentPhase.tasks : session.tasks;
+  const isBedtime = currentPhase?.category === 'bedtime';
+  const colon = language === 'fr' ? ' : ' : ': ';
+
   // Filter tasks into their respective columns
-  const todoTasks = session.tasks.filter((t) => t.status === 'todo');
-  const doingTasks = session.tasks.filter((t) => t.status === 'doing');
-  const doneTasks = session.tasks.filter((t) => t.status === 'done');
+  const todoTasks = visibleTasks.filter((t) => t.status === 'todo');
+  const doingTasks = visibleTasks.filter((t) => t.status === 'doing');
+  const doneTasks = visibleTasks.filter((t) => t.status === 'done');
 
   // Find task definition by definition ID
   const getDefinition = (defId: string) => {
@@ -175,6 +256,68 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
     onUpdateSession(updatedSession);
 
+    // Celebrate the task that was just moved to "done"
+    const newlyDone = updatedTasks.find(
+      (t) => t.status === 'done' && session.tasks.find((old) => old.id === t.id)?.status !== 'done'
+    );
+    if (newlyDone) {
+      const cheer = translate(`cheer.${1 + Math.floor(Math.random() * 6)}`, language);
+      setCelebration({ taskId: newlyDone.id, cheer, key: Date.now() });
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+      celebrationTimer.current = setTimeout(() => setCelebration(null), 1300);
+      fireConfetti({
+        particleCount: 30,
+        spread: 70,
+        startVelocity: 28,
+        ticks: 60,
+        origin: { x: 0.83, y: 0.4 },
+        zIndex: 60,
+      });
+
+      // A star is earned only the first time the task is done today
+      if (!newlyDone.rewarded) {
+        const from = document.querySelector('[data-column="done"]')?.getBoundingClientRect();
+        const to = starMeterRef.current?.getBoundingClientRect();
+        if (from && to && richMotion()) {
+          setFlyingStars((stars) => [...stars, { key: Date.now(), from, to }]);
+        } else {
+          reminderService.playStarSound();
+        }
+
+        const progress = (profile.starProgress ?? 0) + 1;
+        const oneLeft = starsPerMedal > 1 && progress === starsPerMedal - 1;
+        setNearMedalHint(oneLeft);
+        if (oneLeft) {
+          reminderService.triggerVoiceReminder(
+            language === 'fr' ? 'Plus qu\'une étoile pour gagner une médaille !' : 'Just one more star to win a medal!',
+            language === 'fr' ? 'fr-FR' : 'en-US'
+          );
+        } else if (progress < starsPerMedal && !isCompleted) {
+          reminderService.encourage(profile.name, language);
+        }
+      }
+    }
+
+    // A phase was just completed but the routine goes on: celebrate and announce the next phase
+    const updatedPhases = getRoutinePhases(updatedSession, tasksDefinitions);
+    const justCompletedPhase = !isCompleted
+      ? phases.find((p, i) => !p.isCompleted && updatedPhases[i]?.category === p.category && updatedPhases[i].isCompleted)
+      : undefined;
+    if (justCompletedPhase) {
+      const upcoming = updatedPhases[getCurrentPhaseIndex(updatedPhases)];
+      reminderService.playPhaseCompleteSound();
+      const nextLabel = translate(`category.${upcoming.category}`, language);
+      reminderService.triggerVoiceReminder(
+        language === 'fr'
+          ? `Bravo ${profile.name} ! Maintenant : ${nextLabel} !`
+          : `Well done ${profile.name}! Now: ${nextLabel}!`,
+        language === 'fr' ? 'fr-FR' : 'en-US'
+      );
+      setPhaseBanner(justCompletedPhase.category);
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+      bannerTimer.current = setTimeout(() => setPhaseBanner(null), 2500);
+    }
+
     // If session transitions from incomplete to complete, celebrate!
     if (isCompleted && !wasCompleted) {
       reminderService.playRoutineSuccessSound();
@@ -190,9 +333,9 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
     }
   };
 
-  // Calculate routine progress percentage
+  // Calculate overall routine progress percentage (all phases)
   const totalCount = session.tasks.length;
-  const doneCount = doneTasks.length;
+  const doneCount = session.tasks.filter((t) => t.status === 'done').length;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   // Active draggable element for the overlay
@@ -204,7 +347,40 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={`w-full h-screen flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
-        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-4 gap-2">
+        {/* Night sky overlay during the bedtime phase */}
+        <div
+          aria-hidden="true"
+          className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 bedtime-sky ${isBedtime ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {showPiggy && (
+          <PiggyBank
+            profile={profile}
+            shop={shop}
+            parentPin={parentPin}
+            language={language}
+            onBuy={onBuyShopItem}
+            onClose={() => setShowPiggy(false)}
+          />
+        )}
+
+        {flyingStars.map((star) => (
+          <FlyingStar key={star.key} from={star.from} to={star.to} onDone={() => removeFlyingStar(star.key)} />
+        ))}
+
+        {/* Phase completed banner */}
+        {phaseBanner && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" role="status" data-testid="phase-banner">
+            <div className="glass-panel px-8 py-6 flex flex-col items-center gap-2 animate-bounce border-yellow-400/40">
+              <span className="text-6xl">{CATEGORY_ICONS[phaseBanner]}</span>
+              <span className="text-2xl font-black text-yellow-300">
+                {translate('board.phase_done', language)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-4 gap-2 relative">
         
         {/* Top Header Bar */}
         <header className="flex items-center justify-between z-10">
@@ -218,10 +394,45 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </span>
           </button>
 
-          {/* Sparkly Star count display */}
-          <div className="flex items-center gap-2 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-5 py-2 rounded-full font-black tracking-wider text-base md:text-lg animate-float">
-            <span>⭐</span>
-            <span>{profile.stars}</span>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Star meter: stars collected toward the next medal */}
+              <div
+                ref={starMeterRef}
+                data-testid="star-meter"
+                aria-label={translate('stars.meter', language)}
+                className="flex items-center gap-1.5 bg-yellow-400/20 text-yellow-300 border border-yellow-500/30 px-4 py-2 rounded-full font-black text-base md:text-lg"
+              >
+                {Array.from({ length: starsPerMedal }, (_, i) => (
+                  <span
+                    key={i}
+                    className={`transition-all duration-300 ${i < (profile.starProgress ?? 0) ? '' : 'grayscale opacity-30'}`}
+                  >
+                    ⭐
+                  </span>
+                ))}
+                <span className="text-white/50 mx-0.5">→</span>
+                <span>🏅</span>
+                <span key={profile.medalCount ?? 0} className="animate-counter-bump inline-block" data-testid="medal-count">
+                  {profile.medalCount ?? 0}
+                </span>
+              </div>
+
+              {/* Piggy bank */}
+              <button
+                onClick={() => setShowPiggy(true)}
+                aria-label={translate('piggy.title', language)}
+                className="flex items-center gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-4 py-2 rounded-full font-black text-base md:text-lg transition-all active:scale-95"
+              >
+                <span key={unspentBadges(profile).length} className="animate-wiggle inline-block">🐷</span>
+                <span data-testid="piggy-header-count">{unspentBadges(profile).length}</span>
+              </button>
+            </div>
+            {nearMedalHint && (
+              <span className="text-xs md:text-sm font-bold text-yellow-200 animate-fade-up [animation-delay:0s]">
+                {translate('stars.one_left', language)}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -250,6 +461,36 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           </div>
         </header>
 
+        {/* Current phase indicator */}
+        {currentPhase && phases.length > 1 && (
+          <div className="flex flex-col items-center gap-1.5 z-10" data-testid="phase-indicator">
+            <div className="flex items-center gap-3 text-white font-black text-lg md:text-2xl">
+              <span className="text-3xl md:text-4xl">{CATEGORY_ICONS[currentPhase.category]}</span>
+              <span>
+                {translate('board.step', language)} {currentPhaseIndex + 1}/{phases.length}{colon}
+                {translate(`category.${currentPhase.category}`, language)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 font-bold">
+              <div className="flex gap-1.5">
+                {phases.map((p, i) => (
+                  <span
+                    key={p.category}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                      p.isCompleted ? 'bg-emerald-400' : i === currentPhaseIndex ? 'bg-yellow-300' : 'bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span>
+                {nextPhase
+                  ? `${translate('board.next', language)}${colon}${translate(`category.${nextPhase.category}`, language)} ${CATEGORY_ICONS[nextPhase.category]}`
+                  : translate('board.last_step', language)}
+              </span>
+            </div>
+          </div>
+        )}
+
         <main className="flex-1 my-4 flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden justify-center items-stretch py-2">
           <BoardColumn
             id="todo"
@@ -266,6 +507,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>
@@ -285,6 +528,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>
@@ -304,6 +549,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 definition={getDefinition(t.definitionId)}
                 language={language}
                 onTap={handleTaskTap}
+                celebration={celebration?.taskId === t.id ? celebration : undefined}
+                isLate={lateDefinitionIds?.has(t.definitionId)}
               />
             ))}
           </BoardColumn>

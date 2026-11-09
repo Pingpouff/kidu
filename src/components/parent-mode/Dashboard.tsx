@@ -5,7 +5,10 @@ import { TaskManager } from './TaskManager';
 import { ProfileManager } from './ProfileManager';
 import { HistoryPanel } from './HistoryPanel';
 import { SettingsPanel } from './SettingsPanel';
-import { LogOut, LayoutGrid, Users, Calendar, Settings as Gear } from 'lucide-react';
+import { ShopManager } from './ShopManager';
+import { shopItems } from '../../domain/rewards';
+import { ShopItem } from '../../domain/models';
+import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
 
 interface DashboardProps {
   profiles: ChildProfile[];
@@ -32,9 +35,12 @@ interface DashboardProps {
   // Settings handlers
   onSaveSettings: (settings: ParentSettings) => Promise<void>;
   onResetAllData: () => Promise<void>;
+  onExportBackup: (includeHistory: boolean) => Promise<void>;
+  onImportBackup: (fileContent: string) => Promise<void>;
+  onSaveShop: (shop: ShopItem[]) => Promise<void>;
 }
 
-type TabId = 'tasks' | 'children' | 'history' | 'settings';
+type TabId = 'tasks' | 'children' | 'shop' | 'history' | 'settings';
 
 export const Dashboard: React.FC<DashboardProps> = ({
   profiles,
@@ -53,6 +59,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDeleteHistory,
   onSaveSettings,
   onResetAllData,
+  onExportBackup,
+  onImportBackup,
+  onSaveShop,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
 
@@ -60,6 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const navigationItems = [
     { id: 'tasks', label: translate('parent.tab.tasks', language), icon: LayoutGrid },
     { id: 'children', label: translate('parent.tab.children', language), icon: Users },
+    { id: 'shop', label: translate('parent.tab.shop', language), icon: Gift },
     { id: 'history', label: translate('parent.tab.history', language), icon: Calendar },
     { id: 'settings', label: translate('parent.tab.settings', language), icon: Gear },
   ] as const;
@@ -141,6 +151,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 onDeleteProfile={onDeleteProfile}
               />
             )}
+            {activeTab === 'shop' && (
+              <ShopManager
+                shop={shopItems(settings)}
+                profiles={profiles}
+                language={language}
+                onSaveShop={onSaveShop}
+              />
+            )}
             {activeTab === 'history' && (
               <HistoryPanel
                 history={history}
@@ -154,6 +172,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 language={language}
                 onSaveSettings={onSaveSettings}
                 onResetAllData={onResetAllData}
+                onExportBackup={onExportBackup}
+                onImportBackup={onImportBackup}
               />
             )}
           </div>

@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
-import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings } from '../domain/models';
+import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings, DEFAULT_FEEDBACK } from '../domain/models';
+import { DEFAULT_STARS_PER_MEDAL, defaultShop } from '../domain/rewards';
 
 export class RoutineDatabase extends Dexie {
   profiles!: Table<ChildProfile, string>;
@@ -24,14 +25,24 @@ export const db = new RoutineDatabase();
 
 // Default task definitions to seed
 export const defaultTasks: TaskDefinition[] = [
-  { id: 'toys', labelKey: 'task.toys', defaultLabel: 'Put toys away', icon: '🧸', order: 1 },
-  { id: 'pajamas', labelKey: 'task.pajamas', defaultLabel: 'Put pajamas on', icon: '👕', order: 2 },
-  { id: 'toilet', labelKey: 'task.toilet', defaultLabel: 'Go to the toilet', icon: '🚽', order: 3 },
-  { id: 'teeth', labelKey: 'task.teeth', defaultLabel: 'Brush teeth', icon: '🪥', order: 4 },
-  { id: 'choose_story', labelKey: 'task.choose_story', defaultLabel: 'Choose bedtime story', icon: '📚', order: 5 },
-  { id: 'read_story', labelKey: 'task.read_story', defaultLabel: 'Read story', icon: '📖', order: 6 },
-  { id: 'cuddle', labelKey: 'task.cuddle', defaultLabel: 'Cuddle / calm time', icon: '🫂', order: 7 },
-  { id: 'lights_off', labelKey: 'task.lights_off', defaultLabel: 'Lights off', icon: '🌙', order: 8 },
+  // After school
+  { id: 'unpack_bag', labelKey: 'task.unpack_bag', defaultLabel: 'Empty school bag', icon: '🎒', order: 1, category: 'after_school' },
+  { id: 'snack', labelKey: 'task.snack', defaultLabel: 'Afternoon snack', icon: '🍎', order: 2, category: 'after_school' },
+  { id: 'homework', labelKey: 'task.homework', defaultLabel: 'Homework', icon: '✏️', order: 3, category: 'after_school' },
+  { id: 'bath', labelKey: 'task.bath', defaultLabel: 'Take a bath', icon: '🛁', order: 4, category: 'after_school' },
+  // Meal
+  { id: 'wash_hands', labelKey: 'task.wash_hands', defaultLabel: 'Wash hands', icon: '🧼', order: 5, category: 'meal' },
+  { id: 'set_table', labelKey: 'task.set_table', defaultLabel: 'Set the table', icon: '🍴', order: 6, category: 'meal' },
+  { id: 'clear_plate', labelKey: 'task.clear_plate', defaultLabel: 'Clear your plate', icon: '🍽️', order: 7, category: 'meal' },
+  // Bedtime
+  { id: 'toys', labelKey: 'task.toys', defaultLabel: 'Put toys away', icon: '🧸', order: 8, category: 'bedtime' },
+  { id: 'pajamas', labelKey: 'task.pajamas', defaultLabel: 'Put pajamas on', icon: '👕', order: 9, category: 'bedtime' },
+  { id: 'toilet', labelKey: 'task.toilet', defaultLabel: 'Go to the toilet', icon: '🚽', order: 10, category: 'bedtime' },
+  { id: 'teeth', labelKey: 'task.teeth', defaultLabel: 'Brush teeth', icon: '🪥', order: 11, category: 'bedtime' },
+  { id: 'choose_story', labelKey: 'task.choose_story', defaultLabel: 'Choose bedtime story', icon: '📚', order: 12, category: 'bedtime' },
+  { id: 'read_story', labelKey: 'task.read_story', defaultLabel: 'Read story', icon: '📖', order: 13, category: 'bedtime' },
+  { id: 'cuddle', labelKey: 'task.cuddle', defaultLabel: 'Cuddle / calm time', icon: '🫂', order: 14, category: 'bedtime' },
+  { id: 'lights_off', labelKey: 'task.lights_off', defaultLabel: 'Lights off', icon: '🌙', order: 15, category: 'bedtime' },
 ];
 
 // Default parent settings
@@ -41,7 +52,10 @@ export const defaultSettings: ParentSettings = {
   rewards: {
     starsPerCompletion: 1,
     weeklyGoal: 5,
+    starsPerMedal: DEFAULT_STARS_PER_MEDAL,
   },
+  feedback: { ...DEFAULT_FEEDBACK },
+  shop: defaultShop('fr'),
 };
 
 /**
