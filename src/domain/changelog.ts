@@ -16,6 +16,14 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.4.1',
+    date: '2026-11-10',
+    changes: {
+      fr: ['Correction : le bouton « Mettre à jour » recharge bien l\'app, même juste après une première visite ou un rechargement forcé.'],
+      en: ['Fix: the "Update" button now reloads the app, even right after a first visit or a hard reload.'],
+    },
+  },
+  {
     version: '1.4.0',
     date: '2026-11-10',
     changes: {
