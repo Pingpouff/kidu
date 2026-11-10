@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings } from '../../domain/models';
+import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings, VisualsSetting } from '../../domain/models';
+import { isLowEndDevice, resolveVisuals } from '../../services/performance';
 import { starsPerMedal } from '../../domain/rewards';
 import { isValidPin } from '../../domain/parentGate';
 import {
@@ -301,6 +302,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             >
               <option value="full">{translate('parent.feedback.animations_full', language)}</option>
               <option value="reduced">{translate('parent.feedback.animations_reduced', language)}</option>
+            </select>
+          </label>
+          <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+            <span>{translate('parent.feedback.visuals', language)}</span>
+            <select
+              value={feedback.visuals ?? 'auto'}
+              onChange={(e) => setFeedbackField('visuals', e.target.value as VisualsSetting)}
+              className={fieldClass('md', 'px-3')}
+              data-testid="settings-visuals"
+            >
+              <option value="auto">
+                {translate('parent.feedback.visuals_auto', language, {
+                  detected: translate(`parent.feedback.visuals_detected_${resolveVisuals('auto', isLowEndDevice())}`, language),
+                })}
+              </option>
+              <option value="rich">{translate('parent.feedback.visuals_rich', language)}</option>
+              <option value="lite">{translate('parent.feedback.visuals_lite', language)}</option>
             </select>
           </label>
         </fieldset>

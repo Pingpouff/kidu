@@ -130,7 +130,12 @@ export interface FeedbackSettings {
   songs: boolean; // Longer songs (bedtime song)
   volume: number; // 0 .. 1
   animations: 'full' | 'reduced'; // reduced: no confetti, particles or spinning rays
+  /** Visual effects: 'lite' drops blur and looping animations (weak devices); 'auto' detects it. Missing = 'auto' */
+  visuals?: VisualsSetting;
 }
+
+export type VisualsSetting = 'auto' | 'rich' | 'lite';
+export const VISUALS_SETTINGS: VisualsSetting[] = ['auto', 'rich', 'lite'];
 
 /**
  * Reminders for tasks that are not done by their due time.
@@ -155,6 +160,7 @@ export const DEFAULT_FEEDBACK: FeedbackSettings = {
   songs: true,
   volume: 0.7,
   animations: 'full',
+  visuals: 'auto',
 };
 
 export interface ParentSettings {

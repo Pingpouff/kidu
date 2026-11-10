@@ -12,6 +12,8 @@ import {
   OwnedBadge,
   ShopItem,
   FeedbackSettings,
+  VISUALS_SETTINGS,
+  VisualsSetting,
 } from './models';
 
 export const BACKUP_APP_ID = 'kidu';
@@ -110,7 +112,8 @@ function parseSettings(raw: unknown): ParentSettings {
       typeof feedback.voice !== 'boolean' ||
       typeof feedback.songs !== 'boolean' ||
       !isNumber(feedback.volume) || feedback.volume < 0 || feedback.volume > 1 ||
-      (feedback.animations !== 'full' && feedback.animations !== 'reduced'))
+      (feedback.animations !== 'full' && feedback.animations !== 'reduced') ||
+      (feedback.visuals !== undefined && !VISUALS_SETTINGS.includes(feedback.visuals as VisualsSetting)))
   ) {
     throw new BackupError('invalid_settings');
   }
@@ -147,6 +150,7 @@ function parseSettings(raw: unknown): ParentSettings {
             songs: feedback.songs as boolean,
             volume: feedback.volume as number,
             animations: feedback.animations as FeedbackSettings['animations'],
+            ...(feedback.visuals !== undefined ? { visuals: feedback.visuals as VisualsSetting } : {}),
           },
         }
       : {}),

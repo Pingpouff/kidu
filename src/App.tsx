@@ -7,6 +7,7 @@ import { ProfileSelector } from './components/child-board/ProfileSelector';
 import { RoutineBoard } from './components/child-board/RoutineBoard';
 import { PinModal } from './components/parent-mode/PinModal';
 import { reminderService } from './services/ReminderService';
+import { isLowEndDevice, resolveVisuals } from './services/performance';
 import { backupFileName, parseBackup } from './domain/backup';
 import { TrophyId, TROPHY_ICONS } from './domain/trophies';
 import { shopItems, starsPerMedal } from './domain/rewards';
@@ -79,6 +80,8 @@ export default function App() {
   useEffect(() => {
     reminderService.configure(feedback);
     document.documentElement.classList.toggle('reduce-motion', feedback?.animations === 'reduced');
+    // Lite display on weak devices: no blur, no looping animations
+    document.documentElement.classList.toggle('lite', resolveVisuals(feedback?.visuals, isLowEndDevice()) === 'lite');
   }, [feedback]);
 
   // Get current date string (YYYY-MM-DD local timezone)
