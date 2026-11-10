@@ -43,6 +43,105 @@ const CompletionBurst: React.FC<{ cheer: string }> = ({ cheer }) => (
   </div>
 );
 
+interface TaskCardViewProps {
+  task: RoutineTask;
+  definition: TaskDefinition;
+  language: Language;
+  celebration?: { cheer: string; key: number };
+  isLate?: boolean;
+}
+
+/**
+ * What a card shows, without drag behaviour. Memoized: during a drag, dnd-kit
+ * re-renders every draggable on each finger move, but the content (emoji,
+ * label, times) doesn't change. Also used as the copy under the finger.
+ */
+const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardView({
+  task,
+  definition,
+  language,
+  celebration,
+  isLate = false,
+}) {
+  const emojiClass =
+    task.status === 'done'
+      ? 'text-[28px] sm:text-[36px] lg:text-[44px]'
+      : 'text-[56px] sm:text-[64px] md:text-[80px] lg:text-[64px] xl:text-[88px]';
+  return (
+    <>
+      {/* Sparkle or done indicator */}
+      {task.status === 'done' && (
+        <span className="absolute top-0 right-0 text-sm md:text-base lg:text-lg animate-bounce">✨</span>
+      )}
+      {/* Expected times: discreet when upcoming, red and wiggling when late */}
+      {(definition?.dueTime || definition?.startTime) && task.status !== 'done' && (
+        <span
+          data-testid={isLate ? 'task-late' : definition.dueTime ? 'task-due' : 'task-start'}
+          className={`absolute top-1.5 left-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow ${
+            isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-slate-900/85 text-white/80'
+          }`}
+        >
+          {definition.startTime && definition.dueTime && !isLate
+            ? `🕒 ${definition.startTime}–${definition.dueTime}`
+            : definition.dueTime
+              ? `⏰ ${definition.dueTime}`
+              : `🚀 ${definition.startTime}`}
+        </span>
+      )}
+      {task.status === 'doing' && (
+        <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
+      )}
+
+      {celebration && <CompletionBurst key={celebration.key} cheer={celebration.cheer} />}
+
+      {/* Massive emoji icon */}
+      <span
+        key={celebration?.key}
+        className={`${emojiClass} leading-none ${celebration ? 'animate-task-pop inline-block' : ''} drop-shadow select-none`}
+      >
+        {definition?.icon || '⭐'}
+      </span>
+
+      {/* Small helper text label */}
+      {task.status !== 'done' && (
+        <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
+          {taskLabel(definition, language)}
+        </span>
+      )}
+    </>
+  );
+});
+
+// Status-based card styles
+const STATUS_STYLES = {
+  todo: 'bg-white/10 border-white/20 hover:border-yellow-400/50 text-white shadow-md active:bg-white/15',
+  doing: 'bg-amber-500/20 border-amber-400/30 hover:border-amber-400 text-amber-100 shadow-lg shadow-amber-950/20 active:bg-amber-500/30 animate-pulse-slow',
+  done: 'bg-emerald-500/10 border-emerald-400/20 text-emerald-100/70 shadow-sm border-dashed opacity-75 active:bg-emerald-500/20 scale-[0.90] hover:scale-[0.95] hover:opacity-100',
+};
+
+/** Card frame (shape, colors) shared by the board card and the copy under the finger. */
+function taskCardClass(status: RoutineTask['status']): string {
+  const aspect =
+    status === 'done'
+      ? 'w-full aspect-square rounded-2xl p-1'
+      : 'w-full aspect-square sm:aspect-[4/3] lg:aspect-square xl:aspect-[4/3] rounded-3xl p-2 sm:p-2.5';
+  return `${aspect} border ${STATUS_STYLES[status] || STATUS_STYLES.todo} flex flex-col items-center justify-center relative`;
+}
+
+/**
+ * The copy under the finger while dragging (DragOverlay): same look, no
+ * second useDraggable. dnd-kit only moves it with a transform.
+ */
+export const TaskCardGhost: React.FC<TaskCardViewProps> = (props) => (
+  <div className="opacity-90 scale-105 rotate-2 shadow-2xl rounded-3xl" data-testid="drag-overlay">
+    <div className={taskCardClass(props.task.status)}>
+      <div className="relative flex flex-col items-center justify-center w-full h-full">
+        <TaskCardView {...props} />
+      </div>
+    </div>
+  </div>
+);
+
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   definition,
@@ -56,35 +155,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     data: { task, definition }
   });
 
-  // Calculate coordinates for CSS transform
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        touchAction: 'none',
-      }
-    : {
-        touchAction: 'none',
-      };
-
-  // Status-based card styles
-  const statusStyles = {
-    todo: 'bg-white/10 border-white/20 hover:border-yellow-400/50 text-white shadow-md active:bg-white/15',
-    doing: 'bg-amber-500/20 border-amber-400/30 hover:border-amber-400 text-amber-100 shadow-lg shadow-amber-950/20 active:bg-amber-500/30 animate-pulse-slow',
-    done: 'bg-emerald-500/10 border-emerald-400/20 text-emerald-100/70 shadow-sm border-dashed opacity-75 active:bg-emerald-500/20 scale-[0.90] hover:scale-[0.95] hover:opacity-100',
-  };
-
-  const cardTheme = statusStyles[task.status] || statusStyles.todo;
+  // The card stays in place while dragged (faded): the copy under the finger is
+  // the DragOverlay in RoutineBoard. Moving both, with a CSS transition
+  // restarted on every finger move, made drags lag on weak tablets.
   const baseHoverClass = task.status === 'done' ? '' : 'hover:scale-[1.03]';
   const innerAnimClass = task.status === 'done' && !isDragging ? 'animate-pop-shrink' : '';
-  const cardAspectClass =
-    task.status === 'done'
-      ? 'w-full aspect-square rounded-2xl p-1'
-      : 'w-full aspect-square sm:aspect-[4/3] lg:aspect-square xl:aspect-[4/3] rounded-3xl p-2 sm:p-2.5';
-  // Sized per breakpoint to fit the card: 2 per row on phones and large tablets, 1 per column in between
-  const emojiClass =
-    task.status === 'done'
-      ? 'text-[28px] sm:text-[36px] lg:text-[44px]'
-      : 'text-[56px] sm:text-[64px] md:text-[80px] lg:text-[64px] xl:text-[88px]';
 
   // Simple handler to ensure clicking works on desktop/touch
   const handleClick = () => {
@@ -98,7 +173,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ touchAction: 'none' }}
       {...listeners}
       {...attributes}
       onClick={handleClick}
@@ -110,50 +185,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         }
       }}
       aria-label={`${taskLabel(definition, language)}, ${translate(`task.status.${task.status}`, language)}${isLate ? ' ⏰' : ''}`}
-      className={`${cardAspectClass} border ${cardTheme} flex flex-col items-center justify-center relative cursor-grab active:cursor-grabbing transform ${baseHoverClass} transition-all duration-300 ${
-        isDragging ? 'opacity-50 scale-105 rotate-2 z-50 shadow-2xl' : 'z-10'
-      }`}
+      className={`${taskCardClass(task.status)} cursor-grab active:cursor-grabbing ${baseHoverClass} transition-[transform,opacity,background-color,border-color] duration-300 ${
+        isDragging ? 'opacity-30' : ''
+      } z-10`}
     >
       <div className={`relative flex flex-col items-center justify-center w-full h-full ${innerAnimClass}`}>
-        {/* Sparkle or done indicator */}
-        {task.status === 'done' && (
-          <span className="absolute top-0 right-0 text-sm md:text-base lg:text-lg animate-bounce">✨</span>
-        )}
-        {/* Expected times: discreet when upcoming, red and wiggling when late */}
-        {(definition?.dueTime || definition?.startTime) && task.status !== 'done' && (
-          <span
-            data-testid={isLate ? 'task-late' : definition.dueTime ? 'task-due' : 'task-start'}
-            className={`absolute top-1.5 left-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow ${
-              isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-slate-900/85 text-white/80'
-            }`}
-          >
-            {definition.startTime && definition.dueTime && !isLate
-              ? `🕒 ${definition.startTime}–${definition.dueTime}`
-              : definition.dueTime
-                ? `⏰ ${definition.dueTime}`
-                : `🚀 ${definition.startTime}`}
-          </span>
-        )}
-        {task.status === 'doing' && (
-          <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
-        )}
-
-        {celebration && <CompletionBurst key={celebration.key} cheer={celebration.cheer} />}
-
-        {/* Massive emoji icon */}
-        <span
-          key={celebration?.key}
-          className={`${emojiClass} leading-none ${celebration ? 'animate-task-pop inline-block' : ''} drop-shadow select-none group-hover:scale-110 transition-transform duration-200`}
-        >
-          {definition?.icon || '⭐'}
-        </span>
-
-        {/* Small helper text label */}
-        {task.status !== 'done' && (
-          <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
-            {taskLabel(definition, language)}
-          </span>
-        )}
+        <TaskCardView task={task} definition={definition} language={language} celebration={celebration} isLate={isLate} />
       </div>
     </div>
   );

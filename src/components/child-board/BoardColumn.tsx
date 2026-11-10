@@ -52,9 +52,9 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
 
   // Glowing highlights when dragging over
   const glowThemes = {
-    yellow: 'border-yellow-400 bg-yellow-500/5 shadow-[0_0_20px_rgba(234,179,8,0.25)] scale-[1.01]',
-    orange: 'border-amber-400 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.25)] scale-[1.01]',
-    emerald: 'border-emerald-400 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.25)] scale-[1.01]',
+    yellow: 'border-yellow-400 bg-yellow-500/5 shadow-[0_0_20px_rgba(234,179,8,0.25)]',
+    orange: 'border-amber-400 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.25)]',
+    emerald: 'border-emerald-400 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
   };
 
   const overlayClass = isOver 
@@ -67,7 +67,7 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
     <div
       ref={setNodeRef}
       data-column={id}
-      className={`flex-none sm:flex-1 flex flex-col min-w-0 sm:min-w-[200px] sm:h-full rounded-3xl border bg-black/20 ${overlayClass} ${theme.glow} transition-all duration-300 ${className}`}
+      className={`flex-none sm:flex-1 flex flex-col min-w-0 sm:min-w-[200px] sm:h-full rounded-3xl border bg-black/20 ${overlayClass} ${theme.glow} transition-colors duration-200 ${className}`}
     >
       {/* Column Header */}
       <div className={`flex items-center justify-between gap-2 px-3 py-2 sm:p-4 border-b ${theme.border} rounded-t-3xl bg-black/10`}>

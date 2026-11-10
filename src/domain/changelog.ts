@@ -16,6 +16,14 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.6.1',
+    date: '2026-11-10',
+    changes: {
+      fr: ['Glisser-déposer des tâches plus fluide, surtout sur les tablettes anciennes.'],
+      en: ['Smoother task drag and drop, especially on older tablets.'],
+    },
+  },
+  {
     version: '1.6.0',
     date: '2026-11-10',
     changes: {

@@ -104,7 +104,7 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
       ref={setNodeRef}
       style={style}
       data-testid="task-row"
-      className={`flex items-center justify-between p-2 sm:p-3 bg-white/5 rounded-2xl border transition-all ${
+      className={`flex items-center justify-between p-2 sm:p-3 bg-white/5 rounded-2xl border transition-colors ${
         isEditing ? 'border-indigo-500/50 bg-indigo-950/20' : 'border-white/5 hover:bg-white/10'
       }`}
     >

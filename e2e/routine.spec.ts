@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { openTaskForm } from './helpers';
+import { openTaskForm, removeMorningTasks } from './helpers';
 
 test.describe('Kids Evening Routine E2E Flow', () => {
   test('should synchronize task changes when activating the reset button', async ({ page }) => {
@@ -69,6 +69,33 @@ test.describe('Kids Evening Routine E2E Flow', () => {
 
     // 10. Verify that the new task "Habiller le doudou" is now loaded on Léo's board!
     await expect(page.locator('body')).toContainText('Habiller le doudou');
+  });
+
+  test('a child drags a card to "done": the card stays put, its copy follows the finger', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 }); // tablet
+    await page.goto('/');
+    await removeMorningTasks(page);
+    await page.getByTestId('child-card-leo').click();
+
+    const card = page.locator('[data-column="todo"]').getByRole('button').first();
+    const label = (await card.getAttribute('aria-label'))!.split(',')[0];
+    const start = (await card.boundingBox())!;
+    const target = (await page.locator('[data-column="done"]').boundingBox())!;
+
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 });
+
+    // Mid-drag: only the copy moves, the original card stays in its place
+    const ghost = page.getByTestId('drag-overlay');
+    await expect(ghost).toBeVisible();
+    expect(await card.boundingBox()).toEqual(start);
+    const ghostBox = (await ghost.boundingBox())!;
+    expect(ghostBox.x).toBeGreaterThan(target.x - ghostBox.width);
+
+    await page.mouse.up();
+    await expect(ghost).toHaveCount(0);
+    await expect(page.locator('[data-column="done"]').getByRole('button', { name: label })).toBeVisible();
   });
 
   test('should persist task reordering after a page reload', async ({ page }) => {
