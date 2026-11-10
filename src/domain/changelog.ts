@@ -16,6 +16,20 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.5.1',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'L\'écran d\'accueil défile quand il y a beaucoup d\'échéances prévues.',
+        'L\'historique des versions défile lorsqu\'il est long, et s\'affiche correctement depuis les Paramètres.',
+      ],
+      en: [
+        'The home screen scrolls when many deadlines are planned.',
+        'A long version history now scrolls, and shows correctly from Settings.',
+      ],
+    },
+  },
+  {
     version: '1.5.0',
     date: '2026-11-10',
     changes: {

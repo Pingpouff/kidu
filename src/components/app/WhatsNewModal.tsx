@@ -27,16 +27,16 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ entries, language,
       testId="whats-new"
       panelClassName="max-w-lg p-6 sm:p-8 flex flex-col gap-5 max-h-[90dvh]"
     >
-      <h2 className="flex items-center gap-2 text-2xl font-extrabold text-white pr-8">
+      <h2 className="flex items-center gap-2 text-2xl font-extrabold text-white pr-8 shrink-0">
         <Sparkles className="w-6 h-6 text-amber-300 shrink-0" />
         {title}
       </h2>
 
-      <div className="overflow-y-auto pr-1">
+      <div className="min-h-0 overflow-y-auto overscroll-contain pr-1" data-testid="whats-new-list">
         <ChangelogList entries={entries} language={language} />
       </div>
 
-      <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'self-end')}>
+      <button type="button" onClick={onClose} className={buttonClass('primary', 'md', 'self-end shrink-0')}>
         {translate('whatsnew.ok', language)}
       </button>
     </Modal>

@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cx } from './cx';
 import { Layer, LAYER } from './layers';
@@ -98,6 +99,9 @@ export interface OverlayProps extends Omit<React.HTMLAttributes<HTMLDivElement>,
 /**
  * Full-screen layer: fixed, stacked by `layer`, scroll lock, Escape to close.
  * Background and layout come from `className`.
+ * Rendered in a portal on <body>: an ancestor with a transform, filter or
+ * backdrop-filter (e.g. `glass-panel`) would otherwise become the containing
+ * block of `position: fixed` and pull the overlay off screen.
  */
 export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(function Overlay(
   { layer, onClose, closeOnBackdrop = false, role = 'dialog', className, onClick, children, ...rest },
@@ -113,7 +117,7 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(function O
     else if (ref) ref.current = node;
   };
 
-  return (
+  return createPortal(
     <div
       ref={setRefs}
       tabIndex={-1}
@@ -127,7 +131,8 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(function O
       {...rest}
     >
       {children}
-    </div>
+    </div>,
+    document.body
   );
 });
 
