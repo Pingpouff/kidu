@@ -16,6 +16,22 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.6.0',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Affichage allégé, activé automatiquement sur les tablettes anciennes : plus d\'effet de verre dépoli ni de décors animés en boucle, l\'app est bien plus fluide. Réglable dans Paramètres → Sons et animations.',
+        'Le mode « Animations réduites » arrête aussi les étoiles qui clignotent et rebondissent.',
+        'La police est intégrée à l\'app : démarrage plus rapide et même apparence sans connexion.',
+      ],
+      en: [
+        'Lite display, turned on automatically on older tablets: no frosted glass and no looping decorations, the app is much smoother. Adjustable in Settings → Sounds & animations.',
+        '"Reduced animations" also stops the twinkling and bouncing stars.',
+        'The font is built into the app: faster start-up and the same look offline.',
+      ],
+    },
+  },
+  {
     version: '1.5.1',
     date: '2026-11-10',
     changes: {

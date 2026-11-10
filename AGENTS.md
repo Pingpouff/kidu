@@ -222,6 +222,8 @@ Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: Behavior
 
 `settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
+**Lite display** (`feedback.visuals`: `auto` | `rich` | `lite`, missing = `auto`): `services/performance.ts` — `isLowEndDevice()` (`navigator.deviceMemory` ≤ 2 GB, fallback ≤ 2 cores) and `resolveVisuals()`. `App.tsx` toggles the `lite` class on `<html>`; the `.lite` block at the end of `index.css` removes every `backdrop-filter`, stops looping animations (`animate-pulse`, `animate-bounce`, `bedtime-sky`…) and gives dialogs a solid background; `fireConfetti` throws a third of the particles. Built for old tablets (Galaxy Tab A 9.7, Adreno 306), where blur and endless animations kept the GPU repainting. New looping decorations must be added to the `.lite` (and `.reduce-motion`) lists. The Outfit font is self-hosted (`@fontsource/outfit`, imported in `main.tsx`, `woff2` precached by the service worker).
+
 ---
 
 ## UI Kit
