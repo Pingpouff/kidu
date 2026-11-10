@@ -16,6 +16,20 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.6.2',
+    date: '2026-11-10',
+    changes: {
+      fr: [
+        'Cocher une tâche reste rapide même après des mois d\'utilisation : l\'app ne relit plus tout l\'historique à chaque geste.',
+        'Affichage allégé encore plus léger : sans ombre sous les grands emojis.',
+      ],
+      en: [
+        'Ticking a task stays fast even after months of use: the app no longer rereads the whole history on every tap.',
+        'Even lighter lite display: no shadow under the big emojis.',
+      ],
+    },
+  },
+  {
     version: '1.6.1',
     date: '2026-11-10',
     changes: {
