@@ -29,6 +29,12 @@ test.describe('Lite display', () => {
     expect(await style(page, '.glass-panel', 'backdrop-filter')).toBe('none');
     expect(await style(page, '[data-testid="home-screen"] .animate-pulse', 'animation-name')).toBe('none');
 
+    // No drop shadow on the big emojis of the board, other filters untouched
+    await page.getByTestId('child-card-leo').click();
+    const emoji = '[data-column="todo"] [role="button"] span.drop-shadow';
+    expect(await style(page, emoji, 'filter')).toBe('none');
+    await page.getByRole('button', { name: /Retour|Back/ }).first().click();
+
     // Settings say what was detected
     await enterParentMode(page);
     await page.getByRole('button', { name: 'Paramètres', exact: true }).click();
@@ -42,6 +48,8 @@ test.describe('Lite display', () => {
     await expect(html(page)).not.toHaveClass(/\blite\b/);
     expect(await style(page, '.glass-panel', 'backdrop-filter')).not.toBe('none');
     expect(await style(page, '[data-testid="home-screen"] .animate-pulse', 'animation-name')).not.toBe('none');
+    await page.getByTestId('child-card-leo').click();
+    expect(await style(page, '[data-column="todo"] [role="button"] span.drop-shadow', 'filter')).toContain('drop-shadow');
   });
 
   test("the parent's choice wins over detection, and is kept after a reload", async ({ page }) => {

@@ -222,7 +222,7 @@ Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: Behavior
 
 `settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
-**Lite display** (`feedback.visuals`: `auto` | `rich` | `lite`, missing = `auto`): `services/performance.ts` — `isLowEndDevice()` (`navigator.deviceMemory` ≤ 2 GB, fallback ≤ 2 cores) and `resolveVisuals()`. `App.tsx` toggles the `lite` class on `<html>`; the `.lite` block at the end of `index.css` removes every `backdrop-filter`, stops looping animations (`animate-pulse`, `animate-bounce`, `bedtime-sky`…) and gives dialogs a solid background; `fireConfetti` throws a third of the particles. Built for old tablets (Galaxy Tab A 9.7, Adreno 306), where blur and endless animations kept the GPU repainting. New looping decorations must be added to the `.lite` (and `.reduce-motion`) lists. The Outfit font is self-hosted (`@fontsource/outfit`, imported in `main.tsx`, `woff2` precached by the service worker).
+**Lite display** (`feedback.visuals`: `auto` | `rich` | `lite`, missing = `auto`): `services/performance.ts` — `isLowEndDevice()` (`navigator.deviceMemory` ≤ 2 GB, fallback ≤ 2 cores) and `resolveVisuals()`. `App.tsx` toggles the `lite` class on `<html>`; the `.lite` block at the end of `index.css` removes every `backdrop-filter`, stops looping animations (`animate-pulse`, `animate-bounce`, `bedtime-sky`…), clears drop shadows (`--tw-drop-shadow`, other filters kept) and gives dialogs a solid background; `fireConfetti` throws a third of the particles. Built for old tablets (Galaxy Tab A 9.7, Adreno 306), where blur and endless animations kept the GPU repainting. New looping decorations must be added to the `.lite` (and `.reduce-motion`) lists. The Outfit font is self-hosted (`@fontsource/outfit`, imported in `main.tsx`, `woff2` precached by the service worker).
 
 ---
 
@@ -314,6 +314,8 @@ Example implementation in `App.tsx`:
 const profiles = useLiveQuery(() => db.profiles.toArray());
 const settings = useLiveQuery(() => db.settings.get('current'));
 ```
+
+Past data is only queried by the screen that shows it: `history` while in Parent Mode, all `sessions` while on the selection screen (the last result is kept in a ref while it reloads). On a child's board, a tap only re-reads that day's session, so it doesn't slow down as months of data pile up. Don't add an unconditional `toArray()` of `sessions` / `history` in `App.tsx`.
 
 ---
 
