@@ -80,7 +80,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ language, install, appUp
 
       <div className="flex flex-col gap-3 min-h-0">
         <h3 className="text-xs font-bold uppercase tracking-wider text-white/60">{translate('about.changelog', language)}</h3>
-        <div className="overflow-y-auto pr-1" data-testid="about-changelog">
+        <div className="min-h-0 overflow-y-auto overscroll-contain pr-1" data-testid="about-changelog">
           <ChangelogList entries={CHANGELOG} language={language} />
         </div>
       </div>
