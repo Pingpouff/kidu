@@ -14,7 +14,7 @@ import { getRoutinePhases, getCurrentPhaseIndex, moveTask, skipPhase, unskipPhas
 import { PinModal } from '../parent-mode/PinModal';
 import { translate, translateDynamic, Language } from '../../i18n/dictionary';
 import { BoardColumn } from './BoardColumn';
-import { TaskCard } from './TaskCard';
+import { TaskCard, TaskCardGhost } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
 import { reminderService } from '../../services/ReminderService';
 import { PiggyBank } from '../rewards/PiggyBank';
@@ -595,14 +595,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         {/* Drag Overlay for visual feedback during drags */}
         <DragOverlay dropAnimation={null}>
           {activeDragTask && activeDragDef ? (
-            <div className="opacity-90 scale-105 rotate-2 shadow-2xl">
-              <TaskCard
-                task={activeDragTask}
-                definition={activeDragDef}
-                language={language}
-                onTap={() => {}}
-              />
-            </div>
+            <TaskCardGhost task={activeDragTask} definition={activeDragDef} language={language} />
           ) : null}
         </DragOverlay>
       </div>
