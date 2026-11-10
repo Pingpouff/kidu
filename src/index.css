@@ -480,6 +480,11 @@
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+/* Drop shadows (filter) on big emojis are costly to draw and redraw; other
+   filters (e.g. grayscale) stay: only Tailwind's drop-shadow variable is cleared */
+.lite [class*='drop-shadow'] {
+  --tw-drop-shadow:  ;
+}
 /* Without blur, dialogs need a solid background to stay readable */
 .lite [role='dialog'].glass-panel {
   background-color: rgba(30, 41, 59, 0.97);

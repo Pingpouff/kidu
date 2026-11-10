@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedDatabase, saveSettings } from './persistence/db';
 import { routineRepository } from './persistence/routineRepository';
@@ -71,8 +71,14 @@ export default function App() {
   // Fetch reactive data using Dexie live queries
   const profiles = useLiveQuery(() => db.profiles.toArray());
   const tasks = useLiveQuery(() => db.tasks.toArray());
-  const history = useLiveQuery(() => db.history.toArray());
-  const allSessions = useLiveQuery(() => db.sessions.toArray());
+  // Every past day is only read by the screen that shows it: on a child's
+  // board, a tap then only re-reads today's session, however old the data.
+  const onHome = !parentMode && !activeProfileId;
+  const history = useLiveQuery(async () => (parentMode ? db.history.toArray() : null), [parentMode]);
+  const homeSessions = useLiveQuery(async () => (onHome ? db.sessions.toArray() : null), [onHome]);
+  // Last value kept while the home screen's query reloads (no flash of empty cards)
+  const allSessions = useRef<RoutineSession[]>([]);
+  if (homeSessions) allSessions.current = homeSessions;
   const settings = useLiveQuery(() => db.settings.get('current'));
 
   // Apply the parent's sound / voice / song / animation preferences
@@ -289,7 +295,7 @@ export default function App() {
         profiles={profiles}
         tasks={tasks}
         settings={settings}
-        history={history || []}
+        history={history ?? []}
         language={activeLang}
         onClose={() => setParentMode(false)}
         onAddTask={handleAddTask}
@@ -428,7 +434,7 @@ export default function App() {
           language={activeLang}
           lateCounts={lateCounts}
           tasks={tasks}
-          sessions={allSessions ?? []}
+          sessions={allSessions.current}
           settings={settings}
           today={todayStr}
           onShowAbout={() => setShowAbout(true)}
