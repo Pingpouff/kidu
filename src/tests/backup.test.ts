@@ -59,6 +59,19 @@ describe('Configuration backup', () => {
     expect(parsed).toEqual(backup);
   });
 
+  it('keeps the display setting (lite / rich / auto) and rejects unknown values', () => {
+    const feedback = { sounds: true, voice: false, songs: true, volume: 0.5, animations: 'full' as const };
+    const withVisuals = createBackup({ settings: { ...settings, feedback: { ...feedback, visuals: 'lite' } }, tasks, profiles });
+    expect(parseBackup(JSON.stringify(withVisuals)).data.settings.feedback?.visuals).toBe('lite');
+
+    // Backups made before the setting existed stay valid
+    const older = createBackup({ settings: { ...settings, feedback }, tasks, profiles });
+    expect(parseBackup(JSON.stringify(older)).data.settings.feedback).not.toHaveProperty('visuals');
+
+    const invalid = createBackup({ settings: { ...settings, feedback: { ...feedback, visuals: 'fancy' as 'lite' } }, tasks, profiles });
+    expect(errorCode(() => parseBackup(JSON.stringify(invalid)))).toBe('invalid_settings');
+  });
+
   it('builds a dated file name', () => {
     expect(backupFileName(new Date(2026, 0, 5))).toBe('kidu-backup-2026-01-05.json');
   });

@@ -17,6 +17,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'badge-96.png', 'sw-notifications.js'],
       workbox: {
+        // Fonts are self-hosted: precache them for offline use
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         // Handles taps on reminder notifications (focus / reopen the app)
         importScripts: ['sw-notifications.js'],
       },
