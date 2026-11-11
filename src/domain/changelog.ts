@@ -16,6 +16,20 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.7.0',
+    date: '2026-11-11',
+    changes: {
+      fr: [
+        'Nouveau : le Coin calme. Un nuage respire avec l’enfant (4 respirations), puis l’aide à revenir dans la vraie vie : aller voir un adulte, serrer son doudou… Sans code, depuis l’accueil et le tableau de chaque enfant.',
+        'Paramètres → Mes émotions : choisir vers qui l’enfant va après le coin calme, ou désactiver le volet.',
+      ],
+      en: [
+        'New: the Calm corner. A cloud breathes with the child (4 breaths), then helps them back to real life: going to see a grown-up, squeezing a cuddly toy… No PIN, from the home screen and each child’s board.',
+        'Settings → Mes émotions: choose who the child goes to after the calm corner, or turn it off.',
+      ],
+    },
+  },
+  {
     version: '1.6.2',
     date: '2026-11-10',
     changes: {

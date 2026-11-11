@@ -15,7 +15,58 @@ export interface ChildProfile {
   badges?: OwnedBadge[]; // Piggy bank + album
   trophies?: EarnedTrophy[]; // Unlocked trophies, never removed
   cards?: BehaviorCard[]; // Yellow / red cards given by a parent (whole history)
+  emotions?: ChildEmotions; // "Mes émotions": age level override and the strategies that help
 }
+
+/* ------------------------------ Mes émotions ------------------------------ */
+
+/** 1: 3-5 years (6 emotions), 2: 6-8 (12), 3: 9-11 (24). See features/emotions/domain/level.ts */
+export type EmotionLevel = 1 | 2 | 3;
+
+/** A child's emotion settings, kept on the profile (and in backups). */
+export interface ChildEmotions {
+  level?: EmotionLevel; // missing = from the child's age
+  helpful: string[]; // strategy ids the child marked "ça m'aide", most recent first
+}
+
+/** Where the child feels the emotion (check-in, optional step). */
+export type BodyZone = 'head' | 'throat' | 'heart' | 'belly' | 'hands' | 'legs';
+
+/**
+ * One moment of the emotions space: a check-in ("Météo intérieure") or a
+ * calm corner session. No free text: nothing the child would not want a
+ * parent to read. No reward is ever attached to it.
+ */
+export interface EmotionLog {
+  id: string;
+  childId?: string; // missing: calm corner opened from the home screen
+  at: number; // epoch
+  date: string; // YYYY-MM-DD (local)
+  kind: 'checkin' | 'calm';
+  emotionId?: string; // check-in
+  intensity?: 1 | 2 | 3; // check-in, from level 2
+  bodyZones?: BodyZone[]; // check-in
+  strategyIds?: string[]; // strategies chosen afterwards
+  breaths?: number; // calm corner: breaths completed
+  nextAction?: string; // calm corner: "adult" or a strategy id chosen at the end
+}
+
+/** A strategy added by the parent ("aller voir le chat"). */
+export interface CustomStrategy {
+  id: string;
+  icon: string;
+  label: string;
+}
+
+export interface EmotionSettings {
+  enabled: boolean;
+  /** Who the child goes to after the calm corner ("Papa ou Maman") */
+  adultName: string;
+  /** Offer the check-in when the bedtime step is done */
+  eveningCheckIn: boolean;
+  customStrategies: CustomStrategy[];
+}
+
 
 export type CardColor = 'yellow' | 'red';
 
@@ -154,6 +205,14 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
   systemNotifications: false,
 };
 
+/** Default emotions settings; `adultName` empty = the translated default ("Papa ou Maman"). */
+export const DEFAULT_EMOTIONS: EmotionSettings = {
+  enabled: true,
+  adultName: '',
+  eveningCheckIn: true,
+  customStrategies: [],
+};
+
 export const DEFAULT_FEEDBACK: FeedbackSettings = {
   sounds: true,
   voice: true,
@@ -172,4 +231,5 @@ export interface ParentSettings {
   shop?: ShopItem[]; // Real-life rewards bought with badges
   reminders?: ReminderSettings; // default: DEFAULT_REMINDERS
   lastBackupAt?: number; // epoch of the last export (not part of backup files)
+  emotions?: EmotionSettings; // default: DEFAULT_EMOTIONS
 }
