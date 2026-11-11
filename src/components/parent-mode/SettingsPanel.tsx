@@ -275,6 +275,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             />
             {translate('parent.emotions.enabled', language)}
           </label>
+          <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={emotions.eveningCheckIn}
+              disabled={!emotions.enabled}
+              onChange={(e) => setEmotions((em) => ({ ...em, eveningCheckIn: e.target.checked }))}
+              className="w-4 h-4 accent-indigo-500"
+              data-testid="settings-evening-checkin"
+            />
+            {translate('parent.emotions.evening', language)}
+          </label>
           <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
             <span>{translate('parent.emotions.adult_name', language)}</span>
             <input

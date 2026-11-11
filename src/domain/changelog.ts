@@ -16,6 +16,22 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.8.0',
+    date: '2026-11-11',
+    changes: {
+      fr: [
+        'Nouveau : « Comment je me sens », sous la carte de chaque enfant. La chouette aide à reconnaître son émotion (6, 12 ou 24 selon l’âge), à dire si elle est forte et où on la sent dans le corps, puis propose des idées.',
+        'Nouveau : « Ma boîte à outils ». L’enfant garde les idées qui l’aident ; elles lui sont proposées en premier, aussi au coin calme.',
+        'Quand la routine du coucher est finie, Kidu propose doucement « Comment s’est passée ta journée ? » (désactivable dans Paramètres → Mes émotions).',
+      ],
+      en: [
+        'New: "How I feel", under each child’s card. The owl helps name the feeling (6, 12 or 24 depending on age), say how strong it is and where it is felt in the body, then offers ideas.',
+        'New: "My toolbox". The child keeps the ideas that help them; they come first, in the calm corner too.',
+        'When the bedtime routine is done, Kidu gently asks "How was your day?" (can be turned off in Settings → Mes émotions).',
+      ],
+    },
+  },
+  {
     version: '1.7.1',
     date: '2026-11-11',
     changes: {

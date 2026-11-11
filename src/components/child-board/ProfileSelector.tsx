@@ -5,6 +5,7 @@ import { ChildCard } from './ChildCard';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Info, Settings } from 'lucide-react';
 import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
+import { OwlGlyph } from '../../features/emotions/art/OwlGlyph';
 
 interface ProfileSelectorProps {
   profiles: ChildProfile[];
@@ -24,6 +25,8 @@ interface ProfileSelectorProps {
   banner?: React.ReactNode;
   /** Opens the calm corner ("Mes émotions"), no PIN; missing when the parent turned it off */
   onOpenCalm?: () => void;
+  /** Opens a child's emotions space ("Comment je me sens") */
+  onOpenEmotions?: (childId: string) => void;
 }
 
 /** Re-renders every 30 s so late / upcoming tasks stay up to date. */
@@ -49,6 +52,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   onShowAbout,
   banner,
   onOpenCalm,
+  onOpenEmotions,
 }) => {
   const now = useNow();
   const date = today ?? new Date(now).toISOString().slice(0, 10);
@@ -132,16 +136,27 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
           {profiles.map((profile) => {
             const summary = summaries.get(profile.id);
             return (
-              <ChildCard
-                key={profile.id}
-                profile={profile}
-                summary={summary}
-                lateCount={lateCounts[profile.id] ?? summary?.late.length ?? 0}
-                language={language}
-                label={label}
-                formatTime={(t) => timeFormat.format(t)}
-                onSelect={() => onSelect(profile)}
-              />
+              <div key={profile.id} className="w-full sm:w-[22rem] flex flex-col gap-2">
+                <ChildCard
+                  profile={profile}
+                  summary={summary}
+                  lateCount={lateCounts[profile.id] ?? summary?.late.length ?? 0}
+                  language={language}
+                  label={label}
+                  formatTime={(t) => timeFormat.format(t)}
+                  onSelect={() => onSelect(profile)}
+                />
+                {onOpenEmotions && (
+                  <button
+                    onClick={() => onOpenEmotions(profile.id)}
+                    data-testid={`emotions-button-${profile.id}`}
+                    className="flex items-center justify-center gap-2 h-14 rounded-full bg-[#6E5BA8]/25 hover:bg-[#6E5BA8]/40 border border-[#E9E4FA]/25 text-[#F4F1FF] font-bold text-base transition-colors"
+                  >
+                    <OwlGlyph className="w-9 h-10" />
+                    {translate('emo.hub.button', language)}
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
