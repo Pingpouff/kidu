@@ -25,7 +25,9 @@ interface CloudProps {
 export const Cloud: React.FC<CloudProps> = ({ phase, breath = 0, inhaleSeconds = 4, exhaleSeconds = 6, className }) => {
   const gradientId = `emo-wind-${useId().replace(/:/g, '')}`;
   const exhale = phase === 'exhale';
-  const scale = phase === 'inhale' ? 1.08 : exhale ? 0.86 : 0.94;
+  const inhale = phase === 'inhale';
+  // Big enough to be seen from across the room on a tablet: +50 % between out and in
+  const scale = inhale ? 'scale(1.2, 1.17)' : exhale ? 'scale(0.78)' : 'scale(0.9)';
   const duration = phase === 'inhale' ? inhaleSeconds : exhale ? exhaleSeconds : 1;
 
   return (
@@ -47,7 +49,8 @@ export const Cloud: React.FC<CloudProps> = ({ phase, breath = 0, inhaleSeconds =
 
       <g
         className="emo-cloud-body"
-        style={{ transform: `scale(${scale})`, transition: `transform ${duration}s ease-in-out` }}
+        style={{ transform: scale, transition: `transform ${duration}s ease-in-out` }}
+        data-testid="calm-cloud-body"
       >
         <path
           d="M44 166 C12 166 2 142 8 120 C14 100 30 92 44 94 C46 66 72 48 98 52 C120 55 134 70 138 84 C158 74 190 86 192 112 C196 142 176 166 150 166 Z"
@@ -57,8 +60,23 @@ export const Cloud: React.FC<CloudProps> = ({ phase, breath = 0, inhaleSeconds =
         <g style={{ transform: `translateX(${exhale ? 40 : 0}px)`, transition: 'transform 0.9s ease-in-out' }}>
           <path d="M68 118 Q78 126 88 118" stroke="#2B2550" strokeWidth="5" fill="none" strokeLinecap="round" />
           <path d="M112 118 Q122 126 132 118" stroke="#2B2550" strokeWidth="5" fill="none" strokeLinecap="round" />
-          <circle cx="60" cy="134" r="8" fill="#B39DDB" opacity="0.45" />
-          <circle cx="140" cy="134" r="8" fill="#B39DDB" opacity="0.45" />
+          {/* Cheeks puff up with the air breathed in */}
+          {[60, 140].map((cx) => (
+            <circle
+              key={cx}
+              cx={cx}
+              cy="134"
+              r="8"
+              fill="#B39DDB"
+              style={{
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+                transform: `scale(${inhale ? 1.5 : 1})`,
+                opacity: inhale ? 0.7 : 0.45,
+                transition: `transform ${duration}s ease-in-out, opacity ${duration}s ease-in-out`,
+              }}
+            />
+          ))}
           {exhale ? (
             <ellipse cx="102" cy="141" rx="5.5" ry="6.5" fill="#2B2550" />
           ) : (
@@ -68,7 +86,7 @@ export const Cloud: React.FC<CloudProps> = ({ phase, breath = 0, inhaleSeconds =
       </g>
 
       {exhale && (
-        <g key={breath} className="emo-wind" transform="translate(148 92) scale(0.62)">
+        <g key={breath} className="emo-wind" transform="translate(138 92) scale(0.62)">
           <g fill={`url(#${gradientId})`}>
             <path className="emo-swoosh" d="M0 52 C60 34 140 30 204 42 C228 46 246 42 252 30 C256 22 249 16 243 20 C249 20 251 27 246 33 C236 46 214 52 196 50 C140 46 70 48 0 52 Z" />
             <path className="emo-swoosh emo-d2" d="M14 80 C90 66 190 68 292 80 C190 76 96 78 14 80 Z" />
