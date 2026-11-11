@@ -6,7 +6,7 @@ import { unspentBadges } from '../../domain/rewards';
 import { TROPHY_IDS, TROPHY_ICONS } from '../../domain/trophies';
 import { translate, Language } from '../../i18n/dictionary';
 import { PinModal } from '../parent-mode/PinModal';
-import { BadgeDisc } from './BadgeChoice';
+import { MedalDisc } from './MedalDisc';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti } from '../../services/effects';
 import { CONFETTI_Z } from '../../ui/layers';
@@ -26,8 +26,8 @@ interface PiggyBankProps {
 type Tab = 'bank' | 'album' | 'trophies';
 
 /**
- * The child's piggy bank: badges to spend in the parent's shop,
- * an album of every badge ever won, and the trophy cabinet.
+ * The child's piggy bank: medals to spend in the parent's shop,
+ * an album of every medal ever won, and the trophy cabinet.
  */
 export const PiggyBank: React.FC<PiggyBankProps> = ({
   profile,
@@ -123,7 +123,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {available.map((b) => (
-                    <BadgeDisc key={b.uid} badgeId={b.badgeId} size="sm" />
+                    <MedalDisc key={b.uid} badgeId={b.badgeId} size="sm" />
                   ))}
                 </div>
               )}
@@ -176,7 +176,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
                 if (!badge) return null;
                 return (
                   <div key={owned.uid} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
-                    <BadgeDisc badgeId={owned.badgeId} />
+                    <MedalDisc badgeId={owned.badgeId} />
                     <span className="text-sm font-extrabold text-white leading-tight">{badge.name[language]}</span>
                     <span className="text-[11px] text-white/45 leading-snug">
                       {owned.spentAt

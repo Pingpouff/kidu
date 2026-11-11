@@ -5,43 +5,22 @@ import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { CONFETTI_Z } from '../../ui/layers';
 import { Overlay } from '../../ui/Overlay';
+import { MedalDisc } from './MedalDisc';
 
-interface BadgeChoiceProps {
+interface MedalChoiceProps {
   childName: string;
-  offer: string[]; // 3 badge ids
+  offer: string[]; // 3 motifs (badge ids in the data)
   pendingCount: number; // offers waiting, including this one
   language: Language;
   onChoose: (badgeId: string) => Promise<void>;
 }
 
-export const BadgeDisc: React.FC<{ badgeId: string; size?: 'sm' | 'md' | 'lg'; dimmed?: boolean }> = ({
-  badgeId,
-  size = 'md',
-  dimmed = false,
-}) => {
-  const badge = getBadge(badgeId);
-  if (!badge) return null;
-  const universe = getUniverse(badge.universe);
-  const sizes = {
-    sm: 'w-12 h-12 text-2xl ring-2',
-    md: 'w-20 h-20 text-5xl ring-4',
-    lg: 'w-28 h-28 md:w-36 md:h-36 text-6xl md:text-7xl ring-4',
-  };
-  return (
-    <div
-      className={`${sizes[size]} rounded-full bg-gradient-to-br ${universe.gradient} ring-white/40 shadow-lg flex items-center justify-center shrink-0 ${
-        dimmed ? 'grayscale opacity-40' : ''
-      }`}
-    >
-      <span className="drop-shadow">{badge.emoji}</span>
-    </div>
-  );
-};
-
 /**
- * After a medal, the child picks one badge out of three for their piggy bank.
+ * A new medal: 3 stars became a medal, the child picks its motif out of
+ * three; it goes to the piggy bank. This screen is the medal's reveal (one
+ * thing won, not a medal then a badge).
  */
-export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
+export const MedalChoice: React.FC<MedalChoiceProps> = ({
   childName,
   offer,
   pendingCount,
@@ -53,6 +32,8 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
 
   useEffect(() => {
     setChosen(null);
+    reminderService.playMedalSound();
+    fireConfetti({ particleCount: 90, spread: 100, origin: { x: 0.5, y: 0.35 }, zIndex: CONFETTI_Z.overlay });
     reminderService.triggerVoiceReminder(
       translate('badge.choose_spoken', language, { name: childName }),
       language === 'fr' ? 'fr-FR' : 'en-US'
@@ -79,13 +60,14 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
     <Overlay
       layer="choice"
       aria-label={translate('badges.choose', language)}
-      data-testid="badge-choice"
+      data-testid="medal-choice"
       className="flex flex-col items-center justify-center gap-8 bg-slate-950/90 backdrop-blur-sm select-none p-6"
     >
       <div className="text-center flex flex-col gap-2">
-        <p className="text-3xl md:text-5xl font-black text-white">
-          🎁 {translate('badges.choose', language)}
+        <p className="text-3xl md:text-5xl font-black text-yellow-300 drop-shadow">
+          🏅 {translate('badges.choose', language)}
         </p>
+        <p className="text-lg md:text-2xl font-extrabold text-white">{translate('medal.subtitle', language)}</p>
         <p className="text-base md:text-lg text-white/60 font-semibold">
           {translate('badges.choose_hint', language)}
           {pendingCount > 1 && ` (${pendingCount} ${translate('badges.waiting', language)})`}
@@ -103,14 +85,14 @@ export const BadgeChoice: React.FC<BadgeChoiceProps> = ({
               key={badgeId}
               onClick={() => handleChoose(badgeId)}
               disabled={chosen !== null}
-              data-testid="badge-option"
+              data-testid="medal-option"
               aria-label={badge.name[language]}
               style={{ animationDelay: `${i * 150}ms` }}
               className={`w-40 md:w-52 p-5 rounded-3xl bg-white/10 border-2 border-white/20 hover:border-yellow-300 hover:bg-white/15 flex flex-col items-center gap-3 transition-all active:scale-95 ${
                 isChosen ? 'animate-chosen border-yellow-300' : chosen ? 'opacity-0 transition-opacity duration-300' : 'animate-card-flip-in'
               }`}
             >
-              <BadgeDisc badgeId={badgeId} size="lg" />
+              <MedalDisc badgeId={badgeId} size="lg" />
               <span className="text-lg md:text-xl font-black text-white text-center leading-tight">
                 {badge.name[language]}
               </span>

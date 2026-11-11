@@ -16,7 +16,7 @@ import { TrophyId, TROPHY_ICONS } from './domain/trophies';
 import { shopItems, starsPerMedal } from './domain/rewards';
 import { translate } from './i18n/dictionary';
 import { RewardReveal } from './components/rewards/RewardReveal';
-import { BadgeChoice } from './components/rewards/BadgeChoice';
+import { MedalChoice } from './components/rewards/MedalChoice';
 import { ReminderBanner } from './components/child-board/ReminderBanner';
 import { useTaskReminders } from './hooks/useTaskReminders';
 import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
@@ -28,10 +28,11 @@ import { AboutModal } from './components/app/AboutModal';
 import { InstallBanner } from './components/app/InstallBanner';
 import { WhatsNewModal } from './components/app/WhatsNewModal';
 
-/** Rewards waiting to be revealed, one full-screen reveal at a time */
-type Reveal =
-  | { kind: 'medal'; childId: string; key: string }
-  | { kind: 'trophy'; childId: string; id: TrophyId; key: string };
+/**
+ * Trophies waiting to be revealed, one full-screen reveal at a time. A new
+ * medal has no reveal of its own: choosing its motif (MedalChoice) is the reveal.
+ */
+type Reveal = { kind: 'trophy'; childId: string; id: TrophyId; key: string };
 
 // Loaded on demand: Parent Mode and the end-of-day celebration aren't needed to start the app
 const ParentDashboard = lazy(() => import('./components/parent-mode/Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -187,34 +188,30 @@ export default function App() {
   // Handle active session updates
   const handleUpdateSession = async (updatedSession: RoutineSession) => {
     const childId = updatedSession.childId;
-    // One star per newly completed task, a medal every N stars
-    const { medalsGained } = await routineRepository.saveSessionWithRewards(updatedSession);
+    // One star per newly completed task, a medal every N stars (its choice shows from badgeOffers)
+    await routineRepository.saveSessionWithRewards(updatedSession);
 
     // Partial days are kept in the history too (e.g. 9/12 tasks)
     await routineRepository.recordHistory(updatedSession, activeProfile?.name || '');
 
     const newTrophies = await routineRepository.awardNewTrophies(childId);
 
-    const queued: Reveal[] = [
-      ...Array.from({ length: medalsGained }, (_, i): Reveal => ({ kind: 'medal', childId, key: `medal_${Date.now()}_${i}` })),
-      ...newTrophies.map((id): Reveal => ({ kind: 'trophy', childId, id, key: `trophy_${id}` })),
-    ];
+    const queued: Reveal[] = newTrophies.map((id): Reveal => ({ kind: 'trophy', childId, id, key: `trophy_${id}` }));
     if (queued.length > 0) {
       setReveals((current) => [...current, ...queued]);
     }
   };
 
-  const currentReveal = reveals[0];
-  const revealChild = currentReveal ? profiles.find((p) => p.id === currentReveal.childId) : undefined;
+  // A new medal first (the child picks it), then the trophies it may have unlocked
+  const pendingOffers = activeProfile?.badgeOffers ?? [];
+  const showMedalChoice = activeProfile !== null && pendingOffers.length > 0;
+  const currentReveal = showMedalChoice ? undefined : reveals[0];
   const revealTotal = revealsShown + reveals.length;
   const revealPosition = revealTotal > 1 ? `${revealsShown + 1}/${revealTotal}` : undefined;
   const dismissReveal = () => {
     setRevealsShown((n) => (reveals.length <= 1 ? 0 : n + 1));
     setReveals((queue) => queue.slice(1));
   };
-  // Once the reveals are over, the child picks a badge for each pending medal
-  const pendingOffers = activeProfile?.badgeOffers ?? [];
-  const showBadgeChoice = !currentReveal && activeProfile !== null && pendingOffers.length > 0;
   const starsTonight = activeSession?.tasks.filter((t) => t.rewarded).length ?? 0;
 
   // Reset active session callback
@@ -375,25 +372,13 @@ export default function App() {
       {currentReveal && (
         <RewardReveal
           key={currentReveal.key}
-          icon={currentReveal.kind === 'medal' ? '🏅' : TROPHY_ICONS[currentReveal.id]}
-          heading={translate(currentReveal.kind === 'medal' ? 'medal.new' : 'trophies.new', activeLang)}
-          title={
-            currentReveal.kind === 'medal'
-              ? translate('medal.title', activeLang)
-              : translate(`trophy.${currentReveal.id}.name`, activeLang)
-          }
-          subtitle={
-            currentReveal.kind === 'medal'
-              ? translate('medal.subtitle', activeLang)
-              : translate(`trophy.${currentReveal.id}.hint`, activeLang)
-          }
-          spoken={
-            currentReveal.kind === 'medal'
-              ? translate('reveal.new_medal_spoken', activeLang, { name: revealChild?.name ?? '' })
-              : translate('reveal.new_trophy_spoken', activeLang, {
-                  trophy: translate(`trophy.${currentReveal.id}.name`, activeLang),
-                })
-          }
+          icon={TROPHY_ICONS[currentReveal.id]}
+          heading={translate('trophies.new', activeLang)}
+          title={translate(`trophy.${currentReveal.id}.name`, activeLang)}
+          subtitle={translate(`trophy.${currentReveal.id}.hint`, activeLang)}
+          spoken={translate('reveal.new_trophy_spoken', activeLang, {
+            trophy: translate(`trophy.${currentReveal.id}.name`, activeLang),
+          })}
           language={activeLang}
           position={revealPosition}
           onDismiss={dismissReveal}
@@ -411,9 +396,9 @@ export default function App() {
         />
       )}
 
-      {/* Badge choice for each medal waiting */}
-      {showBadgeChoice && activeProfile && (
-        <BadgeChoice
+      {/* A new medal: the child picks its motif (one screen per medal waiting) */}
+      {showMedalChoice && activeProfile && (
+        <MedalChoice
           key={pendingOffers[0].join('|')}
           childName={activeProfile.name}
           offer={pendingOffers[0]}

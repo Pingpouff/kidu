@@ -89,8 +89,9 @@ export interface BehaviorCard {
 }
 
 /**
- * A badge won by a child. Unspent badges are in the piggy bank;
- * spent ones stay in the album as a souvenir.
+ * A medal won by a child (its motif is called a "badge" in the data, for
+ * backward compatibility: children only ever see medals). Unspent ones are
+ * in the piggy bank; spent ones stay in the album as a souvenir.
  */
 export interface OwnedBadge {
   uid: string;
