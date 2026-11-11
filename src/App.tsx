@@ -8,6 +8,7 @@ import { RoutineBoard } from './components/child-board/RoutineBoard';
 import { PinModal } from './components/parent-mode/PinModal';
 import { reminderService } from './services/ReminderService';
 import { isLowEndDevice, resolveVisuals } from './services/performance';
+import { emotionSettings } from './features/emotions/domain/settings';
 import { backupFileName, parseBackup } from './domain/backup';
 import { TrophyId, TROPHY_ICONS } from './domain/trophies';
 import { shopItems, starsPerMedal } from './domain/rewards';
@@ -33,11 +34,15 @@ type Reveal =
 // Loaded on demand: Parent Mode and the end-of-day celebration aren't needed to start the app
 const ParentDashboard = lazy(() => import('./components/parent-mode/Dashboard').then((m) => ({ default: m.Dashboard })));
 const Celebration = lazy(() => import('./components/rewards/Celebration').then((m) => ({ default: m.Celebration })));
+// "Mes émotions": loaded on demand, the routine's start-up stays as light as before
+const CalmCorner = lazy(() => import('./features/emotions/components/CalmCorner'));
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [parentMode, setParentMode] = useState(false);
+  // Calm corner open (from the home screen: no child; from a board: that child)
+  const [calm, setCalm] = useState<{ childId?: string } | null>(null);
   const [pinPrompt, setPinPrompt] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
   const [reveals, setReveals] = useState<Reveal[]>([]);
@@ -125,7 +130,7 @@ export default function App() {
     tasks,
     today: todayStr,
     language: settings?.language ?? 'fr',
-    paused: parentMode,
+    paused: parentMode || calm !== null, // no reminder while breathing
   });
   const lateCounts: Record<string, number> = {};
   for (const task of reminders.overdue) lateCounts[task.childId] = (lateCounts[task.childId] ?? 0) + 1;
@@ -149,6 +154,8 @@ export default function App() {
   }
 
   const activeLang = settings.language || 'fr';
+  const emotions = emotionSettings(settings);
+  const openCalm = emotions.enabled ? (childId?: string) => setCalm({ childId }) : undefined;
 
   // Handle active session updates
   const handleUpdateSession = async (updatedSession: RoutineSession) => {
@@ -425,6 +432,7 @@ export default function App() {
           }}
           lateDefinitionIds={activeLateIds}
           onGiveCard={(color, reason) => routineRepository.giveCard(activeProfile.id, color, activeSession.date, reason)}
+          onOpenCalm={openCalm && (() => openCalm(activeProfile.id))}
         />
       ) : (
         <ProfileSelector
@@ -438,6 +446,7 @@ export default function App() {
           settings={settings}
           today={todayStr}
           onShowAbout={() => setShowAbout(true)}
+          onOpenCalm={openCalm && (() => openCalm())}
           banner={
             !installDismissed && (
               <InstallBanner
@@ -451,6 +460,17 @@ export default function App() {
             )
           }
         />
+      )}
+
+      {calm && emotions.enabled && (
+        <Suspense fallback={null}>
+          <CalmCorner
+            language={activeLang}
+            profile={calm.childId ? profiles.find((p) => p.id === calm.childId) : null}
+            settings={emotions}
+            onClose={() => setCalm(null)}
+          />
+        </Suspense>
       )}
 
       {showAbout && !activeProfile && (

@@ -4,6 +4,7 @@ import { childSummary, greetingKey, upcomingDeadlines } from '../../domain/summa
 import { ChildCard } from './ChildCard';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Info, Settings } from 'lucide-react';
+import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
 
 interface ProfileSelectorProps {
   profiles: ChildProfile[];
@@ -21,6 +22,8 @@ interface ProfileSelectorProps {
   onShowAbout?: () => void;
   /** Shown under the top bar, e.g. the invitation to install the app */
   banner?: React.ReactNode;
+  /** Opens the calm corner ("Mes émotions"), no PIN; missing when the parent turned it off */
+  onOpenCalm?: () => void;
 }
 
 /** Re-renders every 30 s so late / upcoming tasks stay up to date. */
@@ -45,6 +48,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   today,
   onShowAbout,
   banner,
+  onOpenCalm,
 }) => {
   const now = useNow();
   const date = today ?? new Date(now).toISOString().slice(0, 10);
@@ -86,6 +90,17 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
           🕰️ {timeFormat.format(now)}
         </div>
         <div className="flex items-center gap-3">
+          {onOpenCalm && (
+            <button
+              onClick={onOpenCalm}
+              data-testid="calm-button"
+              className="flex items-center gap-2 h-[66px] pl-3 pr-5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 text-[#F4F1FF] border border-[#E8E4FF]/25 rounded-full font-bold text-base sm:text-lg transition-colors"
+            >
+              <CloudGlyph className="w-11 h-9" />
+              <span className="hidden sm:inline">{translate('emo.calm.button', language)}</span>
+              <span className="sr-only sm:hidden">{translate('emo.calm.button', language)}</span>
+            </button>
+          )}
           {onShowAbout && (
             <button
               onClick={onShowAbout}

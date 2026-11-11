@@ -207,23 +207,25 @@ export const routineRepository = {
    * optionally including the routine history.
    */
   async exportBackup(includeHistory: boolean): Promise<BackupFile> {
-    const [settings, tasks, profiles, history] = await Promise.all([
+    const [settings, tasks, profiles, history, emotionLogs] = await Promise.all([
       getSettings(),
       db.tasks.toArray(),
       db.profiles.toArray(),
       includeHistory ? db.history.toArray() : Promise.resolve(undefined),
+      // Emotions are as personal as the history: exported with it
+      includeHistory ? db.emotionLogs.toArray() : Promise.resolve(undefined),
     ]);
-    return createBackup({ settings, tasks, profiles, history });
+    return createBackup({ settings, tasks, profiles, history, emotionLogs });
   },
 
   /**
    * Replaces the current configuration with the content of a validated backup.
    * In-progress sessions are cleared since they reference the previous tasks/profiles.
-   * History is only replaced when the backup contains it.
+   * History and emotion logs are only replaced when the backup contains them.
    */
   async importBackup(backup: BackupFile): Promise<void> {
-    const { settings, tasks, profiles, history } = backup.data;
-    await db.transaction('rw', [db.settings, db.tasks, db.profiles, db.sessions, db.history], async () => {
+    const { settings, tasks, profiles, history, emotionLogs } = backup.data;
+    await db.transaction('rw', [db.settings, db.tasks, db.profiles, db.sessions, db.history, db.emotionLogs], async () => {
       await db.settings.put({ ...settings, id: 'current' });
       await db.tasks.clear();
       await db.tasks.bulkPut(tasks);
@@ -233,6 +235,10 @@ export const routineRepository = {
       if (history) {
         await db.history.clear();
         await db.history.bulkPut(history);
+      }
+      if (emotionLogs) {
+        await db.emotionLogs.clear();
+        await db.emotionLogs.bulkPut(emotionLogs);
       }
     });
   },
@@ -245,8 +251,9 @@ export const routineRepository = {
    * the others; tasks assigned only to them are deleted.
    */
   async deleteProfile(childId: string): Promise<void> {
-    await db.transaction('rw', [db.profiles, db.tasks], async () => {
+    await db.transaction('rw', [db.profiles, db.tasks, db.emotionLogs], async () => {
       await db.profiles.delete(childId);
+      await db.emotionLogs.where('childId').equals(childId).delete();
       const { updated, orphans } = unassignChild(await db.tasks.toArray(), childId);
       if (updated.length) await db.tasks.bulkPut(updated);
       if (orphans.length) await db.tasks.bulkDelete(orphans);
@@ -259,5 +266,6 @@ export const routineRepository = {
     await db.profiles.clear();
     await db.tasks.clear();
     await db.settings.clear();
+    await db.emotionLogs.clear();
   }
 };

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings, DEFAULT_FEEDBACK } from '../domain/models';
+import { ChildProfile, TaskDefinition, RoutineSession, HistoryEntry, ParentSettings, DEFAULT_FEEDBACK, EmotionLog } from '../domain/models';
 import { DEFAULT_STARS_PER_MEDAL, defaultShop } from '../domain/rewards';
 
 export class RoutineDatabase extends Dexie {
@@ -8,6 +8,7 @@ export class RoutineDatabase extends Dexie {
   sessions!: Table<RoutineSession, string>;
   history!: Table<HistoryEntry, string>;
   settings!: Table<ParentSettings, string>;
+  emotionLogs!: Table<EmotionLog, string>;
 
   constructor() {
     super('ChildrenEveningRoutineDB');
@@ -27,6 +28,10 @@ export class RoutineDatabase extends Dexie {
       if (!hasMorning) {
         await tasks.bulkPut(defaultTasks.filter((t) => t.category === 'morning'));
       }
+    });
+    // v3: "Mes émotions" (check-ins and calm corner sessions)
+    this.version(3).stores({
+      emotionLogs: 'id, childId, date, [childId+date]',
     });
   }
 }
