@@ -46,7 +46,7 @@ describe('Wording', () => {
   });
 
   it('fills {placeholders} and falls back to the key for unknown dynamic keys', () => {
-    expect(translate('badge.choose_spoken', 'fr', { name: 'Léo' })).toBe('Léo, choisis ton badge !');
+    expect(translate('badge.choose_spoken', 'fr', { name: 'Léo' })).toBe('Léo, tu as gagné une médaille ! Choisis-la !');
     expect(translate('piggy.bought_spoken', 'en', { item: 'Ice cream' })).toBe('Hooray! Ice cream!');
     expect(translateDynamic('category.morning', 'fr')).toBe('Matin');
     expect(translateDynamic('nope.missing', 'fr')).toBe('nope.missing');

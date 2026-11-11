@@ -1,5 +1,5 @@
-import { RoutineSession, TaskDefinition, TaskCategory } from './models';
-import { getRoutinePhases } from './routine';
+import { ChildProfile, RoutineSession, TaskDefinition, TaskCategory } from './models';
+import { getRoutinePhases, weekdayOf } from './routine';
 
 export const TROPHY_IDS = [
   'first_step',
@@ -14,6 +14,19 @@ export const TROPHY_IDS = [
   'bedtime_10',
   'lightning',
   'early_bird',
+  // Medals and stars
+  'medal_1',
+  'medals_10',
+  'medals_25',
+  'medals_50',
+  'stars_100',
+  'stars_500',
+  // Everyday challenges
+  'perfect_week',
+  'full_day',
+  'weekend',
+  'comeback',
+  'early_night',
 ] as const;
 export type TrophyId = typeof TROPHY_IDS[number];
 
@@ -36,12 +49,27 @@ export const TROPHY_ICONS: Record<TrophyId, string> = {
   bedtime_10: '🌙',
   lightning: '⚡',
   early_bird: '🐦',
+  medal_1: '🏅',
+  medals_10: '🎖️',
+  medals_25: '💎',
+  medals_50: '🌟',
+  stars_100: '✨',
+  stars_500: '🌠',
+  perfect_week: '📅',
+  full_day: '🌞',
+  weekend: '🛝',
+  comeback: '🔄',
+  early_night: '🛌',
 };
 
 /** Three tasks finished within this window earn the "lightning" medal. */
 export const LIGHTNING_WINDOW_MS = 5 * 60 * 1000;
 /** Morning step finished before this local hour earns the "early bird" trophy. */
 export const EARLY_BIRD_HOUR = 8;
+/** Bedtime step finished before this local hour earns the "early night" trophy. */
+export const EARLY_NIGHT_HOUR = 20;
+/** A completed routine after at least this many days without one earns "comeback". */
+export const COMEBACK_GAP_DAYS = 3;
 
 export interface TrophyStats {
   completedRoutines: number;
@@ -49,6 +77,19 @@ export interface TrophyStats {
   phaseCompletions: Record<TaskCategory, number>;
   hadLightning: boolean;
   hadEarlyBird: boolean;
+  /** From the profile */
+  medals: number;
+  stars: number;
+  /** Monday to Sunday, every day's routine completed */
+  hadPerfectWeek: boolean;
+  /** A day where every step was done (none skipped), at least 2 steps */
+  hadFullDay: boolean;
+  /** A routine completed on a Saturday or a Sunday */
+  hadWeekend: boolean;
+  /** A routine completed after 2 days or more without one */
+  hadComeback: boolean;
+  /** Bedtime step finished before 8 pm */
+  hadEarlyNight: boolean;
 }
 
 /**
@@ -92,29 +133,54 @@ function hasLightning(session: RoutineSession): boolean {
  */
 export function computeTrophyStats(
   sessions: RoutineSession[],
-  definitions: TaskDefinition[]
+  definitions: TaskDefinition[],
+  profile?: Pick<ChildProfile, 'stars' | 'medalCount'>
 ): TrophyStats {
   const completed = sessions.filter((s) => s.isCompleted);
+  const completedDates = [...new Set(completed.map((s) => s.date))].sort();
   const phaseCompletions: Record<TaskCategory, number> = { morning: 0, after_school: 0, meal: 0, bedtime: 0 };
   let hadEarlyBird = false;
+  let hadEarlyNight = false;
+  let hadFullDay = false;
+
+  const finishedAt = (tasks: { completedAt?: number }[]) => Math.max(...tasks.map((t) => t.completedAt ?? Infinity));
 
   for (const session of sessions) {
-    for (const phase of getRoutinePhases(session, definitions)) {
+    const phases = getRoutinePhases(session, definitions);
+    if (phases.length >= 2 && phases.every((p) => p.isCompleted && !p.isSkipped)) hadFullDay = true;
+    for (const phase of phases) {
       if (!phase.isCompleted) continue;
       phaseCompletions[phase.category]++;
-      if (phase.category === 'morning') {
-        const finishedAt = Math.max(...phase.tasks.map((t) => t.completedAt ?? Infinity));
-        if (Number.isFinite(finishedAt) && new Date(finishedAt).getHours() < EARLY_BIRD_HOUR) hadEarlyBird = true;
-      }
+      const end = finishedAt(phase.tasks);
+      if (!Number.isFinite(end)) continue;
+      if (phase.category === 'morning' && new Date(end).getHours() < EARLY_BIRD_HOUR) hadEarlyBird = true;
+      if (phase.category === 'bedtime' && new Date(end).getHours() < EARLY_NIGHT_HOUR) hadEarlyNight = true;
     }
   }
 
+  const done = new Set(completedDates);
+  const hadPerfectWeek = completedDates.some((date) => {
+    if (weekdayOf(date) !== 1) return false; // starts on a Monday
+    const monday = new Date(`${date}T12:00:00`);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday.getTime() + i * 86_400_000);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }).every((d) => done.has(d));
+  });
+
   return {
     completedRoutines: completed.length,
-    currentStreak: currentStreak(completed.map((s) => s.date)),
+    currentStreak: currentStreak(completedDates),
     phaseCompletions,
     hadLightning: sessions.some(hasLightning),
     hadEarlyBird,
+    medals: profile?.medalCount ?? 0,
+    stars: profile?.stars ?? 0,
+    hadPerfectWeek,
+    hadFullDay,
+    hadWeekend: completedDates.some((d) => weekdayOf(d) === 0 || weekdayOf(d) === 6),
+    hadComeback: completedDates.some((d, i) => i > 0 && dayDiff(completedDates[i - 1], d) >= COMEBACK_GAP_DAYS),
+    hadEarlyNight,
   };
 }
 
@@ -131,6 +197,17 @@ const RULES: Record<TrophyId, (s: TrophyStats) => boolean> = {
   bedtime_10: (s) => s.phaseCompletions.bedtime >= 10,
   lightning: (s) => s.hadLightning,
   early_bird: (s) => s.hadEarlyBird,
+  medal_1: (s) => s.medals >= 1,
+  medals_10: (s) => s.medals >= 10,
+  medals_25: (s) => s.medals >= 25,
+  medals_50: (s) => s.medals >= 50,
+  stars_100: (s) => s.stars >= 100,
+  stars_500: (s) => s.stars >= 500,
+  perfect_week: (s) => s.hadPerfectWeek,
+  full_day: (s) => s.hadFullDay,
+  weekend: (s) => s.hadWeekend,
+  comeback: (s) => s.hadComeback,
+  early_night: (s) => s.hadEarlyNight,
 };
 
 /**

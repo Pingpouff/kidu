@@ -62,3 +62,29 @@ describe('Treasure view', () => {
     expect(treasureRank({ ...stats, badges: 40 })).toBe('legend');
   });
 });
+
+describe('Treasure — trophies and medals apart', () => {
+  it('shows every trophy of the catalog, earned or still to win', async () => {
+    const { trophyShowcase } = await import('../domain/treasure');
+    const { TROPHY_IDS } = await import('../domain/trophies');
+    const showcase = trophyShowcase({ id: 'leo', name: 'Léo', avatar: '🦊', color: 'indigo', stars: 0, trophies: [{ id: 'weekend', earnedAt: 5 }] });
+    expect(showcase.map((t) => t.id)).toEqual([...TROPHY_IDS]);
+    expect(showcase.length).toBe(23);
+    expect(showcase.find((t) => t.id === 'weekend')).toMatchObject({ earnedAt: 5 });
+    expect(showcase.find((t) => t.id === 'first_step')).not.toHaveProperty('earnedAt');
+  });
+
+  it('counts medals won, in the piggy bank and exchanged', async () => {
+    const { medalTotals } = await import('../domain/treasure');
+    expect(
+      medalTotals({
+        id: 'leo', name: 'Léo', avatar: '🦊', color: 'indigo', stars: 9,
+        badges: [
+          { uid: 'a', badgeId: 'trex', earnedAt: 1 },
+          { uid: 'b', badgeId: 'trex', earnedAt: 2, spentAt: 3, spentOn: 'Dessert' },
+          { uid: 'c', badgeId: 'rocket', earnedAt: 4 },
+        ],
+      })
+    ).toEqual({ total: 3, inBank: 2, spent: 1 });
+  });
+});

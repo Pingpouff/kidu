@@ -16,6 +16,22 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.10.0',
+    date: '2026-11-11',
+    changes: {
+      fr: [
+        'Une seule récompense : la médaille. Quand 3 étoiles deviennent une médaille, l’enfant choisit son motif (dinosaure, fusée, dauphin…) ; plus de « badge » en plus.',
+        'Mon trésor : les trophées ont leur vitrine, avec ceux qui restent à gagner et comment les gagner ; les médailles et leurs collections sont à part.',
+        '11 nouveaux trophées : première médaille, 10, 25 et 50 médailles, 100 et 500 étoiles, semaine parfaite, journée complète, week-end, le retour, au lit avant 20 h.',
+      ],
+      en: [
+        'One reward only: the medal. When 3 stars become a medal, the child picks its design (dinosaur, rocket, dolphin…); no extra "badge" anymore.',
+        'My treasure: trophies get their own showcase, with the ones still to win and how; medals and their collections are apart.',
+        '11 new trophies: first medal, 10, 25 and 50 medals, 100 and 500 stars, perfect week, full day, weekend, comeback, in bed before 8 pm.',
+      ],
+    },
+  },
+  {
     version: '1.9.0',
     date: '2026-11-11',
     changes: {

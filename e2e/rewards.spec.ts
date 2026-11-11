@@ -1,8 +1,8 @@
 import { test, expect } from './fixtures';
 import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
 
-test.describe('Stars, medals, badges and piggy bank', () => {
-  test('3 tasks give a medal, the child picks a badge and exchanges it in the shop', async ({ page }) => {
+test.describe('Stars, medals and piggy bank', () => {
+  test('3 tasks give one medal the child picks, then exchanges in the shop; the treasure shows trophies and medals apart', async ({ page }) => {
     await page.goto('/');
     await removeMorningTasks(page);
 
@@ -10,7 +10,7 @@ test.describe('Stars, medals, badges and piggy bank', () => {
     await enterParentMode(page);
     await page.getByRole('button', { name: 'Boutique' }).click();
     await page.getByPlaceholder('Récompense').fill('Câlin géant');
-    await page.getByRole('spinbutton', { name: 'Prix en badges' }).first().fill('1');
+    await page.getByRole('spinbutton', { name: 'Prix en médailles' }).first().fill('1');
     await page.getByRole('button', { name: 'Ajouter' }).click();
     await expect(page.getByTestId('shop-list').locator('input[value="Câlin géant"]')).toHaveCount(1);
     await page.getByRole('button', { name: 'Quitter le Mode Parent' }).click();
@@ -24,47 +24,60 @@ test.describe('Stars, medals, badges and piggy bank', () => {
     await completeTask(page, 'Prendre son goûter');
     await expect(page.getByText('Plus qu\'une étoile pour la médaille !')).toBeVisible();
 
-    // Third star: medal reveal, then badge choice
+    // Third star: one single screen, "New medal! Pick it" — no separate medal reveal before it
     await completeTask(page, 'Faire ses devoirs', { dismiss: false });
-    const reveal = page.getByTestId('reward-reveal');
-    await expect(reveal).toContainText('Nouvelle médaille');
-    await reveal.click();
-    // Other reveals (trophies such as "Lightning") may follow
-    while (await reveal.isVisible()) await reveal.click();
-
-    const choice = page.getByTestId('badge-choice');
+    const choice = page.getByTestId('medal-choice');
     await expect(choice).toBeVisible();
-    const options = choice.getByTestId('badge-option');
+    await expect(choice).toContainText('Nouvelle médaille');
+    const reveal = page.getByTestId('reward-reveal');
+    await expect(reveal).toHaveCount(0);
+    const options = choice.getByTestId('medal-option');
     await expect(options).toHaveCount(3);
+    await expect(options.first().getByTestId('medal-disc')).toBeVisible();
     const chosenName = await options.nth(1).getAttribute('aria-label');
     await options.nth(1).click();
     await expect(choice).toBeHidden();
 
+    // Then the trophies it unlocked (first medal…), never a second "new medal"
+    await expect(reveal).toContainText('Nouveau trophée');
+    for (let i = 0; i < 6 && (await reveal.isVisible()); i++) {
+      await expect(reveal).not.toContainText('Nouvelle médaille');
+      await reveal.click();
+    }
+
     await expect(medalCount).toHaveText('1');
     await expect(page.getByTestId('piggy-header-count')).toHaveText('1');
 
-    // Piggy bank: exchange the badge, approved with the parent PIN
+    // Piggy bank, in medals
     await page.getByRole('button', { name: 'Tirelire de' }).click();
     const piggy = page.getByTestId('piggy-bank');
-    await expect(piggy.getByTestId('piggy-count')).toContainText('1 badge');
+    await expect(piggy.getByTestId('piggy-count')).toContainText('1 médaille');
 
-    // "My treasure": open the chest, the new badge is shown in big with its collection
+    // "My treasure": trophies and medals in two sections
     await piggy.getByTestId('open-treasure').click();
     const treasure = page.getByTestId('treasure-view');
     await expect(treasure).toBeVisible();
     await treasure.getByTestId('treasure-chest').click();
-    await expect(treasure.getByTestId('treasure-name')).toBeVisible();
-    await expect(treasure.getByTestId('treasure-badges')).toContainText('1');
     await expect(treasure.getByTestId('treasure-medals')).toContainText('1');
-    // Trophies (if any were unlocked) come first: browse until the badge shows up
-    for (let i = 0; i < 5 && (await treasure.getByTestId('treasure-name').textContent()) !== chosenName; i++) {
-      await treasure.getByRole('button', { name: 'Trésor suivant' }).click();
-    }
+    await expect(treasure.getByTestId('treasure-badges')).toHaveCount(0);
+
+    const showcase = treasure.getByTestId('treasure-trophy-showcase');
+    await expect(showcase.getByTestId('trophy-medal_1')).toHaveAttribute('data-earned', 'true');
+    const toWin = showcase.getByTestId('trophy-medals_50');
+    await expect(toWin).toHaveAttribute('data-earned', 'false');
+    await expect(toWin).toContainText('Gagne 50 médailles');
+    await expect(showcase.locator('[data-testid^="trophy-"]')).toHaveCount(23);
+
+    const medals = treasure.getByTestId('treasure-medal-section');
+    await expect(medals.getByTestId('treasure-medal-summary')).toContainText('Gagnées : 1');
+    await medals.getByRole('button', { name: chosenName! }).click();
     await expect(treasure.getByTestId('treasure-name')).toHaveText(chosenName!);
     await expect(treasure.getByTestId('treasure-collections').getByText('1/6')).toHaveCount(1);
     await treasure.getByTestId('treasure-spotlight').click();
     await treasure.getByRole('button', { name: 'Fermer' }).click();
     await expect(treasure).toBeHidden();
+
+    // Exchange the medal, approved with the parent PIN
     await expect(piggy).toBeVisible();
     const item = piggy.getByTestId('shop-item').filter({ hasText: 'Câlin géant' });
     await item.getByRole('button', { name: 'Échanger' }).click();
@@ -73,12 +86,17 @@ test.describe('Stars, medals, badges and piggy bank', () => {
       await page.getByRole('button', { name: digit, exact: true }).click();
     }
     await expect(piggy.getByRole('status')).toContainText('Câlin géant');
-    await expect(piggy.getByTestId('piggy-count')).toContainText('0 badge');
+    await expect(piggy.getByTestId('piggy-count')).toContainText('0 médaille');
 
-    // The album keeps the spent badge
+    // The album keeps the spent medal
     await piggy.getByRole('tab', { name: /Album/ }).click();
     await expect(piggy).toContainText(chosenName!);
-    await expect(piggy).toContainText('Échangé : Câlin géant');
+    await expect(piggy).toContainText('Échangée : Câlin géant');
+
+    // Nowhere does a child see the word "badge"
+    for (const text of [await piggy.innerText(), await page.locator('body').innerText()]) {
+      expect(text.toLowerCase()).not.toContain('badge');
+    }
   });
 
   test('a done → todo → done toggle does not give a second star', async ({ page }) => {

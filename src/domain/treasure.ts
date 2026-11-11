@@ -1,6 +1,6 @@
 import { ChildProfile } from './models';
 import { BADGES, getBadge, getUniverse, UNIVERSES, UniverseId } from './badges';
-import { TROPHY_ICONS, TrophyId } from './trophies';
+import { TROPHY_ICONS, TROPHY_IDS, TrophyId } from './trophies';
 
 /**
  * "My treasure": a big, animated showcase of everything a child has won.
@@ -92,6 +92,19 @@ export function treasureItems(profile: ChildProfile): TreasureItem[] {
   }
   const badges = [...byBadge.values()].sort((a, b) => b.earnedAt - a.earnedAt);
   return [...trophies, ...badges];
+}
+
+/** Every trophy of the catalog, earned or still to win (catalog order). */
+export function trophyShowcase(profile: ChildProfile): { id: TrophyId; icon: string; earnedAt?: number }[] {
+  const earned = new Map((profile.trophies ?? []).map((t) => [t.id, t.earnedAt]));
+  return TROPHY_IDS.map((id) => ({ id, icon: TROPHY_ICONS[id], ...(earned.has(id) ? { earnedAt: earned.get(id) } : {}) }));
+}
+
+/** Medals won: in the piggy bank, and exchanged for a reward. */
+export function medalTotals(profile: ChildProfile): { total: number; inBank: number; spent: number } {
+  const medals = profile.badges ?? [];
+  const spent = medals.filter((m) => m.spentAt !== undefined).length;
+  return { total: medals.length, inBank: medals.length - spent, spent };
 }
 
 /**
