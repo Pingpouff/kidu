@@ -43,7 +43,9 @@ jobs:
         run: npm test
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        # GitHub runners already have the libraries Chromium needs: no apt download
+        # (apt mirrors were unreachable on 2026-11-11 and blocked every deploy)
+        run: npx playwright install chromium
 
       - name: Run end-to-end tests
         run: npm run test:e2e
