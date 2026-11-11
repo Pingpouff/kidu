@@ -8,7 +8,9 @@ import { SettingsPanel } from './SettingsPanel';
 import { ShopManager } from './ShopManager';
 import { shopItems } from '../../domain/rewards';
 import { ShopItem } from '../../domain/models';
-import { LogOut, LayoutGrid, Users, Calendar, Gift, Settings as Gear } from 'lucide-react';
+import { LogOut, LayoutGrid, Users, Calendar, Gift, Smile, Settings as Gear } from 'lucide-react';
+import { EmotionsPanel } from '../../features/emotions/components/parent/EmotionsPanel';
+import { emotionSettings } from '../../features/emotions/domain/settings';
 import { buttonClass } from '../../ui/styles';
 import { CardHistory } from './CardHistory';
 import type { AppUpdate } from '../../services/appUpdate';
@@ -47,7 +49,7 @@ interface DashboardProps {
   appUpdate?: AppUpdate;
 }
 
-type TabId = 'tasks' | 'children' | 'shop' | 'history' | 'settings';
+type TabId = 'tasks' | 'children' | 'shop' | 'history' | 'emotions' | 'settings';
 
 export const Dashboard: React.FC<DashboardProps> = ({
   profiles,
@@ -83,6 +85,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { id: 'children', label: translate('parent.tab.children', language), short: translate('parent.tab.children', language), icon: Users },
     { id: 'shop', label: translate('parent.tab.shop', language), short: translate('parent.tab.shop', language), icon: Gift },
     { id: 'history', label: translate('parent.tab.history', language), short: translate('parent.tab.history', language), icon: Calendar },
+    ...(emotionSettings(settings).enabled
+      ? [{ id: 'emotions', label: translate('parent.tab.emotions', language), short: translate('parent.tab.emotions', language), icon: Smile } as const]
+      : []),
     { id: 'settings', label: translate('parent.tab.settings', language), short: translate('parent.tab.settings_short', language), icon: Gear },
   ] as const;
 
@@ -158,7 +163,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Content Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden z-10">
         {/* Navigation: equal tabs on phones / tablets, sidebar on large screens */}
-        <nav className="w-full lg:w-64 bg-slate-900/30 border-b lg:border-b-0 lg:border-r border-white/5 p-1.5 sm:p-3 lg:p-4 grid grid-cols-5 lg:flex lg:flex-col gap-1 sm:gap-2 shrink-0">
+        <nav
+          className="w-full lg:w-64 bg-slate-900/30 border-b lg:border-b-0 lg:border-r border-white/5 p-1.5 sm:p-3 lg:p-4 grid lg:flex lg:flex-col gap-1 sm:gap-2 shrink-0"
+          // One column per tab (5, or 6 with "Émotions"); the sidebar ignores it
+          style={{ gridTemplateColumns: `repeat(${navigationItems.length}, minmax(0, 1fr))` }}
+        >
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -223,6 +232,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 />
               </div>
             )}
+            {activeTab === 'emotions' && <EmotionsPanel profiles={profiles} settings={settings} language={language} />}
             {activeTab === 'settings' && (
               <SettingsPanel
                 settings={settings}

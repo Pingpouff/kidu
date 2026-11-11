@@ -93,7 +93,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         starsPerMedal: Math.max(1, Number(perMedal)),
       },
       feedback,
-      emotions: { ...emotions, adultName: emotions.adultName.trim() },
+      // Custom strategies are edited in the Émotions tab: keep the stored ones
+      emotions: { ...emotions, adultName: emotions.adultName.trim(), customStrategies: emotionSettings(settings).customStrategies },
       reminders: {
         ...reminders,
         repeatMinutes: Math.max(1, Number(reminders.repeatMinutes)),

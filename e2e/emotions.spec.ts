@@ -303,3 +303,82 @@ test('the emotions space fits a phone screen, even with 24 feelings', async ({ p
   await page.getByTestId('emotion-discouragement').click();
   await expect(page.getByTestId('checkin-next')).toBeEnabled();
 });
+
+test.describe('Mes émotions — parent space', () => {
+  const openPanel = async (page: Page) => {
+    await enterParentMode(page);
+    await page.getByRole('button', { name: 'Émotions', exact: true }).click();
+    await expect(page.getByTestId('emotions-panel')).toBeVisible();
+  };
+
+  test('shows what each child expressed, gently, and lets the parent delete it', async ({ page }) => {
+    await page.goto('/');
+    for (const e of ['anger', 'joy']) {
+      await page.getByTestId('emotions-button-leo').click();
+      await page.getByTestId('hub-checkin').click();
+      await page.getByTestId(`emotion-${e}`).click();
+      await page.getByTestId('checkin-next').click();
+      await page.getByTestId('checkin-skip').click();
+      await page.getByTestId('emotions-close').click();
+    }
+    await openPanel(page);
+    await page.getByTestId('emotions-child-leo').click();
+    const today = await page.evaluate(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const day = page.getByTestId(`day-${today}`);
+    await expect(day.getByRole('img')).toHaveCount(2);
+    await expect(day.getByRole('img', { name: 'Colère' })).toBeVisible();
+    await expect(page.getByTestId('emotions-families')).toContainText('Colère · 1');
+    await expect(page.getByTestId('emotions-consult')).toContainText('Fil Santé Jeunes');
+
+    // Emma has nothing yet
+    await page.getByTestId('emotions-child-emma').click();
+    await expect(page.getByTestId('emotions-panel')).toContainText('Pas encore de « Comment je me sens » pour Emma');
+
+    // Deleting Léo's history takes a second tap
+    await page.getByTestId('emotions-child-leo').click();
+    await page.getByTestId('emotions-delete-history').click();
+    await expect(day.getByRole('img')).toHaveCount(2);
+    await page.getByTestId('emotions-delete-history').click();
+    await expect(day.getByRole('img')).toHaveCount(0);
+    expect(await emotionLogs(page)).toHaveLength(0);
+  });
+
+  test("the parent chooses a child's level and adds the family's own ideas", async ({ page }) => {
+    await page.goto('/');
+    await openPanel(page);
+    await page.getByTestId('emotions-child-leo').click();
+    await page.getByTestId('emotions-level').selectOption('3');
+
+    const form = page.getByTestId('emotions-custom-form');
+    await form.getByLabel('Emoji').fill('🐈');
+    await form.getByLabel('Une idée qui aide').fill('Aller voir le chat');
+    await form.getByRole('button', { name: 'Ajouter' }).click();
+    await expect(page.getByTestId('emotions-custom-list')).toContainText('Aller voir le chat');
+    await page.getByRole('button', { name: 'Quitter le Mode Parent' }).click();
+
+    // Léo (5) now gets the 24 feelings, and the family idea is in his toolbox, first
+    await page.getByTestId('emotions-button-leo').click();
+    await page.getByTestId('hub-checkin').click();
+    await expect(page.getByTestId('checkin-emotions').getByRole('button')).toHaveCount(24);
+    await page.getByTestId('emotion-frustration').click();
+    await page.getByTestId('checkin-next').click();
+    await page.getByTestId('intensity-2').click();
+    await page.getByTestId('checkin-next').click();
+    await page.getByTestId('checkin-skip').click();
+    const ideas = page.getByTestId('checkin-response');
+    await expect(ideas).toContainText('Aller voir le chat');
+    await ideas.getByText('Aller voir le chat').locator('xpath=ancestor::div[starts-with(@data-testid, "strategy-")]').getByTestId('strategy-helpful').click();
+    await page.getByTestId('emotions-close').click();
+
+    // Deleting the idea also removes it from the toolbox
+    await openPanel(page);
+    await page.getByTestId('emotions-custom-list').getByRole('button').click();
+    await page.getByTestId('emotions-custom-list').getByRole('button').click();
+    await expect(page.getByTestId('emotions-custom-list')).toHaveCount(0);
+    await page.getByTestId('emotions-child-leo').click();
+    await expect(page.getByTestId('emotions-helpful')).toHaveCount(0);
+  });
+});
