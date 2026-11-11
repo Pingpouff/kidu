@@ -72,6 +72,38 @@ describe('Configuration backup', () => {
     expect(errorCode(() => parseBackup(JSON.stringify(invalid)))).toBe('invalid_settings');
   });
 
+  it('keeps "Mes émotions": settings, the child toolbox and the emotion logs (version 2)', () => {
+    const withEmotions = createBackup({
+      settings: { ...settings, emotions: { enabled: true, adultName: 'Maman', eveningCheckIn: false, customStrategies: [{ id: 'cat', icon: '🐈', label: 'Voir le chat' }] } },
+      tasks,
+      profiles: [{ ...profiles[0], emotions: { level: 1, helpful: ['draw'] } }],
+      history,
+      emotionLogs: [
+        { id: 'e1', at: 1, date: '2026-11-11', kind: 'calm', breaths: 4, nextAction: 'adult' },
+        { id: 'e2', at: 2, date: '2026-11-11', kind: 'checkin', childId: 'leo', emotionId: 'anger', intensity: 3, bodyZones: ['hands'], strategyIds: ['jumps'] },
+      ],
+    });
+    expect(withEmotions.version).toBe(2);
+    expect(parseBackup(JSON.stringify(withEmotions))).toEqual(withEmotions);
+  });
+
+  it('still reads version 1 backups', () => {
+    const v1 = { ...createBackup({ settings, tasks, profiles }), version: 1 };
+    const parsed = parseBackup(JSON.stringify(v1));
+    expect(parsed.version).toBe(1);
+    expect(parsed.data.profiles[0].name).toBe('Léo');
+    expect(parsed.data).not.toHaveProperty('emotionLogs');
+  });
+
+  it('rejects malformed emotion data', () => {
+    const base = createBackup({ settings, tasks, profiles });
+    const withData = (data: object) => JSON.stringify({ ...base, data: { ...base.data, ...data } });
+    expect(errorCode(() => parseBackup(withData({ emotionLogs: [{ id: 'x', at: 1, date: 'd', kind: 'party' }] })))).toBe('invalid_emotions');
+    expect(errorCode(() => parseBackup(withData({ emotionLogs: [{ id: 'x', at: 1, date: 'd', kind: 'checkin', bodyZones: ['tail'] }] })))).toBe('invalid_emotions');
+    expect(errorCode(() => parseBackup(withData({ profiles: [{ ...profiles[0], emotions: { level: 7, helpful: [] } }] })))).toBe('invalid_profiles');
+    expect(errorCode(() => parseBackup(withData({ settings: { ...base.data.settings, emotions: { enabled: 'yes' } } })))).toBe('invalid_settings');
+  });
+
   it('builds a dated file name', () => {
     expect(backupFileName(new Date(2026, 0, 5))).toBe('kidu-backup-2026-01-05.json');
   });

@@ -14,16 +14,23 @@ import {
   FeedbackSettings,
   VISUALS_SETTINGS,
   VisualsSetting,
+  EmotionLog,
+  EmotionSettings,
+  ChildEmotions,
+  BodyZone,
 } from './models';
 
 export const BACKUP_APP_ID = 'kidu';
-export const BACKUP_VERSION = 1;
+/** 2: "Mes émotions" (settings.emotions, profile.emotions, emotionLogs). Version 1 files are still read. */
+export const BACKUP_VERSION = 2;
 
 export interface BackupData {
   settings: ParentSettings;
   tasks: TaskDefinition[];
   profiles: ChildProfile[];
   history?: HistoryEntry[];
+  /** Emotion check-ins and calm corner sessions: exported with the history */
+  emotionLogs?: EmotionLog[];
 }
 
 export interface BackupFile {
@@ -40,7 +47,8 @@ export type BackupErrorCode =
   | 'invalid_settings'
   | 'invalid_tasks'
   | 'invalid_profiles'
-  | 'invalid_history';
+  | 'invalid_history'
+  | 'invalid_emotions';
 
 export class BackupError extends Error {
   constructor(public readonly code: BackupErrorCode) {
@@ -58,7 +66,7 @@ export function createBackup(
   data: BackupData,
   now: Date = new Date()
 ): BackupFile {
-  const { settings, tasks, profiles, history } = data;
+  const { settings, tasks, profiles, history, emotionLogs } = data;
   return {
     app: BACKUP_APP_ID,
     version: BACKUP_VERSION,
@@ -71,10 +79,14 @@ export function createBackup(
         ...(settings.feedback ? { feedback: { ...settings.feedback } } : {}),
         ...(settings.shop ? { shop: settings.shop.map((i) => ({ ...i })) } : {}),
         ...(settings.reminders ? { reminders: { ...settings.reminders } } : {}),
+        ...(settings.emotions
+          ? { emotions: { ...settings.emotions, customStrategies: settings.emotions.customStrategies.map((c) => ({ ...c })) } }
+          : {}),
       },
       tasks: [...tasks].sort((a, b) => a.order - b.order),
       profiles: [...profiles],
       ...(history ? { history: [...history] } : {}),
+      ...(emotionLogs ? { emotionLogs: [...emotionLogs] } : {}),
     },
   };
 }
@@ -96,7 +108,7 @@ const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.is
 
 function parseSettings(raw: unknown): ParentSettings {
   if (!isObject(raw) || !isObject(raw.rewards)) throw new BackupError('invalid_settings');
-  const { parentPin, language, rewards, feedback, shop, reminders } = raw;
+  const { parentPin, language, rewards, feedback, shop, reminders, emotions } = raw;
   if (!isString(parentPin) || !/^\d{4}$/.test(parentPin)) throw new BackupError('invalid_settings');
   if (language !== 'fr' && language !== 'en') throw new BackupError('invalid_settings');
   if (!isNumber(rewards.starsPerCompletion) || !isNumber(rewards.weeklyGoal)) {
@@ -128,6 +140,7 @@ function parseSettings(raw: unknown): ParentSettings {
   ) {
     throw new BackupError('invalid_settings');
   }
+  const parsedEmotions = emotions === undefined ? undefined : parseEmotionSettings(emotions);
   const parsedShop = shop?.map((item): ShopItem => {
     if (!isObject(item) || !isString(item.id) || !isString(item.label) || !isString(item.icon) || !isNumber(item.cost) || item.cost < 1) {
       throw new BackupError('invalid_settings');
@@ -165,6 +178,7 @@ function parseSettings(raw: unknown): ParentSettings {
           },
         }
       : {}),
+    ...(parsedEmotions ? { emotions: parsedEmotions } : {}),
   };
 }
 
@@ -255,6 +269,8 @@ function parseProfiles(raw: unknown): ChildProfile[] {
       }
     );
 
+    const emotions = p.emotions === undefined ? undefined : parseChildEmotions(p.emotions, fail);
+
     const cards = p.cards === undefined ? undefined : (Array.isArray(p.cards) ? p.cards : fail()).map(
       (c: unknown): BehaviorCard => {
         if (
@@ -290,6 +306,7 @@ function parseProfiles(raw: unknown): ChildProfile[] {
       ...(badges ? { badges } : {}),
       ...(trophies ? { trophies } : {}),
       ...(cards ? { cards } : {}),
+      ...(emotions ? { emotions } : {}),
     };
   });
   if (new Set(profiles.map((p) => p.id)).size !== profiles.length) throw new BackupError('invalid_profiles');
@@ -325,6 +342,75 @@ function parseHistory(raw: unknown): HistoryEntry[] {
   });
 }
 
+const EMOTION_LEVELS = [1, 2, 3];
+const BODY_ZONES: BodyZone[] = ['head', 'throat', 'heart', 'belly', 'hands', 'legs'];
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
+
+function parseEmotionSettings(raw: unknown): EmotionSettings {
+  if (
+    !isObject(raw) ||
+    typeof raw.enabled !== 'boolean' ||
+    !isString(raw.adultName) ||
+    typeof raw.eveningCheckIn !== 'boolean' ||
+    !Array.isArray(raw.customStrategies)
+  ) {
+    throw new BackupError('invalid_settings');
+  }
+  return {
+    enabled: raw.enabled,
+    adultName: raw.adultName,
+    eveningCheckIn: raw.eveningCheckIn,
+    customStrategies: raw.customStrategies.map((c) => {
+      if (!isObject(c) || !isString(c.id) || !isString(c.icon) || !isString(c.label)) throw new BackupError('invalid_settings');
+      return { id: c.id, icon: c.icon, label: c.label };
+    }),
+  };
+}
+
+function parseChildEmotions(raw: unknown, fail: () => never): ChildEmotions {
+  if (!isObject(raw) || !isStringArray(raw.helpful)) return fail();
+  if (raw.level !== undefined && !EMOTION_LEVELS.includes(raw.level as number)) return fail();
+  return {
+    helpful: [...raw.helpful],
+    ...(raw.level !== undefined ? { level: raw.level as ChildEmotions['level'] } : {}),
+  };
+}
+
+function parseEmotionLogs(raw: unknown): EmotionLog[] {
+  if (!Array.isArray(raw)) throw new BackupError('invalid_emotions');
+  const fail = (): never => {
+    throw new BackupError('invalid_emotions');
+  };
+  return raw.map((l): EmotionLog => {
+    if (
+      !isObject(l) || !isString(l.id) || !isNumber(l.at) || !isString(l.date) ||
+      (l.kind !== 'checkin' && l.kind !== 'calm') ||
+      (l.childId !== undefined && !isString(l.childId)) ||
+      (l.emotionId !== undefined && !isString(l.emotionId)) ||
+      (l.intensity !== undefined && ![1, 2, 3].includes(l.intensity as number)) ||
+      (l.bodyZones !== undefined && !(Array.isArray(l.bodyZones) && l.bodyZones.every((z) => BODY_ZONES.includes(z as BodyZone)))) ||
+      (l.strategyIds !== undefined && !isStringArray(l.strategyIds)) ||
+      (l.breaths !== undefined && !isNumber(l.breaths)) ||
+      (l.nextAction !== undefined && !isString(l.nextAction))
+    ) {
+      return fail();
+    }
+    return {
+      id: l.id,
+      at: l.at,
+      date: l.date,
+      kind: l.kind,
+      ...(isString(l.childId) ? { childId: l.childId } : {}),
+      ...(isString(l.emotionId) ? { emotionId: l.emotionId } : {}),
+      ...(l.intensity !== undefined ? { intensity: l.intensity as EmotionLog['intensity'] } : {}),
+      ...(l.bodyZones !== undefined ? { bodyZones: [...(l.bodyZones as BodyZone[])] } : {}),
+      ...(l.strategyIds !== undefined ? { strategyIds: [...(l.strategyIds as string[])] } : {}),
+      ...(isNumber(l.breaths) ? { breaths: l.breaths } : {}),
+      ...(isString(l.nextAction) ? { nextAction: l.nextAction } : {}),
+    };
+  });
+}
+
 /**
  * Parses and validates the raw text of a backup file.
  * Throws a BackupError describing the first problem found.
@@ -355,6 +441,7 @@ export function parseBackup(text: string): BackupFile {
       tasks: parseTasks(data.tasks),
       profiles: parseProfiles(data.profiles),
       ...(data.history !== undefined ? { history: parseHistory(data.history) } : {}),
+      ...(data.emotionLogs !== undefined ? { emotionLogs: parseEmotionLogs(data.emotionLogs) } : {}),
     },
   };
 }

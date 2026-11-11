@@ -209,6 +209,17 @@ Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: Behavior
 - Parent Mode → History lists recent cards (`CardHistory`); `withdrawCard` removes a card given by mistake (with the red it triggered) and gives the stars back, up to just below a medal.
 - **Visible all evening** (`tonightCardState(profile, date)`: level `none`/`yellow`/`red`, counts, last reason, stars lost): a colored frame around the board (`card-frame-*`), a `CardBanner` under the step indicator (tap → `CardReveal` again), a red card stuck on the star counter with "stars back to zero" after a red, and `CardReveal mode="reminder"` (no whistle, short voice, closes after 5 s) every time the board opens. On the selection screen, the card is stuck on the child's avatar, the child card gets a yellow/red ring and shows the reason (`ChildSummary.cards`). Everything disappears the next evening.
 
+## Mes émotions (emotions space)
+
+A separate module in `src/features/emotions/` (domain, persistence, art, components), lazy-loaded from `App.tsx`. It only depends on profiles, settings, i18n, `ReminderService` and the UI kit. Design and research notes: version B of the art direction — the Owl shows the child's emotion, the Cloud is the guide and leads breathing.
+
+- **Guardrails** (keep them in every change): no stars, medals or rewards for emotions; short sessions that always end with a real-life action (a grown-up first) — a springboard, not a pacifier; every emotion is welcome (no "bad" color, anger is coral, not alarm red); nothing diagnostic; no free text in logs (privacy); it must stay smooth in lite display.
+- **Data**: Dexie `version(3)` table `emotionLogs` (`EmotionLog`: `kind` `checkin` | `calm`, optional `childId` — the calm corner opened from the home screen has none). `profile.emotions` (`level` override, `helpful` strategy ids), `settings.emotions` (`EmotionSettings`, defaults `DEFAULT_EMOTIONS`, read through `emotionSettings()`). Backups are version 2 (`emotionLogs` exported with the history; version 1 files are still read). Deleting a child deletes their logs.
+- **Domain**: `catalog.ts` (emotions by family and age level — 6 / 12 / 24 —, strategies with a minimum level), `level.ts` (`ageLevel`: < 6 → 1, 6-8 → 2, ≥ 9 → 3, unknown → 2), `checkin.ts` (`suggestStrategies`: helpful first, then the parent's own, then level defaults; `makeCalmLog`).
+- **Calm corner** (`CalmCorner.tsx`, 1.7.0): opened without PIN from the home screen (`calm-button`) and the board header. Spoken intro, 4 breaths (`INHALE_MS` 4 s / `EXHALE_MS` 6 s, soft chimes `playSoftChime`, spoken cues on the first breath only), then "Next, in real life": go and see `adultName` first, then 2 suggestions; "one more breath" once; closes by itself 20 s after a choice. Reminders are paused while it is open. One `calm` log per session (none if no breath was taken).
+- **Art**: `Cloud.tsx` is driven by `phase` (CSS transitions, in step with the timer); its wind (`.emo-wind`, tapered ribbons, puffs, leaf) is hidden in lite display and reduced motion, the breathing cloud stays. `CloudGlyph.tsx` is the still icon. Styles: `.emo-*` at the end of `index.css`.
+- **Copy**: `emo.*` keys (fr + en, tested for parity). Child-facing texts are reviewed by the parent before each release.
+
 ## Reminders
 
 - `TaskDefinition.startTime` / `dueTime` (`"HH:MM"`, optional, start before end: `isValidTimeWindow`) and `settings.reminders` (`ReminderSettings`: `enabled`, `repeatMinutes`, `maxReminders`, `systemNotifications`; default `DEFAULT_REMINDERS`).

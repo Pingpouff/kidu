@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings, VisualsSetting } from '../../domain/models';
+import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings, VisualsSetting, EmotionSettings } from '../../domain/models';
+import { emotionSettings } from '../../features/emotions/domain/settings';
 import { isLowEndDevice, resolveVisuals } from '../../services/performance';
 import { starsPerMedal } from '../../domain/rewards';
 import { isValidPin } from '../../domain/parentGate';
@@ -44,6 +45,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [feedback, setFeedback] = useState<FeedbackSettings>({ ...DEFAULT_FEEDBACK, ...settings.feedback });
   const setFeedbackField = <K extends keyof FeedbackSettings>(key: K, value: FeedbackSettings[K]) =>
     setFeedback((f) => ({ ...f, [key]: value }));
+  const [emotions, setEmotions] = useState<EmotionSettings>(() => emotionSettings(settings));
   const [reminders, setReminders] = useState<ReminderSettings>({ ...DEFAULT_REMINDERS, ...settings.reminders });
   const [notifStatus, setNotifStatus] = useState<NotificationStatus>(notificationStatus());
   const [testResult, setTestResult] = useState<'sent' | 'failed' | null>(null);
@@ -91,6 +93,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         starsPerMedal: Math.max(1, Number(perMedal)),
       },
       feedback,
+      emotions: { ...emotions, adultName: emotions.adultName.trim() },
       reminders: {
         ...reminders,
         repeatMinutes: Math.max(1, Number(reminders.repeatMinutes)),
@@ -255,6 +258,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               {translate('parent.reminders.limits', language)}
             </p>
           </div>
+        </fieldset>
+
+        {/* Mes émotions */}
+        <fieldset className="flex flex-col gap-3 bg-white/5 border border-white/10 rounded-2xl p-4" data-testid="settings-emotions">
+          <legend className="px-2 text-xs font-bold text-slate-400 uppercase tracking-wide">
+            {translate('parent.emotions.title', language)}
+          </legend>
+          <p className="text-xs text-white/50 leading-relaxed -mt-1">{translate('parent.emotions.description', language)}</p>
+          <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={emotions.enabled}
+              onChange={(e) => setEmotions((em) => ({ ...em, enabled: e.target.checked }))}
+              className="w-4 h-4 accent-indigo-500"
+            />
+            {translate('parent.emotions.enabled', language)}
+          </label>
+          <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+            <span>{translate('parent.emotions.adult_name', language)}</span>
+            <input
+              type="text"
+              value={emotions.adultName}
+              maxLength={40}
+              placeholder={translate('emo.adult_default', language)}
+              onChange={(e) => setEmotions((em) => ({ ...em, adultName: e.target.value }))}
+              className={fieldClass('md', 'px-3 w-56')}
+              data-testid="settings-adult-name"
+            />
+          </label>
         </fieldset>
 
         {/* Sounds & animations */}

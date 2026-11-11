@@ -242,7 +242,24 @@ class ReminderService {
     this.playTone(330, 0.4, 'sine', 0.1); // E4
   }
 
+  /**
+   * Calm corner: a soft, low chime marking each breath. Rising for "breathe
+   * in", falling for "breathe out"; long and quiet, never a "ding".
+   */
+  public playSoftChime(kind: 'in' | 'out') {
+    if (kind === 'in') {
+      this.playTone(262, 1.6, 'sine', 0, { gain: 0.06, slideTo: 330 }); // C4 → E4
+    } else {
+      this.playTone(330, 2.2, 'sine', 0, { gain: 0.05, slideTo: 247 }); // E4 → B3
+    }
+  }
+
   /* -------------------------------- Voice -------------------------------- */
+
+  /** Stops whatever is being said (e.g. the calm corner is closed). */
+  public stopSpeaking() {
+    this.cancelSpeech();
+  }
 
   private cancelSpeech() {
     if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();

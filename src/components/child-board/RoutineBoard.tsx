@@ -32,6 +32,7 @@ import { CardGiver } from '../cards/CardGiver';
 import { CardReveal } from '../cards/CardReveal';
 import { PhaseIndicator } from './PhaseIndicator';
 import { StarMeter } from './StarMeter';
+import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -51,6 +52,8 @@ interface RoutineBoardProps {
   lateDefinitionIds?: Set<string>;
   /** A parent gives a yellow / red card (after PIN check) */
   onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
+  /** Opens the calm corner for this child ("Mes émotions"), no PIN */
+  onOpenCalm?: () => void;
 }
 
 /** Tap-to-progress order */
@@ -106,6 +109,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onBuyShopItem,
   lateDefinitionIds,
   onGiveCard,
+  onOpenCalm,
 }) => {
   // Resetting takes a second tap
   const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
@@ -456,6 +460,16 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           </div>
 
           <div className="shrink-0 flex items-center gap-1.5 sm:gap-3">
+            {onOpenCalm && (
+              <button
+                onClick={onOpenCalm}
+                aria-label={translate('emo.calm.button', language)}
+                data-testid="calm-button"
+                className="flex items-center justify-center px-2 py-1 sm:py-1.5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 border border-[#E8E4FF]/25 rounded-full transition-colors active:scale-95"
+              >
+                <CloudGlyph className="w-9 h-7 sm:w-10 sm:h-8" />
+              </button>
+            )}
             {/* Tonight's cards; tapping lets a parent give one (PIN required) */}
             <button
               onClick={() => setShowCardGiver(true)}
