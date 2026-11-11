@@ -16,6 +16,14 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.7.1',
+    date: '2026-11-11',
+    changes: {
+      fr: ['Coin calme : le nuage se gonfle bien quand on inspire (et ses joues aussi), puis se dégonfle en soufflant.'],
+      en: ['Calm corner: the cloud now clearly puffs up when breathing in (cheeks too), then shrinks when breathing out.'],
+    },
+  },
+  {
     version: '1.7.0',
     date: '2026-11-11',
     changes: {
