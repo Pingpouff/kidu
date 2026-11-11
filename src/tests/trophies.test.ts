@@ -57,7 +57,9 @@ describe('Trophies', () => {
   });
 
   it('earns "first routine" once every step is done', () => {
-    expect(trophiesFor([session('2026-11-09')])).toEqual(['first_step', 'first_routine']);
+    // Every step done, bedtime finished at 7:20 pm: also a full day and an early night
+    expect(trophiesFor([session('2026-11-09')])).toEqual(['first_step', 'first_routine', 'full_day', 'early_night']);
+    expect(trophiesFor([session('2026-11-09', undefined, { startHour: 20 })])).toEqual(['first_step', 'first_routine', 'full_day']);
   });
 
   it('earns "early bird" when the morning step is finished before 8 am', () => {
@@ -122,10 +124,44 @@ describe('Trophies', () => {
   it('never returns a medal the child already has', () => {
     const stats = computeTrophyStats([session('2026-11-09')], definitions);
     const earned = [{ id: 'first_routine' as const, earnedAt: 1 }];
-    expect(findNewTrophies(stats, earned)).toEqual(['first_step']);
+    expect(findNewTrophies(stats, earned)).toEqual(['first_step', 'full_day', 'early_night']);
   });
 
-  it('keeps medals in backups and rejects unknown ones', () => {
+  it('earns medal and star milestones from the profile', () => {
+    const forProfile = (medalCount: number, stars: number) =>
+      findNewTrophies(computeTrophyStats([], definitions, { medalCount, stars }));
+    expect(forProfile(0, 2)).toEqual([]);
+    expect(forProfile(1, 3)).toEqual(['medal_1']);
+    expect(forProfile(10, 99)).toEqual(['medal_1', 'medals_10']);
+    expect(forProfile(50, 500)).toEqual(['medal_1', 'medals_10', 'medals_25', 'medals_50', 'stars_100', 'stars_500']);
+  });
+
+  it('earns "perfect week" only for Monday to Sunday, every day completed', () => {
+    // 9 → 15 November 2026 is Monday → Sunday
+    const week = Array.from({ length: 7 }, (_, i) => session(`2026-11-${String(9 + i).padStart(2, '0')}`));
+    expect(trophiesFor(week)).toContain('perfect_week');
+    // 7 days in a row, but Tuesday → Monday
+    const shifted = Array.from({ length: 7 }, (_, i) => session(`2026-11-${String(10 + i).padStart(2, '0')}`));
+    expect(trophiesFor(shifted)).not.toContain('perfect_week');
+    // A hole on Thursday
+    expect(trophiesFor(week.filter((s) => s.date !== '2026-11-12'))).not.toContain('perfect_week');
+  });
+
+  it('earns "full day" only when no step was skipped, "weekend" on Saturday or Sunday', () => {
+    const skipped = { ...session('2026-11-09', ['snack', 'table']), skippedPhases: ['bedtime' as const], isCompleted: true };
+    expect(trophiesFor([skipped])).not.toContain('full_day');
+    expect(trophiesFor([session('2026-11-09')])).not.toContain('weekend'); // Monday
+    expect(trophiesFor([session('2026-11-14')])).toContain('weekend'); // Saturday
+    expect(trophiesFor([session('2026-11-15')])).toContain('weekend'); // Sunday
+  });
+
+  it('earns "comeback" for a routine completed after 2 days or more without one', () => {
+    expect(trophiesFor([session('2026-11-02'), session('2026-11-04')])).not.toContain('comeback'); // 1 day off
+    expect(trophiesFor([session('2026-11-02'), session('2026-11-05')])).toContain('comeback'); // 2 days off
+    expect(trophiesFor([session('2026-11-05')])).not.toContain('comeback'); // first routine ever
+  });
+
+    it('keeps medals in backups and rejects unknown ones', () => {
     const settings = { parentPin: '1234', language: 'fr' as const, rewards: { starsPerCompletion: 1, weeklyGoal: 5 } };
     const profile = {
       id: 'leo', name: 'Léo', avatar: '🦊', color: 'indigo' as const, stars: 3,

@@ -161,7 +161,7 @@ export const routineRepository = {
         db.sessions.where('childId').equals(childId).toArray(),
         db.tasks.toArray(),
       ]);
-      const newTrophies = findNewTrophies(computeTrophyStats(sessions, definitions), profile.trophies);
+      const newTrophies = findNewTrophies(computeTrophyStats(sessions, definitions, profile), profile.trophies);
       if (newTrophies.length === 0) return [];
 
       const now = Date.now();

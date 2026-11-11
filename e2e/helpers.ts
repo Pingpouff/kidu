@@ -10,19 +10,19 @@ export const enterParentMode = async (page: Page) => {
 
 /**
  * Closes reward screens that may pop over the board: medal/trophy reveals
- * (tap to continue) and the badge choice (picks the first badge).
+ * (tap to continue) and the medal choice (picks the first motif).
  */
 export const dismissRewards = async (page: Page) => {
   const reveal = page.getByTestId('reward-reveal');
-  const choice = page.getByTestId('badge-choice');
-  // Reveals and choices can chain (medal → trophy → badge choice)
+  const choice = page.getByTestId('medal-choice');
+  // Choices and reveals can chain (medal choice → trophies)
   for (let i = 0; i < 20; i++) {
     await page.waitForTimeout(150);
     if (await reveal.isVisible()) {
       await reveal.click();
     } else if (await choice.isVisible()) {
-      await choice.getByTestId('badge-option').first().click();
-      await expect(choice.getByTestId('badge-option').first()).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+      await choice.getByTestId('medal-option').first().click();
+      await expect(choice.getByTestId('medal-option').first()).not.toBeVisible({ timeout: 5000 }).catch(() => {});
     } else {
       return;
     }

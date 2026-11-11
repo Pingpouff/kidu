@@ -5,12 +5,15 @@ import { getBadge, getUniverse } from '../../domain/badges';
 import {
   collectionProgress,
   itemGradient,
+  medalTotals,
   RANK_ICONS,
   TreasureItem,
   treasureItems,
   treasureRank,
   treasureStats,
+  trophyShowcase,
 } from '../../domain/treasure';
+import { MedalDisc } from './MedalDisc';
 import { translate, Language } from '../../i18n/dictionary';
 import { reminderService } from '../../services/ReminderService';
 import { fireConfetti, richMotion } from '../../services/effects';
@@ -37,14 +40,19 @@ const SPARKLES = [
 const voiceLang = (language: Language) => (language === 'fr' ? 'fr-FR' : 'en-US');
 
 /**
- * Full-screen "My treasure" view: the child opens a chest, then browses
- * everything they won in big (trophies and badges), with their collections.
+ * Full-screen "My treasure" view: the child opens a chest, then sees what
+ * they won: a spotlight for the treasure they tap, "My trophies" (every
+ * trophy, the ones still to win as silhouettes with their hint) and, apart,
+ * "My medals" (piggy bank, exchanges, motifs and collections).
  * Sounds, voice and animations follow the parent's feedback settings.
  */
 export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, onClose }) => {
   const items = useMemo(() => treasureItems(profile), [profile]);
   const collections = useMemo(() => collectionProgress(profile), [profile]);
   const stats = useMemo(() => treasureStats(profile), [profile]);
+  const showcase = useMemo(() => trophyShowcase(profile), [profile]);
+  const medals = medalTotals(profile);
+  const medalShelf = items.filter((it) => it.kind === 'badge');
   const rank = treasureRank(stats);
 
   const [phase, setPhase] = useState<'closed' | 'opening' | 'open'>('closed');
@@ -103,6 +111,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
     if (i < 0) return;
     setIndex(i);
     reminderService.playTreasureSwipeSound();
+    scroller.current?.scrollTo?.({ top: 0, behavior: richMotion() ? 'smooth' : 'auto' });
   };
 
   const tapSpotlight = () => {
@@ -206,7 +215,6 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
           <div className="flex flex-wrap justify-center gap-2">
             {stat('⭐', stats.stars, translate('treasure.stars', language), 'treasure-stars')}
             {stat('🏅', stats.medals, translate('treasure.medals', language), 'treasure-medals')}
-            {stat('🎖️', stats.badges, translate('treasure.badges', language), 'treasure-badges')}
             {stat('🏆', stats.trophies, translate('treasure.trophies', language), 'treasure-trophies')}
           </div>
 
@@ -293,29 +301,86 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
                 </p>
               </div>
 
-              {/* Shelf: every treasure, small, to jump to one */}
-              <div className="w-full overflow-x-auto pb-2" data-testid="treasure-shelf">
-                <div className="flex gap-3 w-max mx-auto px-3 py-2">
-                  {items.map((item, i) => (
-                    <button
-                      key={item.key}
-                      onClick={() => select(item.key)}
-                      aria-label={itemName(item)}
-                      aria-pressed={item.key === current.key}
-                      style={{ animationDelay: richMotion() ? `${Math.min(i, 12) * 60}ms` : undefined }}
-                      className={`animate-treasure-rise w-14 h-14 md:w-16 md:h-16 shrink-0 rounded-full bg-gradient-to-br ${itemGradient(item)} flex items-center justify-center text-3xl transition-all ${
-                        item.key === current.key ? 'ring-4 ring-yellow-300 scale-110' : 'ring-2 ring-white/20 opacity-80 hover:opacity-100'
-                      }`}
-                    >
-                      {item.icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 
-          {/* Collections: one row per universe, missing badges shown as "?" */}
+          {/* My trophies: every trophy, the ones still to win as silhouettes with their hint */}
+          <section className="w-full flex flex-col gap-3 mt-2" data-testid="treasure-trophy-showcase">
+            <h3 className="flex items-baseline justify-between gap-3 text-lg md:text-xl font-black text-white">
+              <span>🏆 {translate('treasure.my_trophies', language)}</span>
+              <span className="text-sm font-black text-amber-200">
+                {stats.trophies}/{showcase.length}
+              </span>
+            </h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
+              {showcase.map((t) =>
+                t.earnedAt !== undefined ? (
+                  <button
+                    key={t.id}
+                    onClick={() => select(`trophy:${t.id}`)}
+                    data-testid={`trophy-${t.id}`}
+                    data-earned="true"
+                    className="rounded-2xl bg-yellow-400/10 border border-yellow-300/40 hover:bg-yellow-400/20 p-2 flex flex-col items-center gap-1 text-center"
+                  >
+                    <span className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 ring-2 ring-yellow-100/60 flex items-center justify-center text-3xl">
+                      {t.icon}
+                    </span>
+                    <span className="text-xs font-extrabold text-white leading-tight">{translate(`trophy.${t.id}.name`, language)}</span>
+                    <span className="text-[10px] font-bold text-white/50">{dateFormat.format(t.earnedAt)}</span>
+                  </button>
+                ) : (
+                  <div
+                    key={t.id}
+                    data-testid={`trophy-${t.id}`}
+                    data-earned="false"
+                    className="rounded-2xl bg-white/[0.04] border border-dashed border-white/15 p-2 flex flex-col items-center gap-1 text-center"
+                  >
+                    <span className="relative w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-3xl" aria-hidden="true">
+                      <span className="grayscale opacity-25">{t.icon}</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-white/40">?</span>
+                    </span>
+                    <span className="text-[11px] font-bold text-white/55 leading-tight">{translate(`trophy.${t.id}.hint`, language)}</span>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+
+          {/* My medals, apart from the trophies */}
+          <section className="w-full flex flex-col gap-3 mt-2" data-testid="treasure-medal-section">
+            <h3 className="text-lg md:text-xl font-black text-white">🏅 {translate('treasure.my_medals', language)}</h3>
+            <p className="text-sm md:text-base font-bold text-pink-200" data-testid="treasure-medal-summary">
+              {medals.total > 0
+                ? translate('treasure.medals_summary', language, { total: medals.total, bank: medals.inBank, spent: medals.spent })
+                : translate('treasure.no_medal', language)}
+            </p>
+            {medalShelf.length > 0 && (
+              <div className="w-full overflow-x-auto pb-2" data-testid="treasure-shelf">
+                <div className="flex gap-3 w-max px-1 py-2">
+                  {medalShelf.map((item) =>
+                    item.kind === 'badge' ? (
+                      <button
+                        key={item.key}
+                        onClick={() => select(item.key)}
+                        aria-label={itemName(item)}
+                        aria-pressed={item.key === current?.key}
+                        className={`relative rounded-2xl p-1 transition-transform hover:scale-105 ${item.key === current?.key ? 'bg-white/10' : ''}`}
+                      >
+                        <MedalDisc badgeId={item.badgeId} size="sm" />
+                        {item.count > 1 && (
+                          <span className="absolute -bottom-1 -right-1 min-w-[1.6rem] h-6 px-1 rounded-full bg-pink-500 text-white text-xs font-black flex items-center justify-center">
+                            ×{item.count}
+                          </span>
+                        )}
+                      </button>
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Collections: one row per universe, missing medals shown as "?" */}
           <section className="w-full flex flex-col gap-3 mt-2" data-testid="treasure-collections">
             <h3 className="text-lg md:text-xl font-black text-white">📚 {translate('treasure.collections', language)}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -344,10 +409,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
                         return owned ? (
                           <button
                             key={id}
-                            onClick={() => {
-                              select(`badge:${id}`);
-                              scroller.current?.scrollTo?.({ top: 0, behavior: richMotion() ? 'smooth' : 'auto' });
-                            }}
+                            onClick={() => select(`badge:${id}`)}
                             aria-label={badge.name[language]}
                             className={`w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-br ${universe.gradient} ring-2 ring-white/40 flex items-center justify-center text-xl md:text-2xl hover:scale-110 transition-transform`}
                           >
