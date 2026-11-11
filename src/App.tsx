@@ -9,6 +9,8 @@ import { PinModal } from './components/parent-mode/PinModal';
 import { reminderService } from './services/ReminderService';
 import { isLowEndDevice, resolveVisuals } from './services/performance';
 import { emotionSettings } from './features/emotions/domain/settings';
+import { dismissEveningInvite, eveningInviteDismissed } from './features/emotions/eveningInvite';
+import { getRoutinePhases } from './domain/routine';
 import { backupFileName, parseBackup } from './domain/backup';
 import { TrophyId, TROPHY_ICONS } from './domain/trophies';
 import { shopItems, starsPerMedal } from './domain/rewards';
@@ -36,6 +38,7 @@ const ParentDashboard = lazy(() => import('./components/parent-mode/Dashboard').
 const Celebration = lazy(() => import('./components/rewards/Celebration').then((m) => ({ default: m.Celebration })));
 // "Mes émotions": loaded on demand, the routine's start-up stays as light as before
 const CalmCorner = lazy(() => import('./features/emotions/components/CalmCorner'));
+const EmotionsHub = lazy(() => import('./features/emotions/components/EmotionsHub'));
 
 export default function App() {
   const [dbSeeded, setDbSeeded] = useState(false);
@@ -43,6 +46,9 @@ export default function App() {
   const [parentMode, setParentMode] = useState(false);
   // Calm corner open (from the home screen: no child; from a board: that child)
   const [calm, setCalm] = useState<{ childId?: string } | null>(null);
+  // A child's emotions space ("Comment je me sens", toolbox)
+  const [emotionsHub, setEmotionsHub] = useState<{ childId: string; initial: 'hub' | 'checkin' } | null>(null);
+  const [inviteDismissed, setInviteDismissed] = useState(0); // re-reads the dismissal after "Pas ce soir"
   const [pinPrompt, setPinPrompt] = useState(false);
   const [celebrationActive, setCelebrationActive] = useState(false);
   const [reveals, setReveals] = useState<Reveal[]>([]);
@@ -116,6 +122,15 @@ export default function App() {
     null
   );
 
+  // Evening invitation: only while the child has no check-in today
+  const checkInsToday = useLiveQuery(
+    async () =>
+      activeProfileId
+        ? db.emotionLogs.where('[childId+date]').equals([activeProfileId, todayStr]).filter((l) => l.kind === 'checkin').count()
+        : 0,
+    [activeProfileId, todayStr]
+  );
+
   // Automatically create a session for the child today if none exists
   useEffect(() => {
     if (dbSeeded && activeProfileId && activeSession === undefined) {
@@ -130,7 +145,7 @@ export default function App() {
     tasks,
     today: todayStr,
     language: settings?.language ?? 'fr',
-    paused: parentMode || calm !== null, // no reminder while breathing
+    paused: parentMode || calm !== null || emotionsHub !== null, // no reminder in the emotions space
   });
   const lateCounts: Record<string, number> = {};
   for (const task of reminders.overdue) lateCounts[task.childId] = (lateCounts[task.childId] ?? 0) + 1;
@@ -156,6 +171,18 @@ export default function App() {
   const activeLang = settings.language || 'fr';
   const emotions = emotionSettings(settings);
   const openCalm = emotions.enabled ? (childId?: string) => setCalm({ childId }) : undefined;
+  const openEmotions = emotions.enabled ? (childId: string, initial: 'hub' | 'checkin' = 'hub') => setEmotionsHub({ childId, initial }) : undefined;
+  const bedtimeDone =
+    !!activeSession && getRoutinePhases(activeSession, tasks).some((p) => p.category === 'bedtime' && p.isCompleted);
+  const showEveningInvite =
+    !!openEmotions &&
+    emotions.eveningCheckIn &&
+    !!activeProfile &&
+    bedtimeDone &&
+    checkInsToday === 0 &&
+    !celebrationActive &&
+    inviteDismissed >= 0 &&
+    !eveningInviteDismissed(activeProfile.id, todayStr);
 
   // Handle active session updates
   const handleUpdateSession = async (updatedSession: RoutineSession) => {
@@ -433,6 +460,17 @@ export default function App() {
           lateDefinitionIds={activeLateIds}
           onGiveCard={(color, reason) => routineRepository.giveCard(activeProfile.id, color, activeSession.date, reason)}
           onOpenCalm={openCalm && (() => openCalm(activeProfile.id))}
+          eveningInvite={
+            showEveningInvite
+              ? {
+                  onGo: () => openEmotions(activeProfile.id, 'checkin'),
+                  onLater: () => {
+                    dismissEveningInvite(activeProfile.id, todayStr);
+                    setInviteDismissed((n) => n + 1);
+                  },
+                }
+              : undefined
+          }
         />
       ) : (
         <ProfileSelector
@@ -447,6 +485,7 @@ export default function App() {
           today={todayStr}
           onShowAbout={() => setShowAbout(true)}
           onOpenCalm={openCalm && (() => openCalm())}
+          onOpenEmotions={openEmotions && ((childId: string) => openEmotions(childId))}
           banner={
             !installDismissed && (
               <InstallBanner
@@ -460,6 +499,22 @@ export default function App() {
             )
           }
         />
+      )}
+
+      {emotionsHub && emotions.enabled && profiles.some((p) => p.id === emotionsHub.childId) && (
+        <Suspense fallback={null}>
+          <EmotionsHub
+            language={activeLang}
+            profile={profiles.find((p) => p.id === emotionsHub.childId)!}
+            settings={emotions}
+            initial={emotionsHub.initial}
+            onClose={() => setEmotionsHub(null)}
+            onOpenCalm={() => {
+              setEmotionsHub(null);
+              setCalm({ childId: emotionsHub.childId });
+            }}
+          />
+        </Suspense>
       )}
 
       {calm && emotions.enabled && (

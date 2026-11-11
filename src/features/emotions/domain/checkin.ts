@@ -63,6 +63,14 @@ function newId(at: number): string {
   return `emo_${at.toString(36)}_${counter.toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/**
+ * A "Météo intérieure" check-in, saved as soon as the child picks an emotion
+ * (leaving halfway keeps what they said); later steps update it.
+ */
+export function makeCheckIn(at: number, childId: string, emotionId: string): EmotionLog {
+  return { id: newId(at), at, date: localDate(at), kind: 'checkin', childId, emotionId };
+}
+
 /** A finished (or interrupted) calm corner session. */
 export function makeCalmLog(
   at: number,

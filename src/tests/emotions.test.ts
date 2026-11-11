@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { translations } from '../i18n/dictionary';
 import { EMOTIONS, EMOTION_FAMILIES, FAMILY_COLORS, STRATEGIES, emotionsForLevel, strategiesForLevel, DEFAULT_SUGGESTIONS } from '../features/emotions/domain/catalog';
 import { ageLevel, childLevel } from '../features/emotions/domain/level';
-import { localDate, makeCalmLog, suggestStrategies, toggleHelpful } from '../features/emotions/domain/checkin';
+import { localDate, makeCalmLog, makeCheckIn, suggestStrategies, toggleHelpful } from '../features/emotions/domain/checkin';
 import { emotionSettings } from '../features/emotions/domain/settings';
 import { DEFAULT_EMOTIONS } from '../domain/models';
 
@@ -31,6 +31,16 @@ describe('Emotions — catalog', () => {
         expect(k, `${lang} emo.strategy.${s.id}`).toContain(`emo.strategy.${s.id}`);
         expect(k, `${lang} emo.strategy.${s.id}.how`).toContain(`emo.strategy.${s.id}.how`);
       }
+    }
+  });
+
+  it('names every emotion, family reply and body zone in French and English', () => {
+    for (const lang of ['fr', 'en'] as const) {
+      const k = keys(lang);
+      for (const e of EMOTIONS) expect(k, `${lang} emo.emotion.${e.id}`).toContain(`emo.emotion.${e.id}`);
+      for (const f of EMOTION_FAMILIES) expect(k, `${lang} validate.${f}`).toContain(`emo.checkin.validate.${f}`);
+      for (const z of ['head', 'throat', 'heart', 'belly', 'hands', 'legs']) expect(k).toContain(`emo.body.${z}`);
+      for (const n of [1, 2, 3]) expect(k).toContain(`emo.checkin.intensity.${n}`);
     }
   });
 
@@ -102,6 +112,11 @@ describe('Emotions — logs and settings', () => {
     expect(makeCalmLog(at, { childId: 'leo', breaths: 2 }).childId).toBe('leo');
     expect(makeCalmLog(at, { breaths: 1 }).id).not.toBe(log.id);
     expect(localDate(new Date(2026, 0, 5, 0, 1).getTime())).toBe('2026-01-05');
+  });
+
+  it('records a check-in for the child, with the emotion they picked', () => {
+    const at = new Date(2026, 10, 11, 20, 0).getTime();
+    expect(makeCheckIn(at, 'leo', 'anger')).toMatchObject({ kind: 'checkin', childId: 'leo', emotionId: 'anger', at, date: '2026-11-11' });
   });
 
   it('fills missing emotions settings with the defaults', () => {
