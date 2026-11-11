@@ -70,6 +70,24 @@ test.describe('Mes émotions — calm corner', () => {
     await expect(page.getByTestId('reward-reveal')).toHaveCount(0);
   });
 
+  test('the cloud visibly puffs up when breathing in and shrinks when breathing out', async ({ page }) => {
+    // Real clock: CSS transitions run in real time
+    await page.goto('/');
+    await page.getByTestId('calm-button').click();
+    const cloud = page.getByTestId('calm-cloud');
+    const body = page.getByTestId('calm-cloud-body');
+    const width = async () => (await body.boundingBox())!.width;
+
+    await expect(cloud).toHaveAttribute('data-phase', 'inhale', { timeout: 15_000 });
+    await page.waitForTimeout(3_700); // end of the 4 s breath in
+    const full = await width();
+    await expect(cloud).toHaveAttribute('data-phase', 'exhale', { timeout: 2_000 });
+    await page.waitForTimeout(5_700); // end of the 6 s breath out
+    const empty = await width();
+
+    expect(full / empty).toBeGreaterThan(1.35);
+  });
+
   test("from a child's board, and the screen closes by itself once the child has gone back to real life", async ({ page }) => {
     await installClock(page);
     await page.goto('/');
