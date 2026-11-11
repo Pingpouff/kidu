@@ -33,6 +33,7 @@ import { CardReveal } from '../cards/CardReveal';
 import { PhaseIndicator } from './PhaseIndicator';
 import { StarMeter } from './StarMeter';
 import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
+import { OwlGlyph } from '../../features/emotions/art/OwlGlyph';
 
 interface RoutineBoardProps {
   profile: ChildProfile;
@@ -54,6 +55,8 @@ interface RoutineBoardProps {
   onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
   /** Opens the calm corner for this child ("Mes émotions"), no PIN */
   onOpenCalm?: () => void;
+  /** Bedtime is done: gently offer "Comment je me sens" ("Mes émotions") */
+  eveningInvite?: { onGo: () => void; onLater: () => void };
 }
 
 /** Tap-to-progress order */
@@ -110,6 +113,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   lateDefinitionIds,
   onGiveCard,
   onOpenCalm,
+  eveningInvite,
 }) => {
   // Resetting takes a second tap
   const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
@@ -605,6 +609,37 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             label={translate('board.progress', language)}
           />
         </footer>
+
+        {/* Bedtime done: a gentle invitation to say how the day felt */}
+        {eveningInvite && (
+          <div
+            role="region"
+            aria-label={translate('emo.evening.title', language)}
+            data-testid="evening-invite"
+            className="emo-twilight fixed z-30 left-1/2 -translate-x-1/2 bottom-24 w-[min(34rem,calc(100%-2rem))] rounded-3xl border border-[#E9E4FA]/25 shadow-2xl p-4 flex items-center gap-4"
+          >
+            <OwlGlyph className="w-16 h-[4.6rem] shrink-0" />
+            <div className="flex-1 flex flex-col gap-3">
+              <p className="text-lg sm:text-xl font-extrabold">{translate('emo.evening.title', language)}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={eveningInvite.onGo}
+                  data-testid="evening-invite-go"
+                  className="min-h-[48px] px-5 rounded-full bg-[#9EE6D8] text-[#16302B] font-extrabold"
+                >
+                  {translate('emo.evening.go', language)}
+                </button>
+                <button
+                  onClick={eveningInvite.onLater}
+                  data-testid="evening-invite-later"
+                  className="min-h-[48px] px-5 rounded-full border border-white/20 bg-white/5 font-semibold"
+                >
+                  {translate('emo.evening.later', language)}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Drag Overlay for visual feedback during drags */}
         <DragOverlay dropAnimation={null}>
