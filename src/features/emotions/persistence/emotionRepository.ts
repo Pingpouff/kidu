@@ -1,6 +1,7 @@
 import { db } from '../../../persistence/db';
-import type { EmotionLog } from '../../../domain/models';
+import type { CustomStrategy, EmotionLevel, EmotionLog } from '../../../domain/models';
 import { toggleHelpful } from '../domain/checkin';
+import { emotionSettings } from '../domain/settings';
 
 export const emotionRepository = {
   async addLog(log: EmotionLog): Promise<void> {
@@ -28,5 +29,36 @@ export const emotionRepository = {
 
   async deleteChildLogs(childId: string): Promise<void> {
     await db.emotionLogs.where('childId').equals(childId).delete();
+  },
+
+  /** Age level chosen by the parent; `undefined` = from the child's age. */
+  async setLevel(childId: string, level: EmotionLevel | undefined): Promise<void> {
+    await db.transaction('rw', db.profiles, async () => {
+      const profile = await db.profiles.get(childId);
+      if (!profile) return;
+      const helpful = profile.emotions?.helpful ?? [];
+      await db.profiles.put({ ...profile, emotions: level ? { helpful, level } : { helpful } });
+    });
+  },
+
+  /**
+   * The parent's own strategies. A removed one also leaves every child's
+   * toolbox, so nothing points to an idea that no longer exists.
+   */
+  async setCustomStrategies(customStrategies: CustomStrategy[]): Promise<void> {
+    await db.transaction('rw', [db.settings, db.profiles], async () => {
+      const settings = await db.settings.get('current');
+      if (!settings) return;
+      const before = emotionSettings(settings).customStrategies;
+      await db.settings.put({ ...settings, emotions: { ...emotionSettings(settings), customStrategies } });
+      const removed = before.map((c) => c.id).filter((id) => !customStrategies.some((c) => c.id === id));
+      if (removed.length === 0) return;
+      for (const profile of await db.profiles.toArray()) {
+        const helpful = profile.emotions?.helpful ?? [];
+        if (helpful.some((id) => removed.includes(id))) {
+          await db.profiles.put({ ...profile, emotions: { ...profile.emotions, helpful: helpful.filter((id) => !removed.includes(id)) } });
+        }
+      }
+    });
   },
 };

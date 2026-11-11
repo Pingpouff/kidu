@@ -124,3 +124,50 @@ describe('Emotions — logs and settings', () => {
     expect(emotionSettings({ emotions: { ...DEFAULT_EMOTIONS, adultName: 'Maman' } }).adultName).toBe('Maman');
   });
 });
+
+describe('Emotions — gentle trends for the parent', () => {
+  // Imported lazily to keep the top of the file about the child-facing rules
+  const at = (y: number, m: number, d: number, h: number) => new Date(y, m - 1, d, h).getTime();
+  const checkIn = (id: string, when: number, emotionId: string, intensity?: 1 | 2 | 3) => ({
+    id, at: when, date: localDate(when), kind: 'checkin' as const, childId: 'leo', emotionId, ...(intensity ? { intensity } : {}),
+  });
+  const calm = (id: string, when: number) => ({ id, at: when, date: localDate(when), kind: 'calm' as const, childId: 'leo', breaths: 4 });
+
+  it('lays out the last 4 weeks Monday to Sunday, with each day’s feelings and calm corners', async () => {
+    const { weekGrid } = await import('../features/emotions/domain/trends');
+    // Wednesday 11 November 2026
+    const grid = weekGrid(
+      [checkIn('a', at(2026, 11, 10, 8), 'anger', 3), checkIn('b', at(2026, 11, 10, 20), 'joy'), calm('c', at(2026, 11, 10, 9)), checkIn('old', at(2026, 9, 1, 9), 'fear')],
+      '2026-11-11'
+    );
+    expect(grid).toHaveLength(4);
+    expect(grid.every((w) => w.length === 7)).toBe(true);
+    expect(grid[0][0].date).toBe('2026-10-19'); // Monday, 3 weeks before
+    expect(grid[3][6].date).toBe('2026-11-15'); // Sunday of this week
+    const tuesday = grid[3][1];
+    expect(tuesday.date).toBe('2026-11-10');
+    expect(tuesday.feelings.map((f) => f.emotionId)).toEqual(['anger', 'joy']);
+    expect(tuesday.feelings[0]).toMatchObject({ family: 'anger', intensity: 3 });
+    expect(tuesday.calm).toBe(1);
+    expect(grid.flat().some((d) => d.feelings.some((f) => f.emotionId === 'fear'))).toBe(false);
+  });
+
+  it('counts the moments unpleasant feelings were named, the calm corners and the families', async () => {
+    const { hardMoments, calmCount, familyCounts } = await import('../features/emotions/domain/trends');
+    const logs = [
+      checkIn('a', at(2026, 11, 10, 8), 'anger'),
+      checkIn('b', at(2026, 11, 10, 16), 'worry'),
+      checkIn('c', at(2026, 11, 10, 19), 'frustration'),
+      checkIn('d', at(2026, 11, 10, 19), 'joy'), // pleasant: not a hard moment
+      checkIn('e', at(2026, 10, 1, 19), 'sadness'), // before the period
+      calm('f', at(2026, 11, 9, 18)),
+    ];
+    expect(hardMoments(logs, '2026-10-15')).toEqual({ morning: 1, afternoon: 1, evening: 1 });
+    expect(calmCount(logs, '2026-10-15')).toBe(1);
+    expect(familyCounts(logs, '2026-10-15')).toEqual([
+      { family: 'anger', count: 2 },
+      { family: 'fear', count: 1 },
+      { family: 'joy', count: 1 },
+    ]);
+  });
+});

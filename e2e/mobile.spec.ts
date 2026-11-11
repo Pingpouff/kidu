@@ -76,7 +76,7 @@ test.describe('Phone layout', () => {
     await page.goto('/');
     await enterParentMode(page);
     await expectNoHorizontalScroll(page);
-    for (const tab of ['Enfants', 'Boutique', 'Historique', 'Paramètres', 'Routine & Tâches']) {
+    for (const tab of ['Enfants', 'Boutique', 'Historique', 'Émotions', 'Paramètres', 'Routine & Tâches']) {
       const button = page.getByRole('button', { name: tab, exact: true });
       await expect(button).toBeInViewport({ ratio: 1 });
       await button.click();
