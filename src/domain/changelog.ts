@@ -16,6 +16,22 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.9.0',
+    date: '2026-11-11',
+    changes: {
+      fr: [
+        'Mode Parent → Émotions : ce que chaque enfant a exprimé ces 4 dernières semaines (sans score), les moments difficiles de la journée, le coin calme et ce qui l’aide.',
+        'Choisir le niveau de chaque enfant (6, 12 ou 24 émotions) et ajouter vos propres idées à sa boîte à outils.',
+        'Des fiches pour accompagner la colère, la peur, la tristesse, la jalousie et la déception, et quand en parler à un professionnel.',
+      ],
+      en: [
+        'Parent Mode → Feelings: what each child expressed over the last 4 weeks (no score), the hard moments of the day, the calm corner and what helps them.',
+        'Choose each child’s level (6, 12 or 24 feelings) and add your own ideas to their toolbox.',
+        'Guides to support anger, fear, sadness, jealousy and disappointment, and when to talk to a professional.',
+      ],
+    },
+  },
+  {
     version: '1.8.0',
     date: '2026-11-11',
     changes: {
