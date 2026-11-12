@@ -95,6 +95,26 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
           </span>
           <div className="flex flex-wrap gap-1.5">
             <Pill className="py-0.5 text-sm font-semibold text-yellow-300 border border-yellow-500/20">⭐ {profile.stars}</Pill>
+            {summary?.muted && (
+              <Pill className="py-0.5 text-sm font-semibold text-white/70 border border-white/20" data-testid="home-child-muted" title={translate('home.muted_child', language)}>
+                🔕
+              </Pill>
+            )}
+            {summary?.period && (
+              <Pill className="py-0.5 text-sm font-semibold text-cyan-200 border border-cyan-400/30" data-testid="home-period" data-period={summary.period}>
+                {translate(`day.${summary.period}`, language)}
+              </Pill>
+            )}
+            {(summary?.cards.green ?? 0) > 0 && (
+              <Pill
+                className="py-0.5 text-sm font-semibold text-emerald-300 border border-emerald-500/30 gap-1"
+                title={translate('cards.banner_green', language)}
+                data-testid="home-green-card"
+              >
+                <span className="referee-card size-sm is-green -rotate-12" aria-hidden="true" />
+                {summary!.cards.green > 1 && `×${summary!.cards.green}`}
+              </Pill>
+            )}
             {(summary?.streak ?? 0) >= 2 && (
               <Pill
                 className="py-0.5 text-sm font-semibold text-orange-300 border border-orange-500/20"

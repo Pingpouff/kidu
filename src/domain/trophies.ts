@@ -103,15 +103,33 @@ export function dayDiff(a: string, b: string): number {
   return Math.round((toUtc(b) - toUtc(a)) / 86_400_000);
 }
 
+/** The YYYY-MM-DD date `days` days after `date` (local calendar). */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const next = new Date(y, m - 1, d + days);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`;
+}
+
+/** A day that neither counts nor breaks a streak (rest day set by a parent). */
+export type NeutralDay = (date: string) => boolean;
+
+/** True when every day strictly between `a` and `b` is neutral (none when they follow each other). */
+export function onlyNeutralBetween(a: string, b: string, isNeutral: NeutralDay = () => false): boolean {
+  const gap = dayDiff(a, b);
+  for (let i = 1; i < gap; i++) if (!isNeutral(addDays(a, i))) return false;
+  return true;
+}
+
 /**
- * Longest run of consecutive days with a completed routine, ending on the most recent one.
+ * Longest run of consecutive days with a completed routine, ending on the most
+ * recent one. Rest days (`isNeutral`) in between don't break it.
  */
-export function currentStreak(completedDates: string[]): number {
+export function currentStreak(completedDates: string[], isNeutral?: NeutralDay): number {
   const dates = [...new Set(completedDates)].sort();
   if (dates.length === 0) return 0;
   let streak = 1;
   for (let i = dates.length - 1; i > 0; i--) {
-    if (dayDiff(dates[i - 1], dates[i]) === 1) streak++;
+    if (onlyNeutralBetween(dates[i - 1], dates[i], isNeutral)) streak++;
     else break;
   }
   return streak;
@@ -134,7 +152,8 @@ function hasLightning(session: RoutineSession): boolean {
 export function computeTrophyStats(
   sessions: RoutineSession[],
   definitions: TaskDefinition[],
-  profile?: Pick<ChildProfile, 'stars' | 'medalCount'>
+  profile?: Pick<ChildProfile, 'stars' | 'medalCount'>,
+  isNeutral?: NeutralDay
 ): TrophyStats {
   const completed = sessions.filter((s) => s.isCompleted);
   const completedDates = [...new Set(completed.map((s) => s.date))].sort();
@@ -170,7 +189,7 @@ export function computeTrophyStats(
 
   return {
     completedRoutines: completed.length,
-    currentStreak: currentStreak(completedDates),
+    currentStreak: currentStreak(completedDates, isNeutral),
     phaseCompletions,
     hadLightning: sessions.some(hasLightning),
     hadEarlyBird,

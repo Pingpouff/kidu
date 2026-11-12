@@ -7,6 +7,9 @@ import {
   findStartingTasks,
   isValidDueTime,
   isValidTimeWindow,
+  isMuted,
+  muteReminders,
+  mutedChildren,
   planReminders,
   pruneReminderLog,
   ReminderLog,
@@ -273,5 +276,25 @@ describe('Start times', () => {
       "Léo, c'est l'heure : Devoirs ! Et c'est le moment de commencer : Bain et Dents !"
     );
     expect(reminderText('Leo', [], 'en', ['Bath'])).toBe('Leo, time to start: Bath!');
+  });
+});
+
+describe('Reminders stopped for tonight', () => {
+  it('a stopped child gets no reminder until the next day', () => {
+    const now = at('21:00');
+    const muted = muteReminders(undefined, DATE, ['leo']);
+    expect(isMuted(muted, DATE, 'leo')).toBe(true);
+    expect(isMuted(muted, DATE, 'emma')).toBe(false);
+    expect(isMuted(muted, '2026-11-10', 'leo')).toBe(false); // tomorrow starts normally
+    const kids = findReminderTasks(now, DATE, profiles, [], definitions, { muted }).map((t) => t.childId);
+    expect(kids).not.toContain('leo');
+    expect(kids).toContain('emma');
+    expect(findOverdueTasks(now, DATE, profiles, [], definitions, { muted: muteReminders(muted, DATE) })).toEqual([]);
+
+    // Adding a child, then everyone; yesterday's list is forgotten
+    expect(muteReminders(muted, DATE, ['emma'])).toEqual({ date: DATE, childIds: ['leo', 'emma'] });
+    expect(muteReminders({ date: DATE }, DATE, ['emma'])).toEqual({ date: DATE });
+    expect(muteReminders({ date: '2026-11-08', childIds: ['leo'] }, DATE, ['emma'])).toEqual({ date: DATE, childIds: ['emma'] });
+    expect(mutedChildren({ date: DATE }, DATE, profiles)).toEqual({ all: true, ids: ['leo', 'emma'] });
   });
 });

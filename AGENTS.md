@@ -23,7 +23,9 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── rewards.ts      # Stars → medals → badge offers, piggy bank & shop rules
     │   ├── badges.ts       # Badge catalog (universes) and offer drawing
     │   ├── summary.ts      # Selection screen overview: per-child summary, upcoming deadlines
-    │   ├── cards.ts        # Yellow / red behavior cards (pure rules)
+    │   ├── cards.ts        # Green / yellow / red cards (pure rules)
+    │   ├── timer.ts        # Timed tasks: countdown from "doing", "minutes left" warnings
+    │   ├── calendar.ts     # Holidays and rest days (periods), school / holidays tasks
     │   ├── treasure.ts     # "My treasure" view model: items, collections, stats, rank
     │   ├── trophies.ts     # Milestone trophies computed from sessions
     │   ├── reminders.ts    # Overdue detection and reminder planning (pure)
@@ -102,6 +104,8 @@ We use **IndexedDB** via `dexie` for fully client-side, offline-first persistenc
        dueTime?: string; // "HH:MM" expected end, reminders when late
        assignedTo?: string[]; // child ids, missing/empty = common to every child
        days?: number[]; // 0 = Sunday … 6 = Saturday, missing/empty = every day
+       durationMinutes?: number; // time allowed once started ("doing"), 1–180
+       schedule?: 'school' | 'holidays'; // missing = always
      }
      ```
 
@@ -182,6 +186,14 @@ Tasks belong to one of four fixed phases, run in order: `morning` → `after_sch
 - `DayPicker` (TaskManager): "Every day", "Mon → Fri" or single days; choosing all seven comes back to every day. Default school tasks (empty bag, homework, pack bag) are Monday–Friday.
 - e2e: `e2e/fixtures.ts` moves the browser clock back to Friday when the suite runs on a weekend, so specs always see a school day. Specs import `test` / `expect` from `./fixtures`.
 
+## Holidays and Rest Days
+
+`settings.periods: CalendarPeriod[]` (`{ id, kind: 'holidays' | 'off', from, to, childIds? }`, dates included, no `childIds` = every child), rules in `domain/calendar.ts` (`dayContext` → `{ holidays, off }`). Edited in Parent Mode → Tasks (`CalendarPanel`: "rest day today" quick toggle, add a period, list of current / upcoming ones) and saved by `routineRepository.savePeriods`, which drops periods ended more than 60 days ago and re-syncs today's sessions.
+
+- `TaskDefinition.schedule`: `school` (hidden in holidays and on rest days), `holidays` (only then), missing = always (`isTaskForSchedule`; `SchedulePicker` in TaskManager). `isTaskForChildOn` / `definitionsForChildOn(…, periods)` combine child, weekday and schedule; `initSession` / `syncSessionWithDefinitions` take `periods`. The default bag / homework tasks are `school` (Dexie `version(4)` upgrade for existing installs).
+- A rest day (`off`) is also a no-school day, raises no reminder (`ReminderContext.periods` in every `find*Tasks`), shows nothing in `upcomingDeadlines`, and is neutral for streaks: `currentStreak` / `liveStreak` / `computeTrophyStats` take an `isNeutral` day test, so an off day between two completed routines doesn't break the streak (it doesn't count either). The child can still tick tasks and earn stars.
+- `ChildSummary.period` and the board's `dayKind` show "🏖️ Vacances" / "😴 Jour de repos" pills. Backups keep `periods` and `schedule`.
+
 ## Selection Screen Overview
 
 `domain/summary.ts`: `childSummary` (status, done/total, current phase, doing/next task, late tasks, next due time, stars to the next medal, piggy bank badges, pending badge choices, live streak) and `upcomingDeadlines` (next due times grouped by task, children listed together). A child without a session today is previewed with `initSession`. `ProfileSelector` re-renders every 30 s and gets all sessions from `App.tsx`.
@@ -197,11 +209,12 @@ All rules are pure functions in `domain/rewards.ts`, persisted by `routineReposi
 - **My treasure** (`components/rewards/TreasureView.tsx`, opened from the piggy bank): a chest to open, then a spotlight for the treasure the child taps, **"Mes trophées"** (`trophyShowcase`: every trophy, earned ones in gold with their date, the others as silhouettes with their hint) and, apart, **"Mes médailles"** (`medalTotals`: won / in the piggy bank / exchanged, a shelf of motifs, per-universe collections `collectionProgress`). Rank: `treasureRank`. Pure helpers live in `domain/treasure.ts`; extra sounds are `playChestOpenSound`, `playTreasureTapSound`, `playTreasureSwipeSound`.
 - `App.tsx`: a new medal shows `MedalChoice` first (it is the medal's reveal: medal sound, confetti); then the full-screen `RewardReveal`s of the trophies it unlocked. There is no separate "new medal" reveal anymore.
 
-## Yellow and Red Cards
+## Green, Yellow and Red Cards
 
 Pure rules in `domain/cards.ts`, stored on the profile (`profile.cards: BehaviorCard[]`, whole history, kept in backups).
 
-- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the "forgot the PIN" question).
+- A parent gives a card from the child's board (cards button in the header → `CardGiver`: color, optional reason → PIN check without the "forgot the PIN" question). Green comes first and is preselected, with its own reasons (`GREEN_CARD_REASONS`).
+- **Green** (1.11.0): a "well done", **+1 star** toward the next medal through `addStars` (`domain/rewards.ts`, shared with task stars), so it can complete a medal (then `MedalChoice` shows). `gainedStar` marks it; withdrawing it takes the star back (a medal it completed is kept). Green cards never count toward the yellow → red rule, and `tonightCardState.level` ignores them (`green` count and `lastGreenReason` apart). `CardReveal outcome="green"` plays the star sound instead of the whistle; the board shows a green pill next to `CardBanner` (tap → reveal again), the home card a small green card; there is no green frame and no reminder when the board opens.
 - **Yellow**: a warning, no effect. **Red**: `starProgress` goes back to 0 (stored in `lostProgress`); stars, medals, badges and trophies are never taken.
 - A second yellow the same evening (`date`) adds an automatic red (`fromYellows`). Cards count per evening: the next one starts clean.
 - `CardReveal` shows the card with a whistle (`playWhistleSound`) and a spoken sentence (all following the feedback settings).
@@ -230,6 +243,8 @@ A separate module in `src/features/emotions/` (domain, persistence, art, compone
 - `findStartingTasks` lists tasks whose start time has passed and that are still `todo` (until their end time, when late reminders take over); `findReminderTasks` merges both lists by time. Items carry `kind: 'late' | 'start'`; a start is announced only once.
 - `planReminders` decides what to announce now from a per-day log (`{ count, lastAt }` per `date_child_task` key): first time overdue, then every `repeatMinutes`, at most `maxReminders`. Tasks of the same child are grouped into one batch.
 - `ReminderQueue` plays batches strictly one at a time (banner + chime + voice, waiting for any ongoing speech), merges pending batches of the same child and re-validates each batch against the database right before playing.
+- **Timed tasks** (1.11.0, `domain/timer.ts`): `TaskDefinition.durationMinutes`; the time allowed counts from `RoutineTask.startedAt`, set by `moveTask` when a task goes to `doing` (kept when done, cleared back to todo, kept by syncs). `findTimerTasks` gives a `warning` (only the closest threshold passed, `minutesLeft`) from `settings.reminders.timerWarnings` (default `[10, 5]`, choices `TIMER_WARNING_CHOICES`, `warningsFor` drops thresholds ≥ the duration), then `timeup` once it runs out. Keys include `startedAt`, so a restarted task gets fresh reminders. Warnings play once, `timeup` repeats like `late`; time-up tasks also count as late for badges. On the board, `TaskTimer` (doing card) draws a draining disc updated every 5 s; a todo card shows the duration.
+- **Stopped for tonight** (1.11.0): `settings.mutedReminders` (`{ date, childIds? }`, no ids = every child, only counts on `date`, not in backups). `muteReminders` / `isMuted` / `mutedChildren` in `domain/reminders.ts`; `ReminderContext.muted` removes those children from every `find*Tasks` (no banner, no voice, no late badge or ⏰ marker). Set with the PIN from the reminder banner ("Arrêter pour ce soir", that child) or the home screen's "Ce soir" section (everyone), through `routineRepository.muteReminders`; "Réactiver" (`unmuteReminders`, no PIN). The announcement on screen stops at once.
 - `useTaskReminders` ticks every 30 s, persists the log in `localStorage` (best effort) and is paused during Parent Mode. Reminders only run while the app is open; there is no push server.
 
 ## Feedback Settings
@@ -248,6 +263,7 @@ Styles live in Tailwind classes, shared through `src/ui/` instead of being copie
 - **Layers**: full-screen views use `<Overlay layer="…">` (`overlay` < `treasure` < `flying` < `banner` < `dialog` < `choice` < `reveal`, tokens in `tailwind.config.js`). Overlays are rendered in a portal on `<body>` (an ancestor with `backdrop-filter`/`transform`, like `glass-panel`, would otherwise trap `position: fixed`), lock the page scroll, and Escape closes only the top one. A scrollable area inside a `max-h` flex panel needs `min-h-0`. `<Modal>` is an Overlay with a centered glass panel and a close button (piggy bank, PIN pad). Confetti canvases use `CONFETTI_Z`.
 - **Parent Mode controls**: `fieldClass(size, extra, { editing })` for inputs/selects (`lg` creation forms, `md` settings, `sm` inline row editing), `buttonClass(variant, size, extra)`, `IconButton` (edit / success / neutral) and `ConfirmIconButton` for anything destructive (second tap within 3 s). `PanelHeader` for section titles.
 - **Child-facing pieces**: `ChildAvatar`, `Pill`, `ChildCard`, `TaskCard`, `BadgeDisc`.
+- **Toasts** behave like Android notifications / Material snackbars: `useSwipeDismiss` / `<Swipeable>` (swipe sideways past 80 px or fling to dismiss; a real swipe cancels the click), `useAutoDismiss(ms, onDismiss, { fullScreen })` (auto-close that waits while pressed, hovered or focused — only pressed for full-screen views, which always have the pointer and take the focus), `mergeHandlers`. Used by `ReminderBanner` (swipe, ✕, tap, "Dans 10 min" → `useTaskReminders().snooze`, 10 min per child in `localStorage['kidu.reminderSnooze']`, "Arrêter pour ce soir"; dismissing stops the voice), `PhaseBanner`, the card reminder (`CardReveal mode="reminder"`), `AppUpdateBanner`, `InstallBanner` and the evening invitation. New toasts must offer a way to dismiss them.
 - `cx()` merges classes with tailwind-merge, so an `extra` class overrides the component's default for the same property (`cx('px-4', 'px-2')` → `px-2`).
 
 ## Responsive Layout

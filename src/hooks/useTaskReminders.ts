@@ -4,9 +4,11 @@ import { db } from '../persistence/db';
 import { ChildProfile, DEFAULT_REMINDERS, ParentSettings, TaskDefinition } from '../domain/models';
 import {
   OverdueTask,
+  ReminderContext,
   ReminderLog,
   findOverdueTasks,
   findReminderTasks,
+  isMuted,
   planReminders,
   pruneReminderLog,
 } from '../domain/reminders';
@@ -24,6 +26,26 @@ export interface ReminderAnnouncement {
 const TICK_MS = 30_000;
 const MIN_BANNER_MS = 5_000;
 const LOG_STORAGE_KEY = 'kidu.reminderLog';
+const SNOOZE_STORAGE_KEY = 'kidu.reminderSnooze';
+/** "Later": a child's reminders wait this long (like an Android notification's snooze) */
+export const SNOOZE_MINUTES = 10;
+
+/** Until when each child's reminders are snoozed (epoch per child id). */
+type SnoozeMap = Record<string, number>;
+const loadSnooze = (): SnoozeMap => {
+  try {
+    return JSON.parse(localStorage.getItem(SNOOZE_STORAGE_KEY) ?? '{}') as SnoozeMap;
+  } catch {
+    return {};
+  }
+};
+const saveSnooze = (snooze: SnoozeMap) => {
+  try {
+    localStorage.setItem(SNOOZE_STORAGE_KEY, JSON.stringify(snooze));
+  } catch {
+    /* storage unavailable: the snooze lasts for this session */
+  }
+};
 
 // The log only avoids repeating reminders after a reload: losing it is harmless
 const loadLog = (): ReminderLog => {
@@ -46,11 +68,23 @@ const joinLabels = (labels: string[], language: Language) =>
     ? labels[0]
     : `${labels.slice(0, -1).join(', ')} ${translate('list.and', language)} ${labels[labels.length - 1]}`;
 
+/** Timed tasks in a reminder: about to run out (with the minutes left) or run out. */
+export interface TimerLabels {
+  warnings: { label: string; minutes: number }[];
+  timeUp: string[];
+}
+
 /**
- * Sentence spoken / shown for a child's reminder: late tasks (`labels`)
- * and tasks whose start time has come (`startLabels`).
+ * Sentence spoken / shown for a child's reminder: late tasks (`labels`),
+ * tasks whose start time has come (`startLabels`) and timed tasks (`timers`).
  */
-export function reminderText(childName: string, labels: string[], language: Language, startLabels: string[] = []): string {
+export function reminderText(
+  childName: string,
+  labels: string[],
+  language: Language,
+  startLabels: string[] = [],
+  timers: TimerLabels = { warnings: [], timeUp: [] }
+): string {
   const fr = language === 'fr';
   const parts: string[] = [];
   if (labels.length > 0) {
@@ -65,6 +99,14 @@ export function reminderText(childName: string, labels: string[], language: Lang
     const list = joinLabels(startLabels, language);
     const prefix = labels.length > 0 ? (fr ? 'Et ' : 'And ') : '';
     parts.push(fr ? `${prefix}c'est le moment de commencer : ${list} !` : `${prefix}time to start: ${list}!`);
+  }
+  // Sentences after the first one start with a capital letter
+  const add = (text: string) => parts.push(parts.length > 0 ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+  for (const { label, minutes } of timers.warnings) {
+    add(translate(minutes === 1 ? 'reminders.spoken_warning_one' : 'reminders.spoken_warning', language, { minutes, task: label }));
+  }
+  if (timers.timeUp.length > 0) {
+    add(translate('reminders.spoken_time_up', language, { task: joinLabels(timers.timeUp, language) }));
   }
   // "Léo, c'est l'heure…" — the first part follows the name in lower case
   return `${childName}, ${parts.join(' ')}`;
@@ -93,28 +135,42 @@ export function useTaskReminders({
   const [now, setNow] = useState(() => Date.now());
   const [current, setCurrent] = useState<ReminderAnnouncement | null>(null);
   const logRef = useRef<ReminderLog>(pruneReminderLog(loadLog(), today));
+  const [snoozed, setSnoozed] = useState<SnoozeMap>(loadSnooze);
+  const snoozedRef = useRef(snoozed);
+  snoozedRef.current = snoozed;
+  const isSnoozed = (childId: string, at: number) => (snoozedRef.current[childId] ?? 0) > at;
   const reminderSettings = { ...DEFAULT_REMINDERS, ...settings?.reminders };
 
   const sessions = useLiveQuery(() => db.sessions.where('date').equals(today).toArray(), [today]);
+  // Rest days (no reminder), holidays (no school tasks) and "minutes left" warnings
+  const contextKey = JSON.stringify({
+    periods: settings?.periods ?? [],
+    timerWarnings: reminderSettings.timerWarnings,
+    muted: settings?.mutedReminders,
+  });
+  const context = useMemo((): ReminderContext => JSON.parse(contextKey), [contextKey]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
 
-  // Late tasks (for badges) and everything to announce (late + time to start)
-  const overdue = useMemo(
-    () => (profiles && tasks && sessions ? findOverdueTasks(now, today, profiles, sessions, tasks) : []),
-    [now, today, profiles, tasks, sessions]
-  );
+  // Everything to announce (late, time to start, timed tasks)
   const toAnnounce = useMemo(
-    () => (profiles && tasks && sessions ? findReminderTasks(now, today, profiles, sessions, tasks) : []),
-    [now, today, profiles, tasks, sessions]
+    () => (profiles && tasks && sessions ? findReminderTasks(now, today, profiles, sessions, tasks, context) : []),
+    [now, today, profiles, tasks, sessions, context]
   );
+  // Late tasks (for badges): past their end time, or their time allowed has run out
+  const overdue = useMemo(() => {
+    const late = profiles && tasks && sessions ? findOverdueTasks(now, today, profiles, sessions, tasks, context) : [];
+    const seen = new Set(late.map((t) => `${t.childId}_${t.definitionId}`));
+    const timeUp = toAnnounce.filter((t) => t.kind === 'timeup' && !seen.has(`${t.childId}_${t.definitionId}`));
+    return [...late, ...timeUp];
+  }, [now, today, profiles, tasks, sessions, context, toAnnounce]);
 
   // Latest values for the queue callbacks (which outlive renders)
-  const latest = useRef({ language, profiles, tasks, notify: reminderSettings.systemNotifications });
-  latest.current = { language, profiles, tasks, notify: reminderSettings.systemNotifications };
+  const latest = useRef({ language, profiles, tasks, notify: reminderSettings.systemNotifications, context });
+  latest.current = { language, profiles, tasks, notify: reminderSettings.systemNotifications, context };
 
   const queueRef = useRef<ReminderQueue<ReminderAnnouncement> | null>(null);
   if (!queueRef.current) {
@@ -131,7 +187,8 @@ export function useTaskReminders({
           db.tasks.toArray(),
           db.sessions.where('date').equals(today).toArray(),
         ]);
-        const stillLate = findReminderTasks(Date.now(), today, allProfiles, todaySessions, definitions)
+        if (isSnoozed(announcement.childId, Date.now())) return null;
+        const stillLate = findReminderTasks(Date.now(), today, allProfiles, todaySessions, definitions, latest.current.context)
           .filter((t) => announcement.taskKeys.includes(t.key));
         return stillLate.length > 0
           ? { childId: announcement.childId, tasks: stillLate, taskKeys: stillLate.map((t) => t.key) }
@@ -141,9 +198,13 @@ export function useTaskReminders({
         const { language: lang, profiles: kids, tasks: defs, notify } = latest.current;
         const child = kids?.find((p) => p.id === announcement.childId);
         const labelOf = (definitionId: string) => taskLabel(defs?.find((d) => d.id === definitionId), lang);
-        const late = announcement.tasks.filter((t) => t.kind !== 'start').map((t) => labelOf(t.definitionId));
-        const toStart = announcement.tasks.filter((t) => t.kind === 'start').map((t) => labelOf(t.definitionId));
-        const text = reminderText(child?.name ?? '', late, lang, toStart);
+        const ofKind = (kind: string) => announcement.tasks.filter((t) => (t.kind ?? 'late') === kind);
+        const late = ofKind('late').map((t) => labelOf(t.definitionId));
+        const toStart = ofKind('start').map((t) => labelOf(t.definitionId));
+        const text = reminderText(child?.name ?? '', late, lang, toStart, {
+          warnings: ofKind('warning').map((t) => ({ label: labelOf(t.definitionId), minutes: t.minutesLeft ?? 0 })),
+          timeUp: ofKind('timeup').map((t) => labelOf(t.definitionId)),
+        });
         const shownAt = Date.now();
 
         if (notify && typeof document !== 'undefined' && document.hidden) {
@@ -176,17 +237,48 @@ export function useTaskReminders({
       queueRef.current?.clear();
       return;
     }
-    const { batches, log } = planReminders(toAnnounce, pruneReminderLog(logRef.current, today), now, JSON.parse(settingsKey));
+    // Snoozed children wait: their reminders are planned again once the snooze is over
+    const due = toAnnounce.filter((t) => !isSnoozed(t.childId, now));
+    const { batches, log } = planReminders(due, pruneReminderLog(logRef.current, today), now, JSON.parse(settingsKey));
     logRef.current = log;
     if (batches.length > 0) saveLog(log);
     for (const batch of batches) {
       queueRef.current?.enqueue({ childId: batch.childId, tasks: batch.tasks, taskKeys: batch.tasks.map((t) => t.key) });
     }
-  }, [toAnnounce, now, today, settingsKey, paused]);
+  }, [toAnnounce, now, today, settingsKey, paused, snoozed]);
+
+  // The clock ticks every 30 s: wake up right when a snooze ends
+  useEffect(() => {
+    const ends = Object.values(snoozed).filter((until) => until > Date.now());
+    if (ends.length === 0) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(...ends) - Date.now() + 50);
+    return () => window.clearTimeout(timer);
+  }, [snoozed]);
+
+  // A parent stopped this child's reminders: the announcement on screen stops now
+  useEffect(() => {
+    if (current && isMuted(context.muted, today, current.childId)) {
+      reminderService.stopSpeaking();
+      setCurrent(null);
+    }
+  }, [current, context, today]);
 
   return {
     current,
     overdue,
-    dismissCurrent: () => setCurrent(null),
+    /** Hides the announcement and stops its voice (like swiping a notification away) */
+    dismissCurrent: () => {
+      reminderService.stopSpeaking();
+      setCurrent(null);
+    },
+    /** "Later": this child's reminders wait SNOOZE_MINUTES */
+    snooze: (childId: string, minutes = SNOOZE_MINUTES) => {
+      reminderService.stopSpeaking();
+      setCurrent((c) => (c?.childId === childId ? null : c));
+      const next = { ...Object.fromEntries(Object.entries(snoozedRef.current).filter(([, until]) => until > Date.now())), [childId]: Date.now() + minutes * 60_000 };
+      snoozedRef.current = next;
+      saveSnooze(next);
+      setSnoozed(next);
+    },
   };
 }
