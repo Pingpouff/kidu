@@ -189,6 +189,7 @@ function parseSettings(raw: unknown): ParentSettings {
             volume: feedback.volume as number,
             animations: feedback.animations as FeedbackSettings['animations'],
             ...(feedback.visuals !== undefined ? { visuals: feedback.visuals as VisualsSetting } : {}),
+            ...(typeof feedback.haptics === 'boolean' ? { haptics: feedback.haptics } : {}),
           },
         }
       : {}),

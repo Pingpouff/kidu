@@ -32,14 +32,21 @@ export async function requestNotificationPermission(): Promise<NotificationStatu
  * Shows a system notification. Returns false when it couldn't be shown
  * (no permission, unsupported browser…).
  */
+export interface NotificationAction {
+  action: string;
+  title: string;
+}
+
 export async function showSystemNotification(
   title: string,
-  options: { body: string; tag?: string }
+  options: { body: string; tag?: string; data?: unknown; actions?: NotificationAction[] }
 ): Promise<boolean> {
   if (notificationStatus() !== 'granted') return false;
   // Android needs PNGs: a color icon, and a white monochrome badge for the status bar
-  const fullOptions: NotificationOptions = {
+  // `actions` (buttons under an Android notification) only exist for service worker notifications
+  const fullOptions: NotificationOptions & { actions?: NotificationAction[]; renotify?: boolean } = {
     ...options,
+    renotify: true,
     icon: `${import.meta.env.BASE_URL}icon-192.png`,
     badge: `${import.meta.env.BASE_URL}badge-96.png`,
   };
@@ -55,10 +62,42 @@ export async function showSystemNotification(
   }
 
   try {
-    new Notification(title, fullOptions);
+    const plain = { ...fullOptions };
+    delete plain.actions; // not allowed outside a service worker
+    new Notification(title, plain);
     return true;
   } catch {
     // Android without an active service worker (e.g. dev server)
     return false;
   }
+}
+
+/** A button of a reminder notification, tapped while the app was in the background. */
+export interface ReminderAction {
+  action: 'snooze' | 'mute';
+  childId: string;
+}
+
+const isReminderAction = (action: unknown): action is ReminderAction['action'] => action === 'snooze' || action === 'mute';
+
+/**
+ * Listens to notification buttons: from the service worker when the app is
+ * open, or from the URL when the tap reopened it. Returns the unsubscribe.
+ */
+export function onReminderAction(handler: (action: ReminderAction) => void): () => void {
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('reminderAction');
+  const child = params.get('child');
+  if (isReminderAction(fromUrl) && child) {
+    window.history.replaceState(window.history.state, '', window.location.pathname);
+    window.setTimeout(() => handler({ action: fromUrl, childId: child }), 0);
+  }
+  const onMessage = (e: MessageEvent) => {
+    const data = e.data as { type?: string; action?: unknown; childId?: unknown } | null;
+    if (data?.type === 'kidu-reminder-action' && isReminderAction(data.action) && typeof data.childId === 'string') {
+      handler({ action: data.action, childId: data.childId });
+    }
+  };
+  navigator.serviceWorker?.addEventListener('message', onMessage);
+  return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
 }

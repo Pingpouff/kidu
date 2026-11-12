@@ -96,7 +96,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({ periods, profiles,
           </div>
           <p className="text-xs text-white/50">{translate(`parent.calendar.kind_hint.${kind}`, language)}</p>
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1 text-[10px] font-bold text-white/50 uppercase tracking-wide">
+            <label className="flex flex-col gap-1 text-xs font-bold text-white/50 uppercase tracking-wide">
               {translate('parent.calendar.from', language)}
               <input
                 type="date"
@@ -110,7 +110,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({ periods, profiles,
                 className={fieldClass('md', 'px-2')}
               />
             </label>
-            <label className="flex flex-col gap-1 text-[10px] font-bold text-white/50 uppercase tracking-wide">
+            <label className="flex flex-col gap-1 text-xs font-bold text-white/50 uppercase tracking-wide">
               {translate('parent.calendar.to', language)}
               <input
                 type="date"
@@ -137,7 +137,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({ periods, profiles,
       )}
 
       {list.length === 0 ? (
-        <p className="text-sm text-white/40">{translate('parent.calendar.empty', language)}</p>
+        <p className="text-sm text-white/60">{translate('parent.calendar.empty', language)}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {list.map((p) => {
@@ -152,7 +152,7 @@ export const CalendarPanel: React.FC<CalendarPanelProps> = ({ periods, profiles,
                   <p className="font-bold text-white text-sm flex flex-wrap items-center gap-x-2">
                     {translate(`parent.calendar.kind.${p.kind}`, language)}
                     {current && (
-                      <span className="text-[10px] font-black uppercase tracking-wide text-emerald-300">{translate('parent.calendar.now', language)}</span>
+                      <span className="text-xs font-black uppercase tracking-wide text-emerald-300">{translate('parent.calendar.now', language)}</span>
                     )}
                   </p>
                   <p className="text-xs text-white/60">

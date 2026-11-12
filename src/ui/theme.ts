@@ -21,6 +21,8 @@ export interface ChildTheme {
   celebration: string;
   /** Parent Mode profile row */
   managerRow: string;
+  /** Android status bar color on the child's board (top of the .theme-* gradient) */
+  statusBar: string;
 }
 
 export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
@@ -31,6 +33,7 @@ export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
     progress: 'from-indigo-500 to-cyan-400 shadow-cyan-500/20',
     celebration: 'from-indigo-950 via-slate-900 to-indigo-950',
     managerRow: 'border-indigo-500/30 hover:bg-indigo-950/10',
+    statusBar: '#1e1b4b',
   },
   purple: {
     board: 'theme-purple',
@@ -39,6 +42,7 @@ export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
     progress: 'from-purple-500 to-pink-400 shadow-pink-500/20',
     celebration: 'from-purple-950 via-slate-900 to-purple-950',
     managerRow: 'border-purple-500/30 hover:bg-purple-950/10',
+    statusBar: '#2e1065',
   },
   rose: {
     board: 'theme-rose',
@@ -47,6 +51,7 @@ export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
     progress: 'from-rose-500 to-orange-400 shadow-orange-500/20',
     celebration: 'from-rose-950 via-slate-900 to-rose-950',
     managerRow: 'border-rose-500/30 hover:bg-rose-950/10',
+    statusBar: '#4c0519',
   },
   emerald: {
     board: 'theme-emerald',
@@ -55,6 +60,7 @@ export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
     progress: 'from-emerald-500 to-teal-300 shadow-teal-500/20',
     celebration: 'from-emerald-950 via-slate-900 to-emerald-950',
     managerRow: 'border-emerald-500/30 hover:bg-emerald-950/10',
+    statusBar: '#022c22',
   },
   amber: {
     board: 'theme-amber',
@@ -63,6 +69,7 @@ export const CHILD_THEMES: Record<ChildColor, ChildTheme> = {
     progress: 'from-amber-500 to-yellow-300 shadow-yellow-500/20',
     celebration: 'from-amber-950 via-slate-900 to-amber-950',
     managerRow: 'border-amber-500/30 hover:bg-amber-950/10',
+    statusBar: '#451a03',
   },
 };
 

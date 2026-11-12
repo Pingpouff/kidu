@@ -111,7 +111,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
         <div className="flex items-center gap-3 bg-black/40 px-6 py-3 rounded-full border border-yellow-500/40 text-yellow-300 font-extrabold text-2xl animate-float">
           <span>+ {starsEarned}</span>
           <span className="text-3xl text-yellow-400">🌟</span>
-          <span className="text-white/40">·</span>
+          <span className="text-white/60">·</span>
           <span>🏅 {profile.medalCount ?? 0}</span>
         </div>
 

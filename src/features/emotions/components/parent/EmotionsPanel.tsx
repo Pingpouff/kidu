@@ -105,7 +105,7 @@ export const EmotionsPanel: React.FC<EmotionsPanelProps> = ({ profiles, settings
             <h4 className="text-sm font-bold text-white/70">{translate('parent.emo.weeks', language)}</h4>
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2" data-testid="emotions-calendar">
               {days.map((d, i) => (
-                <span key={i} className="text-center text-[11px] font-bold text-white/40">
+                <span key={i} className="text-center text-xs font-bold text-white/60">
                   {d}
                 </span>
               ))}
@@ -122,7 +122,7 @@ export const EmotionsPanel: React.FC<EmotionsPanelProps> = ({ profiles, settings
                       day.date > today && 'opacity-30'
                     )}
                   >
-                    <span className="text-[10px] text-white/40 leading-none">{Number(day.date.slice(8))}</span>
+                    <span className="text-xs text-white/60 leading-none">{Number(day.date.slice(8))}</span>
                     <div className="flex flex-wrap gap-0.5">
                       {day.feelings.slice(0, 4).map((f, i) => (
                         <span
@@ -133,8 +133,8 @@ export const EmotionsPanel: React.FC<EmotionsPanelProps> = ({ profiles, settings
                           role="img"
                         />
                       ))}
-                      {day.feelings.length > 4 && <span className="text-[10px] text-white/60">+{day.feelings.length - 4}</span>}
-                      {day.calm > 0 && <span className="text-[11px] leading-none" aria-hidden="true">☁️</span>}
+                      {day.feelings.length > 4 && <span className="text-xs text-white/60">+{day.feelings.length - 4}</span>}
+                      {day.calm > 0 && <span className="text-xs leading-none" aria-hidden="true">☁️</span>}
                     </div>
                   </div>
                 );

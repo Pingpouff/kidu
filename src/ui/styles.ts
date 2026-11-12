@@ -7,12 +7,12 @@ import { cx } from './cx';
 export type FieldSize = 'lg' | 'md' | 'sm';
 
 const FIELD_BASE =
-  'bg-slate-900 border text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500 [color-scheme:dark] disabled:opacity-40';
+  'bg-slate-900 border text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500 [color-scheme:dark] disabled:opacity-40';
 
 const FIELD_SIZES: Record<FieldSize, string> = {
-  lg: 'px-4 py-3 rounded-xl', // main creation forms
-  md: 'px-4 py-2.5 rounded-xl text-sm', // settings and secondary forms
-  sm: 'px-2.5 py-1.5 rounded-lg text-sm', // inline editing in a list row
+  lg: 'min-h-[48px] px-4 py-3 rounded-xl', // main creation forms
+  md: 'min-h-[44px] px-4 py-2.5 rounded-xl text-sm', // settings and secondary forms
+  sm: 'min-h-[40px] px-2.5 py-1.5 rounded-lg text-sm', // inline editing in a list row
 };
 
 /**
@@ -29,7 +29,7 @@ export type ButtonVariant = 'primary' | 'danger' | 'secondary' | 'success';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const BUTTON_BASE =
-  'inline-flex items-center justify-center gap-2 font-bold rounded-xl border active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none';
+  'tap-target inline-flex items-center justify-center gap-2 font-bold rounded-xl border active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none';
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-indigo-600 hover:bg-indigo-500 border-indigo-400/20 text-white',
@@ -39,9 +39,9 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  sm: 'px-4 py-2 text-xs',
-  md: 'px-5 py-2.5 text-sm',
-  lg: 'px-6 py-3',
+  sm: 'min-h-[40px] px-4 py-2 text-xs',
+  md: 'min-h-[44px] px-5 py-2.5 text-sm',
+  lg: 'min-h-[48px] px-6 py-3',
 };
 
 export function buttonClass(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', extra?: string): string {
@@ -60,7 +60,7 @@ const ICON_TONES: Record<IconButtonTone, string> = {
 };
 
 export function iconButtonClass(tone: IconButtonTone = 'neutral', extra?: string): string {
-  return cx('inline-flex items-center gap-1 p-2.5 sm:p-2 border rounded-xl transition-colors text-xs font-bold', ICON_TONES[tone], extra);
+  return cx('tap-target inline-flex items-center justify-center gap-1 min-w-[44px] min-h-[44px] p-2.5 border rounded-xl transition-colors text-xs font-bold', ICON_TONES[tone], extra);
 }
 
 /* ------------------------------------------------------------------ */
@@ -70,8 +70,8 @@ export function iconButtonClass(tone: IconButtonTone = 'neutral', extra?: string
 /** Toggle chip (e.g. "Every child" / one child). */
 export function chipClass(active: boolean, compact = false): string {
   return cx(
-    'flex items-center gap-1.5 rounded-full border font-bold transition-colors',
-    compact ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
+    'tap-target flex items-center gap-1.5 rounded-full border font-bold transition-colors',
+    compact ? 'min-h-[36px] px-3 py-1 text-xs' : 'min-h-[40px] px-3.5 py-1.5 text-sm',
     active ? 'bg-indigo-500/30 border-indigo-400/60 text-white' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
   );
 }
