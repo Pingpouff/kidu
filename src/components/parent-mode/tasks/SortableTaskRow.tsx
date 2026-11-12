@@ -2,12 +2,12 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Trash2, Edit2, Check, X, GripVertical } from 'lucide-react';
-import { ChildProfile, TaskDefinition, TaskCategory } from '../../../domain/models';
+import { ChildProfile, TaskDefinition, TaskCategory, TaskSchedule } from '../../../domain/models';
 import { translate, taskLabel, Language } from '../../../i18n/dictionary';
 import { ConfirmIconButton, IconButton } from '../../../ui/controls';
 import { fieldClass } from '../../../ui/styles';
 import { EmojiPicker } from '../EmojiPicker';
-import { AssigneePicker, CategorySelect, TimeWindowInputs } from './TaskFields';
+import { AssigneePicker, CategorySelect, DurationInput, SchedulePicker, TimeWindowInputs } from './TaskFields';
 import { DayPicker } from './DayPicker';
 import { daysLabel } from './days';
 
@@ -18,6 +18,10 @@ interface SortableTaskRowProps {
   editAssigned: string[];
   editDays: number[];
   setEditDays: (days: number[]) => void;
+  editDuration: string;
+  setEditDuration: (value: string) => void;
+  editSchedule: TaskSchedule | undefined;
+  setEditSchedule: (schedule: TaskSchedule | undefined) => void;
   setEditAssigned: (ids: string[]) => void;
   language: Language;
   editingId: string | null;
@@ -47,6 +51,10 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
   editAssigned,
   editDays,
   setEditDays,
+  editDuration,
+  setEditDuration,
+  editSchedule,
+  setEditSchedule,
   setEditAssigned,
   language,
   editingId,
@@ -172,8 +180,10 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 language={language}
                 inputClassName={fieldClass('sm', 'px-2', { editing: true })}
               />
+              <DurationInput value={editDuration} onChange={setEditDuration} language={language} inputClassName={fieldClass('sm', 'px-2', { editing: true })} />
               <AssigneePicker profiles={profiles} value={editAssigned} onChange={setEditAssigned} language={language} compact />
               <DayPicker value={editDays} onChange={setEditDays} language={language} compact />
+              <SchedulePicker value={editSchedule} onChange={setEditSchedule} language={language} compact />
             </div>
           </div>
         ) : (
@@ -189,6 +199,14 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
                 {task.startTime && <span className="mr-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
                 {task.dueTime && <span className="mr-2 text-amber-300">⏰ {task.dueTime}</span>}
+                {task.durationMinutes ? (
+                  <span className="mr-2 text-emerald-300" data-testid="task-duration-label">⏳ {task.durationMinutes} min</span>
+                ) : null}
+                {task.schedule ? (
+                  <span className="mr-2 text-cyan-300" data-testid="task-schedule">
+                    {translate(`parent.tasks.schedule.${task.schedule}`, language)}
+                  </span>
+                ) : null}
                 {task.days?.length ? (
                   <span className="mr-2 text-emerald-300" data-testid="task-days">
                     📅 {daysLabel(task.days, language)}

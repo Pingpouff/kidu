@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { buttonClass, fieldClass } from '../../ui/styles';
-import { ChildProfile, TaskDefinition, TaskCategory, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
+import { ChildProfile, TaskDefinition, TaskCategory, TaskSchedule, TASK_CATEGORIES, CATEGORY_ICONS } from '../../domain/models';
 import { getTaskCategory, sortDefinitions } from '../../domain/routine';
 import { isValidTimeWindow } from '../../domain/reminders';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
@@ -21,7 +21,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { PanelHeader } from '../../ui/Panel';
-import { AssigneePicker, CategorySelect, TimeWindowInputs } from './tasks/TaskFields';
+import { AssigneePicker, CategorySelect, DurationInput, SchedulePicker, TimeWindowInputs } from './tasks/TaskFields';
+import { parseDuration } from '../../domain/timer';
 import { DayPicker } from './tasks/DayPicker';
 import { SortableTaskRow } from './tasks/SortableTaskRow';
 
@@ -53,6 +54,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [newStartTime, setNewStartTime] = useState('');
   const [newAssigned, setNewAssigned] = useState<string[]>([]); // empty = every child
   const [newDays, setNewDays] = useState<number[]>([]); // empty = every day
+  const [newDuration, setNewDuration] = useState(''); // minutes, empty = not timed
+  const [newSchedule, setNewSchedule] = useState<TaskSchedule | undefined>(undefined); // undefined = always
   const [showForm, setShowForm] = useState(false);
 
   // Editing state
@@ -65,6 +68,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const [editStartTime, setEditStartTime] = useState('');
   const [editAssigned, setEditAssigned] = useState<string[]>([]);
   const [editDays, setEditDays] = useState<number[]>([]);
+  const [editDuration, setEditDuration] = useState('');
+  const [editSchedule, setEditSchedule] = useState<TaskSchedule | undefined>(undefined);
   const [showEditPicker, setShowEditPicker] = useState(false);
 
   // Setup sensors for desktop & mobile touch support
@@ -86,6 +91,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     e.preventDefault();
     if (!newIcon.trim() || !newLabel.trim()) return;
     if (!isValidTimeWindow(newStartTime || undefined, newDueTime || undefined)) return;
+    if (newDuration !== '' && parseDuration(newDuration) === undefined) return;
+    const durationMinutes = parseDuration(newDuration);
 
     await onAddTask({
       icon: newIcon.trim(),
@@ -97,6 +104,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
       ...(newDueTime ? { dueTime: newDueTime } : {}),
       ...(newAssigned.length ? { assignedTo: newAssigned } : {}),
       ...(newDays.length ? { days: newDays } : {}),
+      ...(durationMinutes ? { durationMinutes } : {}),
+      ...(newSchedule ? { schedule: newSchedule } : {}),
     });
 
     setNewIcon('');
@@ -113,6 +122,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     setEditStartTime(task.startTime ?? '');
     setEditAssigned(task.assignedTo ?? []);
     setEditDays(task.days ?? []);
+    setEditDuration(task.durationMinutes ? String(task.durationMinutes) : '');
+    setEditSchedule(task.schedule);
   };
 
   const cancelEdit = () => {
@@ -122,6 +133,8 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
   const saveEdit = async (task: TaskDefinition) => {
     if (!editIcon.trim() || !editLabel.trim()) return;
     if (!isValidTimeWindow(editStartTime || undefined, editDueTime || undefined)) return;
+    if (editDuration !== '' && parseDuration(editDuration) === undefined) return;
+    const durationMinutes = parseDuration(editDuration);
 
     // Without a due time / assignment, the field is removed (no reminder / common task)
     const rest = { ...task };
@@ -129,12 +142,16 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
     delete rest.startTime;
     delete rest.assignedTo;
     delete rest.days;
+    delete rest.durationMinutes;
+    delete rest.schedule;
     await onUpdateTask({
       ...rest,
       ...(editStartTime ? { startTime: editStartTime } : {}),
       ...(editDueTime ? { dueTime: editDueTime } : {}),
       ...(editAssigned.length ? { assignedTo: editAssigned } : {}),
       ...(editDays.length ? { days: editDays } : {}),
+      ...(durationMinutes ? { durationMinutes } : {}),
+      ...(editSchedule ? { schedule: editSchedule } : {}),
       icon: editIcon.trim(),
       defaultLabel: editLabel.trim(),
       labelKey: '', // Custom label overrides key translation
@@ -255,8 +272,10 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
             language={language}
             inputClassName={fieldClass('md', 'px-2')}
           />
+          <DurationInput value={newDuration} onChange={setNewDuration} language={language} inputClassName={fieldClass('md', 'px-2')} />
           <AssigneePicker profiles={profiles} value={newAssigned} onChange={setNewAssigned} language={language} />
           <DayPicker value={newDays} onChange={setNewDays} language={language} />
+          <SchedulePicker value={newSchedule} onChange={setNewSchedule} language={language} />
         </div>
       </form>
       )}
@@ -288,6 +307,10 @@ export const TaskManager: React.FC<TaskManagerProps> = ({
                       editAssigned={editAssigned}
                       editDays={editDays}
                       setEditDays={setEditDays}
+                      editDuration={editDuration}
+                      setEditDuration={setEditDuration}
+                      editSchedule={editSchedule}
+                      setEditSchedule={setEditSchedule}
                       setEditAssigned={setEditAssigned}
                       editingId={editingId}
                       showEditPicker={showEditPicker}

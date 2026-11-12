@@ -65,11 +65,11 @@ describe('Yellow and red cards', () => {
   });
 
   it('sums up tonight for the on-screen reminders', () => {
-    expect(tonightCardState(leo, DATE)).toEqual({ level: 'none', yellow: 0, red: 0, lostProgress: 0 });
+    expect(tonightCardState(leo, DATE)).toEqual({ level: 'none', green: 0, yellow: 0, red: 0, lostProgress: 0 });
     const yellow = giveCard(leo, 'yellow', DATE, 1000, 'Dispute').profile;
-    expect(tonightCardState(yellow, DATE)).toEqual({ level: 'yellow', yellow: 1, red: 0, lastReason: 'Dispute', lostProgress: 0 });
+    expect(tonightCardState(yellow, DATE)).toEqual({ level: 'yellow', green: 0, yellow: 1, red: 0, lastReason: 'Dispute', lostProgress: 0 });
     const red = giveCard(yellow, 'yellow', DATE, 2000, 'Gros mots').profile;
-    expect(tonightCardState(red, DATE)).toEqual({ level: 'red', yellow: 2, red: 1, lastReason: 'Gros mots', lostProgress: 2 });
+    expect(tonightCardState(red, DATE)).toEqual({ level: 'red', green: 0, yellow: 2, red: 1, lastReason: 'Gros mots', lostProgress: 2 });
     // The next evening starts clean
     expect(tonightCardState(red, '2026-11-10').level).toBe('none');
   });
@@ -85,6 +85,68 @@ describe('Yellow and red cards', () => {
       data: { settings: { parentPin: '1234', language: 'fr', rewards: { starsPerCompletion: 1, weeklyGoal: 5 } }, tasks: [], profiles: [emma] },
     });
     expect(parseBackup(file).data.profiles[0].cards).toEqual(emma.cards);
-    expect(() => parseBackup(file.replace('"red"', '"green"'))).toThrow();
+    expect(() => parseBackup(file.replace('"red"', '"purple"'))).toThrow();
+  });
+});
+
+describe('Green cards', () => {
+  it('gives one star toward the next medal', () => {
+    const { profile, outcome, medalsGained, added } = giveCard({ ...leo, starProgress: 1 }, 'green', DATE, 1000, 'A aidé', 3);
+    expect(outcome).toBe('green');
+    expect(medalsGained).toBe(0);
+    expect(profile.stars).toBe(11);
+    expect(profile.starProgress).toBe(2);
+    expect(added[0]).toMatchObject({ color: 'green', reason: 'A aidé', gainedStar: true });
+  });
+
+  it('can complete a medal, which queues a motif choice', () => {
+    const { profile, medalsGained } = giveCard(leo, 'green', DATE, 1000, undefined, 3);
+    expect(medalsGained).toBe(1);
+    expect(profile.starProgress).toBe(0);
+    expect(profile.medalCount).toBe(4);
+    expect(profile.badgeOffers).toHaveLength(1);
+  });
+
+  it('does not count toward yellow / red cards', () => {
+    const green = giveCard(leo, 'green', DATE, 1000, 'Partage').profile;
+    const yellow = giveCard(green, 'yellow', DATE, 2000, 'Dispute');
+    expect(yellow.outcome).toBe('yellow'); // not a second yellow
+    expect(tonightCardState(yellow.profile, DATE)).toMatchObject({
+      level: 'yellow',
+      green: 1,
+      yellow: 1,
+      lastReason: 'Dispute',
+      lastGreenReason: 'Partage',
+    });
+  });
+
+  it('a red card resets the progress, star of the green card included', () => {
+    const green = giveCard({ ...leo, starProgress: 0 }, 'green', DATE, 1000).profile;
+    const red = giveCard(green, 'red', DATE, 2000);
+    expect(red.lostProgress).toBe(1);
+    expect(red.profile.starProgress).toBe(0);
+  });
+
+  it('withdrawing a green card takes its star back, never below zero, and keeps a medal', () => {
+    const green = giveCard({ ...leo, starProgress: 1 }, 'green', DATE, 1000).profile;
+    const back = withdrawCard(green, green.cards![0].id, 3);
+    expect(back.stars).toBe(10);
+    expect(back.starProgress).toBe(1);
+    expect(back.cards).toEqual([]);
+
+    const medal = giveCard(leo, 'green', DATE, 1000).profile; // completed a medal
+    const kept = withdrawCard(medal, medal.cards![0].id, 3);
+    expect(kept.medalCount).toBe(4);
+    expect(kept.starProgress).toBe(0);
+  });
+
+  it('is kept in backups', () => {
+    const green = giveCard(leo, 'green', DATE, 1000, 'Courageux').profile;
+    const file = JSON.stringify({
+      app: 'kidu',
+      version: 2,
+      data: { settings: { parentPin: '1234', language: 'fr', rewards: { starsPerCompletion: 1, weeklyGoal: 5 } }, tasks: [], profiles: [green] },
+    });
+    expect(parseBackup(file).data.profiles[0].cards).toEqual(green.cards);
   });
 });

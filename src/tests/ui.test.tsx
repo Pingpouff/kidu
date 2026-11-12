@@ -76,3 +76,35 @@ describe('UI kit', () => {
     expect(cx('fixed z-overlay', 'z-dialog')).toBe('fixed z-dialog');
   });
 });
+
+describe('Toasts', () => {
+  it('a toast closes by itself, but not while it is touched or focused', async () => {
+    const { useAutoDismiss } = await import('../ui/useAutoDismiss');
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    const Toast = () => {
+      const auto = useAutoDismiss(1000, onDismiss);
+      return <button {...auto.handlers}>toast</button>;
+    };
+    render(<Toast />);
+    const toast = screen.getByRole('button', { name: 'toast' });
+    fireEvent.pointerDown(toast);
+    vi.advanceTimersByTime(5000);
+    expect(onDismiss).not.toHaveBeenCalled();
+    fireEvent.pointerUp(toast);
+    vi.advanceTimersByTime(999);
+    expect(onDismiss).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('merges handlers of the same event', async () => {
+    const { mergeHandlers } = await import('../ui/mergeHandlers');
+    const calls: string[] = [];
+    const merged = mergeHandlers({ onClick: () => calls.push('a') }, { onClick: () => calls.push('b'), onFocus: undefined });
+    merged.onClick!();
+    expect(calls).toEqual(['a', 'b']);
+    expect(merged.onFocus).toBeUndefined();
+  });
+});

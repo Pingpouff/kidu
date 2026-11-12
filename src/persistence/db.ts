@@ -33,6 +33,16 @@ export class RoutineDatabase extends Dexie {
     this.version(3).stores({
       emotionLogs: 'id, childId, date, [childId+date]',
     });
+    // v4: holidays. The default school tasks become "school days only"
+    // (unless the parent already chose a period for them).
+    this.version(4).stores({}).upgrade(async (tx) => {
+      const tasks = tx.table<TaskDefinition, string>('tasks');
+      await tasks
+        .filter((t) => SCHOOL_TASK_IDS.includes(t.id) && t.schedule === undefined)
+        .modify((t) => {
+          t.schedule = 'school';
+        });
+    });
   }
 }
 
@@ -40,6 +50,8 @@ export const db = new RoutineDatabase();
 
 /** Monday to Friday (0 = Sunday … 6 = Saturday) */
 const SCHOOL_DAYS = [1, 2, 3, 4, 5];
+/** Default tasks that only make sense on school days (hidden during holidays) */
+const SCHOOL_TASK_IDS = ['unpack_bag', 'homework', 'prepare_bag'];
 
 // Default task definitions to seed
 export const defaultTasks: TaskDefinition[] = [
@@ -51,13 +63,13 @@ export const defaultTasks: TaskDefinition[] = [
   { id: 'comb_hair', labelKey: 'task.comb_hair', defaultLabel: 'Comb your hair', icon: '💇', order: 5, category: 'morning' },
   { id: 'shoes_coat', labelKey: 'task.shoes_coat', defaultLabel: 'Put on shoes and coat', icon: '🧥', order: 6, category: 'morning' },
   // After school
-  { id: 'unpack_bag', labelKey: 'task.unpack_bag', defaultLabel: 'Empty school bag', icon: '🎒', order: 1, category: 'after_school', days: SCHOOL_DAYS },
+  { id: 'unpack_bag', labelKey: 'task.unpack_bag', defaultLabel: 'Empty school bag', icon: '🎒', order: 1, category: 'after_school', days: SCHOOL_DAYS, schedule: 'school' },
   { id: 'put_away_shoes', labelKey: 'task.put_away_shoes', defaultLabel: 'Put away shoes and coat', icon: '👟', order: 2, category: 'after_school' },
   { id: 'snack', labelKey: 'task.snack', defaultLabel: 'Afternoon snack', icon: '🍎', order: 3, category: 'after_school' },
   // Example of a personal task: only Léo (5) has homework, not Emma (3)
-  { id: 'homework', labelKey: 'task.homework', defaultLabel: 'Homework', icon: '✏️', order: 4, category: 'after_school', assignedTo: ['leo'], days: SCHOOL_DAYS },
+  { id: 'homework', labelKey: 'task.homework', defaultLabel: 'Homework', icon: '✏️', order: 4, category: 'after_school', assignedTo: ['leo'], days: SCHOOL_DAYS, schedule: 'school' },
   { id: 'bath', labelKey: 'task.bath', defaultLabel: 'Take a bath', icon: '🛁', order: 5, category: 'after_school' },
-  { id: 'prepare_bag', labelKey: 'task.prepare_bag', defaultLabel: 'Pack school bag for tomorrow', icon: '🖍️', order: 6, category: 'after_school', days: SCHOOL_DAYS },
+  { id: 'prepare_bag', labelKey: 'task.prepare_bag', defaultLabel: 'Pack school bag for tomorrow', icon: '🖍️', order: 6, category: 'after_school', days: SCHOOL_DAYS, schedule: 'school' },
   // Meal
   { id: 'wash_hands', labelKey: 'task.wash_hands', defaultLabel: 'Wash hands', icon: '🧼', order: 1, category: 'meal' },
   { id: 'set_table', labelKey: 'task.set_table', defaultLabel: 'Set the table', icon: '🍴', order: 2, category: 'meal' },

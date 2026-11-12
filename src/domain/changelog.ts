@@ -16,6 +16,28 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.11.0',
+    date: '2026-11-12',
+    changes: {
+      fr: [
+        'Carte verte : un « bravo » pour un geste gentil ou courageux, donné depuis le plateau de l’enfant avec le code parent. Elle rapporte une étoile vers la prochaine médaille.',
+        'Tâches avec une durée maximale (ex. repas en 30 min) : le minuteur démarre quand l’enfant commence la tâche, un disque montre le temps qui reste, et l’app prévient 10 et 5 minutes avant la fin (réglable dans Rappels).',
+        'Vacances et jours de repos (Mode Parent → Tâches) : pendant les vacances, les tâches « École » disparaissent et les tâches « Vacances » apparaissent ; un jour de repos arrête les rappels et ne casse pas la série.',
+        'Arrêter les rappels pour ce soir (code parent) : depuis le bandeau d’un rappel pour cet enfant, ou depuis l’accueil pour tous, par exemple quand les enfants sont couchés. Tout reprend normalement le lendemain.',
+        'Les bandeaux se manient comme les notifications Android : on les fait glisser sur le côté ou on touche ✕ pour les fermer (la voix s’arrête aussi), « Dans 10 min » repousse un rappel, et un message qui se ferme tout seul attend tant qu’on le touche.',
+        'Les tâches « vider le cartable », « devoirs » et « préparer le cartable » sont maintenant réservées aux jours d’école.',
+      ],
+      en: [
+        'Green card: a "well done" for a kind or brave gesture, given from the child’s board with the parent PIN. It is worth one star toward the next medal.',
+        'Tasks with a maximum duration (e.g. dinner in 30 min): the timer starts when the child starts the task, a disc shows the time left, and the app warns 10 and 5 minutes before the end (set in Reminders).',
+        'Holidays and rest days (Parent Mode → Tasks): during holidays, "School" tasks disappear and "Holidays" tasks appear; a rest day stops reminders and doesn’t break the streak.',
+        'Stop reminders for tonight (parent PIN): from a reminder banner for that child, or from the home screen for everyone, e.g. once the children are in bed. Everything starts again the next day.',
+        'Banners work like Android notifications: swipe them sideways or tap ✕ to dismiss (the voice stops too), "In 10 min" snoozes a reminder, and a message that closes by itself waits while you touch it.',
+        'The "empty school bag", "homework" and "pack school bag" tasks are now for school days only.',
+      ],
+    },
+  },
+  {
     version: '1.10.0',
     date: '2026-11-11',
     changes: {

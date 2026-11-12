@@ -17,6 +17,7 @@ import { shopItems, starsPerMedal } from './domain/rewards';
 import { translate } from './i18n/dictionary';
 import { RewardReveal } from './components/rewards/RewardReveal';
 import { MedalChoice } from './components/rewards/MedalChoice';
+import { dayContext } from './domain/calendar';
 import { ReminderBanner } from './components/child-board/ReminderBanner';
 import { useTaskReminders } from './hooks/useTaskReminders';
 import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
@@ -51,6 +52,8 @@ export default function App() {
   const [emotionsHub, setEmotionsHub] = useState<{ childId: string; initial: 'hub' | 'checkin' } | null>(null);
   const [inviteDismissed, setInviteDismissed] = useState(0); // re-reads the dismissal after "Pas ce soir"
   const [pinPrompt, setPinPrompt] = useState(false);
+  // A parent stops reminders for tonight (PIN): some children, or all when undefined
+  const [muteAsk, setMuteAsk] = useState<{ childIds?: string[] } | null>(null);
   const [celebrationActive, setCelebrationActive] = useState(false);
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [revealsShown, setRevealsShown] = useState(0); // in the current batch
@@ -333,6 +336,8 @@ export default function App() {
         onUpdateTask={handleUpdateTask}
         onReorderTasks={handleReorderTasks}
         onDeleteTask={handleDeleteTask}
+        onSavePeriods={(periods) => routineRepository.savePeriods(periods, todayStr)}
+        today={todayStr}
         onAddProfile={handleAddProfile}
         onUpdateProfile={handleUpdateProfile}
         onDeleteProfile={handleDeleteProfile}
@@ -393,6 +398,22 @@ export default function App() {
           definitions={tasks}
           language={activeLang}
           onDismiss={reminders.dismissCurrent}
+          onSnooze={() => reminders.snooze(reminders.current!.childId)}
+          onMute={() => setMuteAsk({ childIds: [reminders.current!.childId] })}
+        />
+      )}
+
+      {muteAsk && (
+        <PinModal
+          correctPin={settings.parentPin}
+          language={activeLang}
+          title={translate('reminders.mute_title', activeLang)}
+          instruction={translate('reminders.mute_instruction', activeLang)}
+          onClose={() => setMuteAsk(null)}
+          onSuccess={() => {
+            void routineRepository.muteReminders(todayStr, muteAsk.childIds);
+            setMuteAsk(null);
+          }}
         />
       )}
 
@@ -445,6 +466,10 @@ export default function App() {
           lateDefinitionIds={activeLateIds}
           onGiveCard={(color, reason) => routineRepository.giveCard(activeProfile.id, color, activeSession.date, reason)}
           onOpenCalm={openCalm && (() => openCalm(activeProfile.id))}
+          dayKind={(() => {
+            const day = dayContext(settings.periods, todayStr, activeProfile.id);
+            return day.off ? 'off' : day.holidays ? 'holidays' : undefined;
+          })()}
           eveningInvite={
             showEveningInvite
               ? {
@@ -471,6 +496,8 @@ export default function App() {
           onShowAbout={() => setShowAbout(true)}
           onOpenCalm={openCalm && (() => openCalm())}
           onOpenEmotions={openEmotions && ((childId: string) => openEmotions(childId))}
+          onMuteReminders={() => setMuteAsk({})}
+          onUnmuteReminders={() => void routineRepository.unmuteReminders()}
           banner={
             !installDismissed && (
               <InstallBanner

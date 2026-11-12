@@ -41,7 +41,7 @@ test.describe('Reminders for late tasks', () => {
     await expect(banner).not.toContainText(firstChild);
 
     // Léo does his tasks: his late markers disappear
-    await page.getByRole('button').filter({ hasText: 'Léo' }).first().click();
+    await page.getByTestId('child-card-leo').click();
     await expect(page.getByTestId('task-late')).toHaveCount(2);
     await completeTask(page, 'Vider son cartable');
     await completeTask(page, 'Prendre son goûter');
@@ -105,3 +105,88 @@ test.describe('Start and end times', () => {
     await expect(card.getByTestId('task-due')).toContainText('18:00–19:00');
   });
 });
+
+test.describe('Stopping reminders for tonight', () => {
+  test('a parent stops one child from the reminder, then everyone from the home screen, and turns them back on', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto('/');
+    await removeMorningTasks(page);
+    await enterParentMode(page);
+    await setDueTime(page, 'Vider son cartable', '00:00');
+    await page.getByRole('button', { name: 'Quitter le Mode Parent' }).click();
+    await expect(page.getByTestId('profile-late')).toHaveCount(2);
+
+    // From the reminder itself: that child only, with the PIN
+    const banner = page.getByTestId('reminder-banner');
+    await expect(banner).toBeVisible();
+    const first = (await banner.textContent())!.includes('Léo') ? 'leo' : 'emma';
+    const other = first === 'leo' ? 'emma' : 'leo';
+    await banner.getByTestId('reminder-mute').click();
+    for (const digit of ['1', '2', '3', '4']) await page.getByRole('button', { name: digit, exact: true }).click();
+    await expect(page.getByTestId(`child-card-${first}`).getByTestId('profile-late')).toHaveCount(0);
+    await expect(page.getByTestId(`child-card-${first}`).getByTestId('home-child-muted')).toBeVisible();
+    await expect(page.getByTestId(`child-card-${other}`).getByTestId('profile-late')).toHaveCount(1);
+    await expect(page.getByTestId('home-muted')).toBeVisible();
+
+    // From the home screen: everyone
+    await page.getByTestId('mute-reminders').click();
+    for (const digit of ['1', '2', '3', '4']) await page.getByRole('button', { name: digit, exact: true }).click();
+    await expect(page.getByTestId('profile-late')).toHaveCount(0);
+    await expect(page.getByTestId('mute-reminders')).toHaveCount(0);
+    await expect(banner).toHaveCount(0, { timeout: 20_000 });
+
+    // Turned back on: the late tasks come back
+    await page.getByTestId('unmute-reminders').click();
+    await expect(page.getByTestId('profile-late')).toHaveCount(2);
+  });
+});
+
+test.describe('Reminder banner, like an Android notification', () => {
+  test('swipe it away, close it, or snooze it for 10 minutes', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.clock.install({ time: new Date('2026-11-09T18:30:00') });
+    await page.goto('/');
+    await removeMorningTasks(page);
+    await enterParentMode(page);
+    await setDueTime(page, 'Vider son cartable', '18:00');
+    await page.getByRole('button', { name: 'Quitter le Mode Parent' }).click();
+
+    const banner = page.getByTestId('reminder-banner');
+    // The browser clock is simulated: move it forward second by second until a banner shows
+    const nextBanner = async () => {
+      for (let i = 0; i < 400 && !(await banner.isVisible()); i++) await page.clock.runFor(1000);
+      await expect(banner).toBeVisible();
+    };
+    await nextBanner();
+
+    // Swipe sideways: it leaves
+    const box = (await banner.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + 22, { steps: 4 });
+    await page.mouse.move(box.x + box.width / 2 + 200, box.y + 24, { steps: 4 });
+    await page.mouse.up();
+    await expect(banner).toHaveCount(0);
+
+    // Next one (the other child, or a repeat): closed with ✕
+    await nextBanner();
+    await banner.getByTestId('reminder-close').click();
+    await expect(banner).toHaveCount(0);
+
+    // Snooze: the child's reminders wait 10 minutes, the late badge stays
+    await nextBanner();
+    const child = (await banner.textContent())!.includes('Léo') ? 'Léo' : 'Emma';
+    await banner.getByTestId('reminder-snooze').click();
+    await expect(banner).toHaveCount(0);
+    await expect(page.getByTestId('profile-late')).toHaveCount(2);
+    // During the next 9 minutes, no banner for that child
+    for (let i = 0; i < 9 * 60; i += 5) {
+      await page.clock.runFor(5000);
+      if (await banner.isVisible()) {
+        await expect(banner).not.toContainText(child);
+        await banner.getByTestId('reminder-close').click();
+      }
+    }
+  });
+});
+

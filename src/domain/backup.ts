@@ -1,6 +1,8 @@
 import { TROPHY_IDS, TrophyId, EarnedTrophy } from './trophies';
 import { isBadgeId } from './badges';
 import { isValidDueTime } from './reminders';
+import { isValidDuration } from './timer';
+import { isValidPeriod } from './calendar';
 import {
   BehaviorCard,
   ChildProfile,
@@ -18,6 +20,9 @@ import {
   EmotionSettings,
   ChildEmotions,
   BodyZone,
+  CalendarPeriod,
+  TaskSchedule,
+  TASK_SCHEDULES,
 } from './models';
 
 export const BACKUP_APP_ID = 'kidu';
@@ -82,6 +87,7 @@ export function createBackup(
         ...(settings.emotions
           ? { emotions: { ...settings.emotions, customStrategies: settings.emotions.customStrategies.map((c) => ({ ...c })) } }
           : {}),
+        ...(settings.periods ? { periods: settings.periods.map((p) => ({ ...p })) } : {}),
       },
       tasks: [...tasks].sort((a, b) => a.order - b.order),
       profiles: [...profiles],
@@ -108,7 +114,7 @@ const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.is
 
 function parseSettings(raw: unknown): ParentSettings {
   if (!isObject(raw) || !isObject(raw.rewards)) throw new BackupError('invalid_settings');
-  const { parentPin, language, rewards, feedback, shop, reminders, emotions } = raw;
+  const { parentPin, language, rewards, feedback, shop, reminders, emotions, periods } = raw;
   if (!isString(parentPin) || !/^\d{4}$/.test(parentPin)) throw new BackupError('invalid_settings');
   if (language !== 'fr' && language !== 'en') throw new BackupError('invalid_settings');
   if (!isNumber(rewards.starsPerCompletion) || !isNumber(rewards.weeklyGoal)) {
@@ -136,11 +142,30 @@ function parseSettings(raw: unknown): ParentSettings {
       typeof reminders.enabled !== 'boolean' ||
       typeof reminders.systemNotifications !== 'boolean' ||
       !isNumber(reminders.repeatMinutes) || reminders.repeatMinutes < 1 ||
-      !isNumber(reminders.maxReminders) || reminders.maxReminders < 1)
+      !isNumber(reminders.maxReminders) || reminders.maxReminders < 1 ||
+      (reminders.timerWarnings !== undefined &&
+        (!Array.isArray(reminders.timerWarnings) || !reminders.timerWarnings.every((m) => Number.isInteger(m) && m > 0))))
   ) {
     throw new BackupError('invalid_settings');
   }
   const parsedEmotions = emotions === undefined ? undefined : parseEmotionSettings(emotions);
+  if (periods !== undefined && !Array.isArray(periods)) throw new BackupError('invalid_settings');
+  const parsedPeriods = periods?.map((p): CalendarPeriod => {
+    if (
+      !isObject(p) || !isString(p.id) ||
+      !isValidPeriod(p as Pick<CalendarPeriod, 'kind' | 'from' | 'to'>) ||
+      (p.childIds !== undefined && (!Array.isArray(p.childIds) || !p.childIds.every(isString)))
+    ) {
+      throw new BackupError('invalid_settings');
+    }
+    return {
+      id: p.id,
+      kind: p.kind as CalendarPeriod['kind'],
+      from: p.from as string,
+      to: p.to as string,
+      ...(Array.isArray(p.childIds) && p.childIds.length > 0 ? { childIds: [...new Set(p.childIds as string[])] } : {}),
+    };
+  });
   const parsedShop = shop?.map((item): ShopItem => {
     if (!isObject(item) || !isString(item.id) || !isString(item.label) || !isString(item.icon) || !isNumber(item.cost) || item.cost < 1) {
       throw new BackupError('invalid_settings');
@@ -175,10 +200,12 @@ function parseSettings(raw: unknown): ParentSettings {
             repeatMinutes: reminders.repeatMinutes as number,
             maxReminders: reminders.maxReminders as number,
             systemNotifications: reminders.systemNotifications as boolean,
+            ...(Array.isArray(reminders.timerWarnings) ? { timerWarnings: [...new Set(reminders.timerWarnings as number[])] } : {}),
           },
         }
       : {}),
     ...(parsedEmotions ? { emotions: parsedEmotions } : {}),
+    ...(parsedPeriods ? { periods: parsedPeriods } : {}),
   };
 }
 
@@ -196,7 +223,9 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       (t.dueTime !== undefined && !isValidDueTime(t.dueTime)) ||
       (t.startTime !== undefined && !isValidDueTime(t.startTime)) ||
       (t.assignedTo !== undefined && (!Array.isArray(t.assignedTo) || !t.assignedTo.every(isString))) ||
-      (t.days !== undefined && (!Array.isArray(t.days) || !t.days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6)))
+      (t.days !== undefined && (!Array.isArray(t.days) || !t.days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) ||
+      (t.durationMinutes !== undefined && !isValidDuration(t.durationMinutes)) ||
+      (t.schedule !== undefined && !TASK_SCHEDULES.includes(t.schedule as TaskSchedule))
     ) {
       throw new BackupError('invalid_tasks');
     }
@@ -212,6 +241,8 @@ function parseTasks(raw: unknown): TaskDefinition[] {
       ...(isValidDueTime(t.dueTime) ? { dueTime: t.dueTime } : {}),
       ...(Array.isArray(t.assignedTo) && t.assignedTo.length > 0 ? { assignedTo: [...new Set(t.assignedTo as string[])] } : {}),
       ...(Array.isArray(t.days) && t.days.length > 0 ? { days: [...new Set(t.days as number[])] } : {}),
+      ...(isValidDuration(t.durationMinutes) ? { durationMinutes: t.durationMinutes } : {}),
+      ...(t.schedule !== undefined ? { schedule: t.schedule as TaskSchedule } : {}),
     };
   });
   if (new Set(tasks.map((t) => t.id)).size !== tasks.length) throw new BackupError('invalid_tasks');
@@ -274,7 +305,7 @@ function parseProfiles(raw: unknown): ChildProfile[] {
     const cards = p.cards === undefined ? undefined : (Array.isArray(p.cards) ? p.cards : fail()).map(
       (c: unknown): BehaviorCard => {
         if (
-          !isObject(c) || !isString(c.id) || (c.color !== 'yellow' && c.color !== 'red') ||
+          !isObject(c) || !isString(c.id) || (c.color !== 'green' && c.color !== 'yellow' && c.color !== 'red') ||
           !isString(c.date) || !isNumber(c.givenAt) ||
           (c.reason !== undefined && !isString(c.reason)) ||
           (c.lostProgress !== undefined && !isNumber(c.lostProgress))
@@ -289,6 +320,7 @@ function parseProfiles(raw: unknown): ChildProfile[] {
           ...(isString(c.reason) ? { reason: c.reason } : {}),
           ...(c.fromYellows === true ? { fromYellows: true } : {}),
           ...(isNumber(c.lostProgress) ? { lostProgress: c.lostProgress } : {}),
+          ...(c.gainedStar === true ? { gainedStar: true } : {}),
         };
       }
     );

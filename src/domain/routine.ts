@@ -1,4 +1,6 @@
+import { dayContext, isTaskForSchedule } from './calendar';
 import {
+  CalendarPeriod,
   ChildProfile,
   TaskDefinition,
   RoutineSession,
@@ -41,9 +43,18 @@ export function isTaskForDay(definition: TaskDefinition, date: string): boolean 
   return !definition.days?.length || definition.days.includes(weekdayOf(date));
 }
 
-/** The task definitions of one child's routine on a given date. */
-export function definitionsForChildOn(definitions: TaskDefinition[], childId: string, date: string): TaskDefinition[] {
-  return definitionsForChild(definitions, childId).filter((d) => isTaskForDay(d, date));
+/** True when the task is planned for that child on that date: weekday, and school / holidays. */
+export function isTaskForChildOn(definition: TaskDefinition, childId: string, date: string, periods?: CalendarPeriod[]): boolean {
+  return (
+    isTaskForChild(definition, childId) &&
+    isTaskForDay(definition, date) &&
+    isTaskForSchedule(definition, dayContext(periods, date, childId).holidays)
+  );
+}
+
+/** The task definitions of one child's routine on a given date (holidays and rest days from `periods`). */
+export function definitionsForChildOn(definitions: TaskDefinition[], childId: string, date: string, periods?: CalendarPeriod[]): TaskDefinition[] {
+  return definitions.filter((d) => isTaskForChildOn(d, childId, date, periods));
 }
 
 /**
@@ -156,9 +167,10 @@ export function unskipPhase(session: RoutineSession, category: TaskCategory, def
 export function initSession(
   childId: string,
   date: string,
-  definitions: TaskDefinition[]
+  definitions: TaskDefinition[],
+  periods?: CalendarPeriod[]
 ): RoutineSession {
-  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, childId, date));
+  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, childId, date, periods));
   const tasks: RoutineTask[] = sortedDefs.map((def) => ({
     id: `${childId}_${def.id}_${date}`,
     definitionId: def.id,
@@ -185,9 +197,13 @@ export function moveTask(
   definitions: TaskDefinition[],
   now = Date.now()
 ): RoutineSession {
-  const updatedTasks = session.tasks.map((task) =>
-    task.id === taskId ? { ...task, status: toStatus, completedAt: toStatus === 'done' ? now : undefined } : task
-  );
+  const updatedTasks = session.tasks.map((task) => {
+    if (task.id !== taskId) return task;
+    // A timed task counts from the moment it is started; done keeps that moment
+    const startedAt =
+      toStatus === 'doing' ? (task.status === 'doing' ? task.startedAt ?? now : now) : toStatus === 'done' ? task.startedAt : undefined;
+    return { ...task, status: toStatus, completedAt: toStatus === 'done' ? now : undefined, startedAt };
+  });
   return withCompletion({ ...session, tasks: updatedTasks }, definitions, now);
 }
 
@@ -199,6 +215,7 @@ export function resetSession(session: RoutineSession): RoutineSession {
     ...task,
     status: 'todo' as TaskStatus,
     completedAt: undefined,
+    startedAt: undefined,
   }));
 
   return {
@@ -254,10 +271,11 @@ export function awardStars(
  */
 export function syncSessionWithDefinitions(
   session: RoutineSession,
-  definitions: TaskDefinition[]
+  definitions: TaskDefinition[],
+  periods?: CalendarPeriod[]
 ): RoutineSession {
-  // This child's tasks, sorted by phase, then order
-  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, session.childId, session.date));
+  // This child's tasks that day, sorted by phase, then order
+  const sortedDefs = sortDefinitions(definitionsForChildOn(definitions, session.childId, session.date, periods));
 
   // Build the new tasks list
   const newTasks: RoutineTask[] = sortedDefs.map((def) => {
@@ -271,6 +289,7 @@ export function syncSessionWithDefinitions(
         definitionId: def.id,
         status: existing.status,
         completedAt: existing.completedAt,
+        ...(existing.startedAt !== undefined ? { startedAt: existing.startedAt } : {}),
         ...(existing.rewarded ? { rewarded: true } : {}),
       };
     } else {

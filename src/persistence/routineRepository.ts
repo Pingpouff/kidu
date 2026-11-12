@@ -1,5 +1,7 @@
 import { db, getSettings } from './db';
-import { RoutineSession, HistoryEntry, ChildProfile, CardColor } from '../domain/models';
+import { RoutineSession, HistoryEntry, ChildProfile, CardColor, CalendarPeriod } from '../domain/models';
+import { isDayOff, prunePeriods } from '../domain/calendar';
+import { muteReminders } from '../domain/reminders';
 import { BackupFile, createBackup } from '../domain/backup';
 import { TrophyId, computeTrophyStats, findNewTrophies } from '../domain/trophies';
 import { initSession, calculateHistory, syncSessionWithDefinitions, unassignChild } from '../domain/routine';
@@ -26,8 +28,8 @@ export const routineRepository = {
    * Creates and saves a new session for a child using current task definitions in the database.
    */
   async createSession(childId: string, dateStr: string): Promise<RoutineSession> {
-    const definitions = await db.tasks.toArray();
-    const session = initSession(childId, dateStr, definitions);
+    const [definitions, settings] = await Promise.all([db.tasks.toArray(), db.settings.get('current')]);
+    const session = initSession(childId, dateStr, definitions, settings?.periods);
     await db.sessions.put(session);
     return session;
   },
@@ -39,8 +41,8 @@ export const routineRepository = {
     const session = await db.sessions.get(sessionId);
     if (!session) return undefined;
 
-    const definitions = await db.tasks.toArray();
-    const fresh = initSession(session.childId, session.date, definitions);
+    const [definitions, settings] = await Promise.all([db.tasks.toArray(), db.settings.get('current')]);
+    const fresh = initSession(session.childId, session.date, definitions, settings?.periods);
     // Keep the "star already given" marks so a reset can't be used to earn stars twice
     const rewarded = new Set(session.tasks.filter((t) => t.rewarded).map((t) => t.definitionId));
     const reseted = {
@@ -125,13 +127,13 @@ export const routineRepository = {
   },
 
   /**
-   * A parent gives a yellow or red card (see domain/cards.ts).
+   * A parent gives a green, yellow or red card (see domain/cards.ts).
    */
   async giveCard(childId: string, color: CardColor, date: string, reason?: string): Promise<{ outcome: CardOutcome; lostProgress: number } | undefined> {
-    return db.transaction('rw', db.profiles, async () => {
-      const profile = await db.profiles.get(childId);
+    return db.transaction('rw', [db.profiles, db.settings], async () => {
+      const [profile, settings] = await Promise.all([db.profiles.get(childId), db.settings.get('current')]);
       if (!profile) return undefined;
-      const result = giveCard(profile, color, date, Date.now(), reason);
+      const result = giveCard(profile, color, date, Date.now(), reason, starsPerMedal(settings));
       await db.profiles.put(result.profile);
       return { outcome: result.outcome, lostProgress: result.lostProgress };
     });
@@ -153,15 +155,18 @@ export const routineRepository = {
    * profile and returns their ids (empty when nothing new was earned).
    */
   async awardNewTrophies(childId: string): Promise<TrophyId[]> {
-    return db.transaction('rw', [db.profiles, db.sessions, db.tasks], async () => {
+    return db.transaction('rw', [db.profiles, db.sessions, db.tasks, db.settings], async () => {
       const profile = await db.profiles.get(childId);
       if (!profile) return [];
 
-      const [sessions, definitions] = await Promise.all([
+      const [sessions, definitions, settings] = await Promise.all([
         db.sessions.where('childId').equals(childId).toArray(),
         db.tasks.toArray(),
+        db.settings.get('current'),
       ]);
-      const newTrophies = findNewTrophies(computeTrophyStats(sessions, definitions, profile), profile.trophies);
+      // Rest days don't break a streak
+      const isOff = (date: string) => isDayOff(settings?.periods, date, childId);
+      const newTrophies = findNewTrophies(computeTrophyStats(sessions, definitions, profile, isOff), profile.trophies);
       if (newTrophies.length === 0) return [];
 
       const now = Date.now();
@@ -193,13 +198,46 @@ export const routineRepository = {
    * Synchronizes all active sessions for a given date with the current task definitions.
    */
   async syncAllActiveSessionsForToday(dateStr: string): Promise<void> {
-    const definitions = await db.tasks.toArray();
+    const [definitions, settings] = await Promise.all([db.tasks.toArray(), db.settings.get('current')]);
     const sessions = await db.sessions.where('date').equals(dateStr).toArray();
 
     for (const session of sessions) {
-      const synced = syncSessionWithDefinitions(session, definitions);
+      const synced = syncSessionWithDefinitions(session, definitions, settings?.periods);
       await db.sessions.put(synced);
     }
+  },
+
+  /**
+   * Stops reminders for the rest of the day: some children, or every child
+   * when none is given. The next day starts normally.
+   */
+  async muteReminders(date: string, childIds?: string[]): Promise<void> {
+    await db.transaction('rw', db.settings, async () => {
+      const settings = await getSettings();
+      await db.settings.put({ ...settings, id: 'current', mutedReminders: muteReminders(settings.mutedReminders, date, childIds) });
+    });
+  },
+
+  /** Turns tonight's reminders back on for every child. */
+  async unmuteReminders(): Promise<void> {
+    await db.transaction('rw', db.settings, async () => {
+      const settings = await getSettings();
+      const rest = { ...settings };
+      delete rest.mutedReminders;
+      await db.settings.put({ ...rest, id: 'current' });
+    });
+  },
+
+  /**
+   * Saves the holidays and rest days (old ones are dropped), then updates
+   * today's routines: school tasks leave or come back.
+   */
+  async savePeriods(periods: CalendarPeriod[], today: string): Promise<void> {
+    await db.transaction('rw', [db.settings, db.tasks, db.sessions], async () => {
+      const settings = await getSettings();
+      await db.settings.put({ ...settings, id: 'current', periods: prunePeriods(periods, today) });
+    });
+    await this.syncAllActiveSessionsForToday(today);
   },
 
   /**

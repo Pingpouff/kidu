@@ -13,7 +13,7 @@ interface CardHistoryProps {
   onWithdraw: (childId: string, cardId: string) => Promise<void>;
 }
 
-/** Recent yellow / red cards of every child; a card given by mistake can be withdrawn. */
+/** Recent green / yellow / red cards of every child; a card given by mistake can be withdrawn. */
 export const CardHistory: React.FC<CardHistoryProps> = ({ profiles, language, onWithdraw }) => {
   const cards = recentCards(profiles);
   const byId = new Map(profiles.map((p) => [p.id, p]));
@@ -27,7 +27,7 @@ export const CardHistory: React.FC<CardHistoryProps> = ({ profiles, language, on
 
   return (
     <section className="flex flex-col gap-3" data-testid="card-history">
-      <PanelHeader title={`🟨🟥 ${translate('cards.history', language)}`} />
+      <PanelHeader title={`🟩🟨🟥 ${translate('cards.history', language)}`} />
       {cards.length === 0 ? (
         <p className="text-sm text-white/50">{translate('cards.history_empty', language)}</p>
       ) : (
@@ -36,7 +36,7 @@ export const CardHistory: React.FC<CardHistoryProps> = ({ profiles, language, on
             const child = byId.get(card.childId);
             return (
               <li key={card.id} data-testid="card-entry" className="flex items-center gap-3 p-2.5 sm:p-3 bg-white/5 rounded-2xl border border-white/5">
-                <span className={cx('referee-card !w-6 !h-8 !rounded shrink-0', card.color === 'yellow' ? 'is-yellow' : 'is-red')} aria-hidden="true" />
+                <span className={cx('referee-card !w-6 !h-8 !rounded shrink-0', `is-${card.color}`)} aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-white text-sm truncate">
                     {child ? `${child.avatar} ${child.name}` : '—'} · {translate(`cards.${card.color}`, language)}
@@ -46,6 +46,7 @@ export const CardHistory: React.FC<CardHistoryProps> = ({ profiles, language, on
                     {when.format(card.givenAt)}
                     {card.reason && ` · ${card.reason}`}
                     {card.lostProgress ? ` · −${card.lostProgress} ⭐` : ''}
+                    {card.gainedStar ? ' · +1 ⭐' : ''}
                   </p>
                 </div>
                 {!card.fromYellows && (
