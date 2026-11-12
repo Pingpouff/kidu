@@ -2,6 +2,7 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { translate, Language } from '../../i18n/dictionary';
 import { buttonClass } from '../../ui/styles';
+import { Swipeable } from '../../ui/Swipeable';
 
 interface AppUpdateBannerProps {
   language: Language;
@@ -16,10 +17,12 @@ interface AppUpdateBannerProps {
  * Only shown outside a child's routine board, so an update never cuts a routine.
  */
 export const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ language, onUpdate, onLater, updating = false }) => (
-  <div
+  <div className="fixed bottom-4 inset-x-4 z-banner flex justify-center pointer-events-none">
+  <Swipeable
+    onDismiss={onLater}
     role="status"
     data-testid="update-banner"
-    className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-banner flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-indigo-400/30 bg-slate-900/95 backdrop-blur px-4 py-3 shadow-glass"
+    className="pointer-events-auto flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-indigo-400/30 bg-slate-900/95 backdrop-blur px-4 py-3 shadow-glass"
   >
     <span className="flex items-center gap-2 text-sm font-bold text-white">
       <RefreshCw className="w-4 h-4 text-indigo-300" />
@@ -34,5 +37,6 @@ export const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ language, onUp
         {translate('update.later', language)}
       </button>
     </div>
+  </Swipeable>
   </div>
 );

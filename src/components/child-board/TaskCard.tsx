@@ -2,6 +2,8 @@ import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { RoutineTask, TaskDefinition } from '../../domain/models';
 import { taskLabel, translate, Language } from '../../i18n/dictionary';
+import { isValidDuration } from '../../domain/timer';
+import { TaskTimer } from './TaskTimer';
 
 interface TaskCardProps {
   task: RoutineTask;
@@ -88,8 +90,23 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
               : `🚀 ${definition.startTime}`}
         </span>
       )}
-      {task.status === 'doing' && (
-        <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
+      {/* Timed task: the countdown once started, the time allowed before */}
+      {isValidDuration(definition?.durationMinutes) ? (
+        task.status === 'doing' ? (
+          <TaskTimer task={task} definition={definition} language={language} />
+        ) : (
+          task.status === 'todo' && (
+            <span
+              data-testid="task-duration"
+              title={translate('timer.duration', language, { minutes: definition.durationMinutes! })}
+              className="absolute top-1.5 right-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow bg-slate-900/85 text-emerald-200"
+            >
+              ⏳ {translate('timer.left', language, { minutes: definition.durationMinutes! })}
+            </span>
+          )
+        )
+      ) : (
+        task.status === 'doing' && <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
       )}
 
       {celebration && <CompletionBurst key={celebration.key} cheer={celebration.cheer} />}

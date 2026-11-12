@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChildProfile, ParentSettings, RoutineSession, TaskDefinition } from '../../domain/models';
 import { childSummary, greetingKey, upcomingDeadlines } from '../../domain/summary';
+import { mutedChildren } from '../../domain/reminders';
 import { ChildCard } from './ChildCard';
 import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Info, Settings } from 'lucide-react';
@@ -27,6 +28,10 @@ interface ProfileSelectorProps {
   onOpenCalm?: () => void;
   /** Opens a child's emotions space ("Comment je me sens") */
   onOpenEmotions?: (childId: string) => void;
+  /** A parent stops every reminder for tonight (PIN asked by the caller) */
+  onMuteReminders?: () => void;
+  /** Turns tonight's reminders back on */
+  onUnmuteReminders?: () => void;
 }
 
 /** Re-renders every 30 s so late / upcoming tasks stay up to date. */
@@ -53,6 +58,8 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
   banner,
   onOpenCalm,
   onOpenEmotions,
+  onMuteReminders,
+  onUnmuteReminders,
 }) => {
   const now = useNow();
   const date = today ?? new Date(now).toISOString().slice(0, 10);
@@ -67,13 +74,17 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
     [now, date, profiles, sessions, tasks, settings]
   );
   const deadlines = useMemo(
-    () => upcomingDeadlines(now, date, profiles, sessions, tasks),
-    [now, date, profiles, sessions, tasks]
+    () => upcomingDeadlines(now, date, profiles, sessions, tasks, 3, settings?.periods),
+    [now, date, profiles, sessions, tasks, settings?.periods]
   );
   const allDone =
     profiles.length > 0 && [...summaries.values()].every((s) => s.status === 'completed' || s.status === 'no_tasks');
   const hasDueTimes = tasks.some((t) => t.dueTime || t.startTime);
   const remindersOff = hasDueTimes && settings?.reminders?.enabled === false;
+  // Tonight's reminders, stopped by a parent ("they're in bed")
+  const hasReminders = !remindersOff && tasks.some((t) => t.dueTime || t.startTime || t.durationMinutes);
+  const muted = mutedChildren(settings?.mutedReminders, date, profiles);
+  const mutedNames = profiles.filter((p) => muted.ids.includes(p.id)).map((p) => p.name).join(', ');
 
   const label = (id: string) => {
     const def = byId.get(id);
@@ -175,6 +186,35 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
               </span>
             )}
           </div>
+          {hasReminders && (onMuteReminders || onUnmuteReminders) && (
+            <div className="flex flex-wrap items-center gap-2" data-testid="home-mute">
+              {muted.ids.length > 0 && (
+                <span className="text-sm font-bold text-white/70" data-testid="home-muted">
+                  🔕 {muted.all ? translate('home.muted_all', language) : translate('home.muted_some', language, { names: mutedNames })}
+                </span>
+              )}
+              {!muted.all && onMuteReminders && (
+                <button
+                  type="button"
+                  onClick={onMuteReminders}
+                  data-testid="mute-reminders"
+                  className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-white/80 text-sm font-bold"
+                >
+                  🔕 {translate('home.mute_tonight', language)}
+                </button>
+              )}
+              {muted.ids.length > 0 && onUnmuteReminders && (
+                <button
+                  type="button"
+                  onClick={onUnmuteReminders}
+                  data-testid="unmute-reminders"
+                  className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-white/80 text-sm font-bold"
+                >
+                  🔔 {translate('home.unmute', language)}
+                </button>
+              )}
+            </div>
+          )}
           {allDone ? (
             <p className="text-base font-bold text-emerald-300">{translate('home.all_done', language)}</p>
           ) : deadlines.length === 0 ? (

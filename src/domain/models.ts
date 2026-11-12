@@ -68,13 +68,15 @@ export interface EmotionSettings {
 }
 
 
-export type CardColor = 'yellow' | 'red';
+export type CardColor = 'green' | 'yellow' | 'red';
 
 /**
- * A card given by a parent for inappropriate behavior. Cards count per
- * evening (`date`): a second yellow the same evening becomes a red. A red
- * card resets the stars collected toward the next medal (`lostProgress`
- * keeps them so a card given by mistake can be withdrawn).
+ * A card given by a parent. Green: a "well done" for a kind or brave gesture,
+ * worth one star toward the next medal (`gainedStar`). Yellow / red: for
+ * inappropriate behavior. Cards count per evening (`date`): a second yellow
+ * the same evening becomes a red. A red card resets the stars collected toward
+ * the next medal (`lostProgress` keeps them so a card given by mistake can be
+ * withdrawn).
  */
 export interface BehaviorCard {
   id: string;
@@ -86,6 +88,8 @@ export interface BehaviorCard {
   fromYellows?: boolean;
   /** Stars toward the next medal taken away by this red card */
   lostProgress?: number;
+  /** Green card: the star it gave (taken back if the card is withdrawn) */
+  gainedStar?: boolean;
 }
 
 /**
@@ -136,6 +140,26 @@ export interface TaskDefinition {
   dueTime?: string; // "HH:MM" expected end time; reminders start when the task isn't done by then
   assignedTo?: string[]; // Child ids. Missing or empty = common task, done by every child
   days?: number[]; // Days of the week (0 = Sunday … 6 = Saturday). Missing or empty = every day
+  durationMinutes?: number; // Time allowed once the child starts the task ("doing"); warnings before it runs out
+  schedule?: TaskSchedule; // School days only / holidays only. Missing = always
+}
+
+/** When a task is planned: on school days, during holidays, or always (missing). */
+export type TaskSchedule = 'school' | 'holidays';
+export const TASK_SCHEDULES: TaskSchedule[] = ['school', 'holidays'];
+
+/**
+ * A period set by a parent (from → to, both included, YYYY-MM-DD), for every
+ * child or some of them. `holidays`: no school, the holiday routine applies.
+ * `off`: a rest day (sick, outing…): no school either, no reminders, and the
+ * day doesn't break a streak.
+ */
+export interface CalendarPeriod {
+  id: string;
+  kind: 'holidays' | 'off';
+  from: string;
+  to: string;
+  childIds?: string[]; // missing or empty = every child
 }
 
 export interface RoutineTask {
@@ -143,6 +167,7 @@ export interface RoutineTask {
   definitionId: string;
   status: TaskStatus;
   completedAt?: number; // Epoch timestamp
+  startedAt?: number; // Epoch the task was moved to "doing" (timed tasks count from it)
   rewarded?: boolean; // Star already given for this task today (no farming by undo/redo)
 }
 
@@ -197,13 +222,20 @@ export interface ReminderSettings {
   repeatMinutes: number; // Delay between two reminders for the same task
   maxReminders: number; // Total reminders per task and per day
   systemNotifications: boolean; // Also show an OS notification when the app is in the background
+  /** Timed tasks: warn when this many minutes are left (e.g. [10, 5]). Missing = DEFAULT_TIMER_WARNINGS */
+  timerWarnings?: number[];
 }
+
+export const DEFAULT_TIMER_WARNINGS = [10, 5];
+/** Choices offered in Settings for the "minutes left" warnings */
+export const TIMER_WARNING_CHOICES = [15, 10, 5, 2, 1];
 
 export const DEFAULT_REMINDERS: ReminderSettings = {
   enabled: true,
   repeatMinutes: 5,
   maxReminders: 3,
   systemNotifications: false,
+  timerWarnings: DEFAULT_TIMER_WARNINGS,
 };
 
 /** Default emotions settings; `adultName` empty = the translated default ("Papa ou Maman"). */
@@ -233,4 +265,15 @@ export interface ParentSettings {
   reminders?: ReminderSettings; // default: DEFAULT_REMINDERS
   lastBackupAt?: number; // epoch of the last export (not part of backup files)
   emotions?: EmotionSettings; // default: DEFAULT_EMOTIONS
+  periods?: CalendarPeriod[]; // Holidays and rest days
+  mutedReminders?: MutedReminders; // Reminders stopped for tonight (not part of backup files)
+}
+
+/**
+ * Reminders a parent stopped for the rest of the day ("they're in bed, they
+ * won't do it anymore"). Only counts on `date`: the next day starts normally.
+ */
+export interface MutedReminders {
+  date: string; // YYYY-MM-DD
+  childIds?: string[]; // missing = every child
 }

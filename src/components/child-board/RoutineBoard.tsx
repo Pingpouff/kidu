@@ -9,7 +9,7 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
-import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, CATEGORY_ICONS, TaskCategory, TaskStatus } from '../../domain/models';
+import { ChildProfile, RoutineSession, RoutineTask, TaskDefinition, TaskCategory, TaskStatus } from '../../domain/models';
 import { getRoutinePhases, getCurrentPhaseIndex, moveTask, skipPhase, unskipPhase, withCompletion } from '../../domain/routine';
 import { PinModal } from '../parent-mode/PinModal';
 import { translate, translateDynamic, Language } from '../../i18n/dictionary';
@@ -31,6 +31,8 @@ import { CardBanner } from '../cards/CardBanner';
 import { CardGiver } from '../cards/CardGiver';
 import { CardReveal } from '../cards/CardReveal';
 import { PhaseIndicator } from './PhaseIndicator';
+import { PhaseBanner } from './PhaseBanner';
+import { Swipeable } from '../../ui/Swipeable';
 import { StarMeter } from './StarMeter';
 import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
 import { OwlGlyph } from '../../features/emotions/art/OwlGlyph';
@@ -51,10 +53,12 @@ interface RoutineBoardProps {
   onBuyShopItem: (itemId: string) => Promise<void>;
   /** Definition ids of this child's tasks that are past their due time */
   lateDefinitionIds?: Set<string>;
-  /** A parent gives a yellow / red card (after PIN check) */
+  /** A parent gives a green / yellow / red card (after PIN check) */
   onGiveCard: (color: CardColor, reason?: string) => Promise<{ outcome: CardOutcome; lostProgress: number } | undefined>;
   /** Opens the calm corner for this child ("Mes émotions"), no PIN */
   onOpenCalm?: () => void;
+  /** Today is a holiday or a rest day for this child (set by a parent) */
+  dayKind?: 'holidays' | 'off';
   /** Bedtime is done: gently offer "Comment je me sens" ("Mes émotions") */
   eveningInvite?: { onGo: () => void; onLater: () => void };
 }
@@ -114,6 +118,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   onGiveCard,
   onOpenCalm,
   eveningInvite,
+  dayKind,
 }) => {
   // Resetting takes a second tap
   const { armed: confirmReset, tap: handleResetClick } = useConfirmTap(onResetSession);
@@ -165,10 +170,6 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   // Short banner shown when a phase is completed
   const [phaseBanner, setPhaseBanner] = useState<TaskCategory | null>(null);
-  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (bannerTimer.current) clearTimeout(bannerTimer.current);
-  }, []);
 
   const bgTheme = childTheme(profile.color).board;
 
@@ -285,9 +286,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         translate('board.next_phase_spoken', language, { name: profile.name, phase: nextLabel }),
         language === 'fr' ? 'fr-FR' : 'en-US'
       );
-      setPhaseBanner(justCompletedPhase.category);
-      if (bannerTimer.current) clearTimeout(bannerTimer.current);
-      bannerTimer.current = setTimeout(() => setPhaseBanner(null), 2500);
+      setPhaseBanner(justCompletedPhase.category); // closes by itself (PhaseBanner)
     }
 
     // If session transitions from incomplete to complete, celebrate!
@@ -401,17 +400,8 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           <FlyingStar key={star.key} from={star.from} to={star.to} onDone={() => removeFlyingStar(star.key)} />
         ))}
 
-        {/* Phase completed banner */}
-        {phaseBanner && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" role="status" data-testid="phase-banner">
-            <div className="glass-panel px-8 py-6 flex flex-col items-center gap-2 animate-bounce border-yellow-400/40">
-              <span className="text-6xl">{CATEGORY_ICONS[phaseBanner]}</span>
-              <span className="text-2xl font-black text-yellow-300">
-                {translate('board.phase_done', language)}
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Phase completed toast */}
+        {phaseBanner && <PhaseBanner category={phaseBanner} language={language} onClose={() => setPhaseBanner(null)} />}
 
         <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-2 sm:p-4 gap-1 sm:gap-2 relative">
         
@@ -480,10 +470,14 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
               aria-label={translate('cards.give', language)}
               title={translate('cards.tonight', language)}
               data-testid="give-card"
+              data-green={tonightCards.green}
               data-yellow={tonightCards.yellow}
               data-red={tonightCards.red}
               className="flex items-center gap-1 px-2.5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full transition-all active:scale-95"
             >
+              {/* Phones: the green slot only once a green card is given (the header is tight) */}
+              <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.green > 0 ? 'bg-emerald-400 shadow shadow-emerald-500/50' : 'hidden sm:block border border-emerald-300/40'}`} />
+              {tonightCards.green > 1 && <span className="text-[10px] font-black text-emerald-300">×{tonightCards.green}</span>}
               <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.yellow > 0 ? 'bg-yellow-400 shadow shadow-yellow-500/50' : 'border border-yellow-300/40'}`} />
               {tonightCards.yellow > 1 && <span className="text-[10px] font-black text-yellow-300">×{tonightCards.yellow}</span>}
               <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.red > 0 ? 'bg-red-500 shadow shadow-red-500/50' : 'border border-red-400/40'}`} />
@@ -524,10 +518,18 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           />
         )}
 
+        {dayKind && (
+          <p data-testid="board-day-kind" data-kind={dayKind} className="z-10 mx-auto px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-300/30 text-cyan-100 text-xs sm:text-sm font-bold">
+            {translate(`day.${dayKind}`, language)}
+            {dayKind === 'off' && ` · ${translate('day.off_hint', language)}`}
+          </p>
+        )}
+
         <CardBanner
           state={tonightCards}
           language={language}
           onOpen={() => setCardReminder(true)}
+          onOpenGreen={() => setCardReveal({ outcome: 'green', lostProgress: 0, reason: tonightCards.lastGreenReason })}
         />
 
         {/* Phones: one scrolling column, "doing" first. Tablets and up: three columns side by side */}
@@ -612,11 +614,13 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
         {/* Bedtime done: a gentle invitation to say how the day felt */}
         {eveningInvite && (
-          <div
+          <div className="fixed z-30 inset-x-0 bottom-24 flex justify-center px-4 pointer-events-none">
+          <Swipeable
+            onDismiss={eveningInvite.onLater}
             role="region"
             aria-label={translate('emo.evening.title', language)}
             data-testid="evening-invite"
-            className="emo-twilight fixed z-30 left-1/2 -translate-x-1/2 bottom-24 w-[min(34rem,calc(100%-2rem))] rounded-3xl border border-[#E9E4FA]/25 shadow-2xl p-4 flex items-center gap-4"
+            className="emo-twilight pointer-events-auto w-full max-w-[34rem] rounded-3xl border border-[#E9E4FA]/25 shadow-2xl p-4 flex items-center gap-4"
           >
             <OwlGlyph className="w-16 h-[4.6rem] shrink-0" />
             <div className="flex-1 flex flex-col gap-3">
@@ -638,6 +642,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 </button>
               </div>
             </div>
+          </Swipeable>
           </div>
         )}
 

@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { ParentSettings, DEFAULT_FEEDBACK, FeedbackSettings, DEFAULT_REMINDERS, ReminderSettings, VisualsSetting, EmotionSettings } from '../../domain/models';
+import {
+  ParentSettings,
+  DEFAULT_FEEDBACK,
+  FeedbackSettings,
+  DEFAULT_REMINDERS,
+  DEFAULT_TIMER_WARNINGS,
+  ReminderSettings,
+  TIMER_WARNING_CHOICES,
+  VisualsSetting,
+  EmotionSettings,
+} from '../../domain/models';
 import { emotionSettings } from '../../features/emotions/domain/settings';
 import { isLowEndDevice, resolveVisuals } from '../../services/performance';
 import { starsPerMedal } from '../../domain/rewards';
@@ -13,7 +23,7 @@ import {
 import { translate, Language } from '../../i18n/dictionary';
 import { Save } from 'lucide-react';
 import type { AppUpdate } from '../../services/appUpdate';
-import { buttonClass, fieldClass } from '../../ui/styles';
+import { buttonClass, chipClass, fieldClass } from '../../ui/styles';
 import { PanelHeader } from '../../ui/Panel';
 import { BackupSection } from './settings/BackupSection';
 import { AppSection } from './settings/AppSection';
@@ -212,6 +222,28 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 className={fieldClass('md', 'w-20 px-3 text-center')}
               />
             </label>
+            {/* Timed tasks: "minutes left" warnings */}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-white/85" role="group" aria-label={translate('parent.reminders.timer_warnings', language)} data-testid="timer-warnings">
+              <span>⏳ {translate('parent.reminders.timer_warnings', language)}</span>
+              {TIMER_WARNING_CHOICES.map((m) => {
+                const current = reminders.timerWarnings ?? DEFAULT_TIMER_WARNINGS;
+                const active = current.includes(m);
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() =>
+                      setReminderField('timerWarnings', active ? current.filter((x) => x !== m) : [...current, m].sort((a, b) => b - a))
+                    }
+                    className={chipClass(active, true)}
+                  >
+                    {m} min
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-white/50 -mt-1">{translate('parent.reminders.timer_help', language)}</p>
             <label className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
               <input
                 type="checkbox"

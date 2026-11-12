@@ -1,9 +1,11 @@
 import { ChildProfile, ParentSettings, RoutineSession, TaskCategory, TaskDefinition } from './models';
 import { getCurrentPhaseIndex, getRoutinePhases, initSession, isSessionCompleted, isTaskForChild, sortDefinitions } from './routine';
-import { dueTimeToEpoch, findOverdueTasks, isValidDueTime } from './reminders';
+import { dueTimeToEpoch, findOverdueTasks, isMuted, isValidDueTime } from './reminders';
 import { starsPerMedal, unspentBadges } from './rewards';
-import { currentStreak, dayDiff } from './trophies';
+import { NeutralDay, currentStreak, onlyNeutralBetween } from './trophies';
 import { tonightCardState, TonightCardState } from './cards';
+import { dayContext } from './calendar';
+import { CalendarPeriod } from './models';
 
 /**
  * Overview shown on the child selection screen: where each child is in
@@ -33,8 +35,12 @@ export interface ChildSummary {
   piggyBadges: number;
   /** Evenings in a row with a completed routine, still alive (last one today or yesterday) */
   streak: number;
-  /** Yellow / red cards given tonight */
+  /** Green / yellow / red cards given tonight */
   cards: TonightCardState;
+  /** Today is a holiday or a rest day for this child */
+  period?: 'holidays' | 'off';
+  /** A parent stopped this child's reminders for tonight */
+  muted?: boolean;
 }
 
 /**
@@ -73,16 +79,19 @@ function nextEvent(def: TaskDefinition, status: string, date: string, now: numbe
 }
 
 /** Today's session of a child, or the one they would get if they started now. */
-function sessionOrPreview(childId: string, date: string, sessions: RoutineSession[], definitions: TaskDefinition[]) {
+function sessionOrPreview(childId: string, date: string, sessions: RoutineSession[], definitions: TaskDefinition[], periods?: CalendarPeriod[]) {
   const session = sessions.find((s) => s.childId === childId && s.date === date);
-  return { session: session ?? initSession(childId, date, definitions), started: session !== undefined };
+  return { session: session ?? initSession(childId, date, definitions, periods), started: session !== undefined };
 }
 
-/** Streak that is still alive: the last completed routine is today's or yesterday's. */
-export function liveStreak(completedDates: string[], today: string): number {
+/**
+ * Streak that is still alive: the last completed routine is today's or
+ * yesterday's (rest days in between don't count).
+ */
+export function liveStreak(completedDates: string[], today: string, isNeutral?: NeutralDay): number {
   if (completedDates.length === 0) return 0;
   const last = [...completedDates].sort()[completedDates.length - 1];
-  return dayDiff(last, today) <= 1 ? currentStreak(completedDates) : 0;
+  return last <= today && onlyNeutralBetween(last, today, isNeutral) ? currentStreak(completedDates, isNeutral) : 0;
 }
 
 export function childSummary(
@@ -93,7 +102,8 @@ export function childSummary(
   definitions: TaskDefinition[],
   settings?: ParentSettings
 ): ChildSummary {
-  const { session, started } = sessionOrPreview(profile.id, date, sessions, definitions);
+  const periods = settings?.periods;
+  const { session, started } = sessionOrPreview(profile.id, date, sessions, definitions, periods);
   const tasks = session.tasks.filter((t) => definitions.some((d) => d.id === t.definitionId));
   const done = tasks.filter((t) => t.status === 'done').length;
   const total = tasks.length;
@@ -111,7 +121,8 @@ export function childSummary(
           ? 'in_progress'
           : 'not_started';
 
-  const late = findOverdueTasks(now, date, [profile], started ? [session] : [], definitions).map((t) => t.definitionId);
+  const late = findOverdueTasks(now, date, [profile], started ? [session] : [], definitions, { periods, muted: settings?.mutedReminders }).map((t) => t.definitionId);
+  const today = dayContext(periods, date, profile.id);
 
   const statusOf = new Map(tasks.map((t) => [t.definitionId, t.status]));
   const upcoming = sortDefinitions(definitions)
@@ -148,8 +159,10 @@ export function childSummary(
     starsToMedal: perMedal - ((profile.starProgress ?? 0) % perMedal),
     pendingBadgeChoices: profile.badgeOffers?.length ?? 0,
     piggyBadges: unspentBadges(profile).length,
-    streak: liveStreak(completedDates, date),
+    streak: liveStreak(completedDates, date, (d) => dayContext(periods, d, profile.id).off),
     cards: tonightCardState(profile, date),
+    ...(isMuted(settings?.mutedReminders, date, profile.id) ? { muted: true } : {}),
+    ...(today.off ? { period: 'off' as const } : today.holidays ? { period: 'holidays' as const } : {}),
   };
 }
 
@@ -163,14 +176,16 @@ export function upcomingDeadlines(
   profiles: ChildProfile[],
   sessions: RoutineSession[],
   definitions: TaskDefinition[],
-  limit = 3
+  limit = 3,
+  periods?: CalendarPeriod[]
 ): UpcomingDeadline[] {
   const groups = new Map<string, UpcomingDeadline>();
   for (const def of sortDefinitions(definitions)) {
     if (!isValidDueTime(def.dueTime) && !isValidDueTime(def.startTime)) continue;
     for (const profile of profiles) {
       if (!isTaskForChild(def, profile.id)) continue;
-      const { session } = sessionOrPreview(profile.id, date, sessions, definitions);
+      if (dayContext(periods, date, profile.id).off) continue; // rest day: nothing expected
+      const { session } = sessionOrPreview(profile.id, date, sessions, definitions, periods);
       const task = session.tasks.find((t) => t.definitionId === def.id);
       if (!task) continue;
       const event = nextEvent(def, task.status, date, now);

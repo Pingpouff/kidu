@@ -6,7 +6,7 @@ const typePin = async (page: Page) => {
   for (const digit of ['1', '2', '3', '4']) await page.getByRole('button', { name: digit, exact: true }).click();
 };
 
-const giveCard = async (page: Page, color: 'yellow' | 'red', reason?: string) => {
+const giveCard = async (page: Page, color: 'green' | 'yellow' | 'red', reason?: string) => {
   await page.getByTestId('give-card').click();
   const giver = page.getByTestId('card-giver');
   await giver.getByTestId(`card-option-${color}`).click();
@@ -38,6 +38,7 @@ test.describe('Yellow and red cards', () => {
 
     // Second yellow the same evening: red card, progress back to zero
     await page.getByTestId('give-card').click();
+    await page.getByTestId('card-giver').getByTestId('card-option-yellow').click(); // green is preselected
     await expect(page.getByTestId('card-giver')).toContainText('un 2e jaune donnera un carton rouge');
     await page.getByTestId('card-giver').getByRole('button', { name: /Valider avec le code parent/ }).click();
     await typePin(page);
@@ -142,5 +143,36 @@ test.describe('Yellow and red cards', () => {
     for (const digit of ['9', '9', '9', '9']) await page.getByRole('button', { name: digit, exact: true }).click();
     await expect(page.getByTestId('card-reveal')).toHaveCount(0);
     await expect(page.getByTestId('give-card')).toHaveAttribute('data-red', '0');
+  });
+
+  test('a green card says well done and gives a star, which can complete a medal', async ({ page }) => {
+    await page.goto('/');
+    await removeMorningTasks(page);
+    await page.getByTestId('child-card-leo').click();
+    await completeTask(page, 'Vider son cartable');
+    await completeTask(page, 'Prendre son goûter');
+    const meter = page.getByTestId('star-meter');
+    await expect(meter.locator('span.grayscale')).toHaveCount(1); // 2 of 3 stars
+
+    await giveCard(page, 'green', 'A partagé');
+    const reveal = page.getByTestId('card-reveal');
+    await expect(reveal).toHaveAttribute('data-card', 'green');
+    await expect(reveal).toContainText('Carte verte !');
+    await expect(reveal).toContainText('A partagé');
+    await reveal.click();
+    // The star completed a medal: the child picks its motif
+    await expect(page.getByTestId('medal-choice')).toBeVisible();
+    await page.getByTestId('medal-choice').getByTestId('medal-option').first().click();
+    await expect(page.getByTestId('medal-count')).toHaveText('1');
+    await expect(page.getByTestId('give-card')).toHaveAttribute('data-green', '1');
+    await expect(page.getByTestId('card-banner-green')).toContainText('A partagé');
+    // No warning frame nor reminder for a green card
+    await expect(page.getByTestId('card-frame')).toHaveCount(0);
+    await expect(page.getByTestId('card-banner')).toHaveCount(0);
+
+    await page.locator('header').getByRole('button').first().click();
+    await expect(page.getByTestId('child-card-leo').getByTestId('home-green-card')).toBeVisible();
+    await page.getByTestId('child-card-leo').click();
+    await expect(reveal).toHaveCount(0);
   });
 });

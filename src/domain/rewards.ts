@@ -37,7 +37,22 @@ export function applyTaskRewards(
     return { session, profile, starsGained: 0, medalsGained: 0 };
   }
 
-  const totalProgress = (profile.starProgress ?? 0) + starsGained;
+  const { profile: rewarded, medalsGained } = addStars(profile, starsGained, perMedal, random);
+  return { session: { ...session, tasks }, profile: rewarded, starsGained, medalsGained };
+}
+
+/**
+ * Adds stars to a child (tasks done, green card): every `perMedal` stars make a
+ * medal, and each medal queues a choice of 3 motifs.
+ */
+export function addStars(
+  profile: ChildProfile,
+  count: number,
+  perMedal: number,
+  random: () => number = Math.random
+): { profile: ChildProfile; medalsGained: number } {
+  if (count <= 0) return { profile, medalsGained: 0 };
+  const totalProgress = (profile.starProgress ?? 0) + count;
   const medalsGained = Math.floor(totalProgress / perMedal);
 
   const ownedIds = (profile.badges ?? []).map((b) => b.badgeId);
@@ -49,15 +64,13 @@ export function applyTaskRewards(
   }
 
   return {
-    session: { ...session, tasks },
     profile: {
       ...profile,
-      stars: profile.stars + starsGained,
+      stars: profile.stars + count,
       starProgress: totalProgress % perMedal,
       medalCount: (profile.medalCount ?? 0) + medalsGained,
       badgeOffers: offers,
     },
-    starsGained,
     medalsGained,
   };
 }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { translate, Language } from '../../i18n/dictionary';
-import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry } from '../../domain/models';
+import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry, CalendarPeriod } from '../../domain/models';
 import { TaskManager } from './TaskManager';
+import { CalendarPanel } from './CalendarPanel';
 import { ProfileManager } from './ProfileManager';
 import { HistoryPanel } from './HistoryPanel';
 import { SettingsPanel } from './SettingsPanel';
@@ -29,6 +30,10 @@ interface DashboardProps {
   onUpdateTask: (task: TaskDefinition) => Promise<void>;
   onReorderTasks: (reorderedTasks: TaskDefinition[]) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
+  /** Holidays and rest days */
+  onSavePeriods: (periods: CalendarPeriod[]) => Promise<void>;
+  /** Today, YYYY-MM-DD */
+  today: string;
 
   // Profiles handlers
   onAddProfile: (profile: Omit<ChildProfile, 'id'>) => Promise<void>;
@@ -62,6 +67,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onUpdateTask,
   onReorderTasks,
   onDeleteTask,
+  onSavePeriods,
+  today,
   onAddProfile,
   onUpdateProfile,
   onDeleteProfile,
@@ -195,15 +202,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <main className="flex-1 overflow-y-auto p-2 sm:p-6 lg:p-8 bg-slate-900/10">
           <div className="max-w-4xl mx-auto glass-panel p-3 sm:p-6 border-white/5 bg-slate-900/40 shadow-2xl backdrop-blur-xl">
             {activeTab === 'tasks' && (
-              <TaskManager
-                tasks={tasks}
-                profiles={profiles}
-                language={language}
-                onAddTask={onAddTask}
-                onUpdateTask={onUpdateTask}
-                onReorderTasks={onReorderTasks}
-                onDeleteTask={onDeleteTask}
-              />
+              <div className="flex flex-col gap-6">
+                <TaskManager
+                  tasks={tasks}
+                  profiles={profiles}
+                  language={language}
+                  onAddTask={onAddTask}
+                  onUpdateTask={onUpdateTask}
+                  onReorderTasks={onReorderTasks}
+                  onDeleteTask={onDeleteTask}
+                />
+                <hr className="border-white/10" />
+                <CalendarPanel
+                  periods={settings.periods ?? []}
+                  profiles={profiles}
+                  language={language}
+                  today={today}
+                  onSave={onSavePeriods}
+                />
+              </div>
             )}
             {activeTab === 'children' && (
               <ProfileManager

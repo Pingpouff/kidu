@@ -2,6 +2,7 @@ import React from 'react';
 import { Download } from 'lucide-react';
 import { translate, Language } from '../../i18n/dictionary';
 import { buttonClass } from '../../ui/styles';
+import { Swipeable } from '../../ui/Swipeable';
 import { InstallState, promptInstall } from '../../services/install';
 
 interface InstallBannerProps {
@@ -14,7 +15,8 @@ interface InstallBannerProps {
 export const InstallBanner: React.FC<InstallBannerProps> = ({ install, language, onDismiss }) => {
   if (install.kind !== 'available' && install.kind !== 'ios') return null;
   return (
-    <div
+    <Swipeable
+      onDismiss={onDismiss}
       role="status"
       data-testid="install-banner"
       className="z-10 w-full max-w-3xl mx-auto flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-indigo-300/30 bg-indigo-950/70 backdrop-blur px-4 py-3 text-sm text-white/90"
@@ -31,6 +33,6 @@ export const InstallBanner: React.FC<InstallBannerProps> = ({ install, language,
           {translate(install.kind === 'ios' ? 'install.ios_ok' : 'install.later', language)}
         </button>
       </div>
-    </div>
+    </Swipeable>
   );
 };
