@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cx } from './cx';
 import { Layer, LAYER } from './layers';
+import { useBackHandler } from '../services/backStack';
 
 /* ------------------------------------------------------------------ */
 /* Open overlays, so Escape closes only the top one and the page behind */
@@ -109,6 +110,8 @@ export const Overlay = React.forwardRef<HTMLDivElement, OverlayProps>(function O
 ) {
   const id = useId();
   useOverlayStack(id, onClose);
+  // Android Back closes the window (or does nothing when it can't be closed)
+  useBackHandler(true, onClose ?? null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(id, innerRef);
   const setRefs = (node: HTMLDivElement | null) => {
@@ -147,7 +150,7 @@ export const CloseButton: React.FC<{ onClick: () => void; label: string; size?: 
     type="button"
     onClick={onClick}
     aria-label={label}
-    className={cx('absolute top-4 right-4 text-white/50 hover:text-white transition-colors', className)}
+    className={cx('absolute top-2 right-2 w-12 h-12 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors', className)}
   >
     <X className={size === 'lg' ? 'w-7 h-7' : 'w-6 h-6'} />
   </button>

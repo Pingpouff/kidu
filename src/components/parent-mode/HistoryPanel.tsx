@@ -62,7 +62,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   <p className="font-bold text-white text-sm md:text-base capitalize">
                     {formatDate(entry.date)}
                   </p>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/40 mt-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60 mt-1">
                     <span className="font-semibold text-indigo-400">
                       {entry.childName}
                     </span>

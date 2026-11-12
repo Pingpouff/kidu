@@ -193,8 +193,13 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
   // One path for taps and drags: sound by destination, then the domain move
   const moveTo = (task: RoutineTask, status: TaskStatus) => {
     if (task.status === status) return;
-    if (status === 'done') reminderService.playTaskDoneSound();
-    else if (status === 'doing') reminderService.playMoveSound();
+    if (status === 'done') {
+      reminderService.playTaskDoneSound();
+      reminderService.haptic('success');
+    } else if (status === 'doing') {
+      reminderService.playMoveSound();
+      reminderService.haptic('tap');
+    }
     else reminderService.playResetSound();
     triggerSessionUpdate(moveTask(session, task.id, status, tasksDefinitions).tasks);
   };
@@ -406,11 +411,12 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
         <div className="w-full max-w-6xl mx-auto flex flex-col justify-between h-full p-2 sm:p-4 gap-1 sm:gap-2 relative">
         
         {/* Top Header Bar */}
-        <header className="flex items-center justify-between gap-1.5 sm:gap-3 z-10">
+        {/* Phones: back + actions on the first row, stars and piggy bank on the second */}
+        <header className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-1.5 gap-y-1 sm:gap-3 z-10">
           <button
             onClick={onBack}
             aria-label={`${translate('btn.back', language)} — ${profile.name}`}
-            className="shrink-0 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full text-white/80 hover:text-white transition-all active:scale-95"
+            className="shrink-0 flex items-center gap-1.5 sm:gap-2 min-h-12 px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full text-white/80 hover:text-white transition-all active:scale-95"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-extrabold text-sm md:text-base">
@@ -418,7 +424,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             </span>
           </button>
 
-          <div className="flex flex-col items-center gap-1 min-w-0">
+          <div className="order-last w-full sm:order-none sm:w-auto flex flex-col items-center gap-1 min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
               <StarMeter
                 ref={starMeterRef}
@@ -433,7 +439,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
               <button
                 onClick={() => setShowPiggy(true)}
                 aria-label={translate('piggy.title', language)}
-                className="flex items-center gap-1.5 sm:gap-2 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg transition-all active:scale-95"
+                className="flex items-center gap-1.5 sm:gap-2 min-h-12 bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-400/30 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-black text-sm sm:text-base md:text-lg transition-all active:scale-95"
               >
                 <span key={unspentBadges(profile).length} className="animate-wiggle inline-block">🐷</span>
                 <span data-testid="piggy-header-count">{unspentBadges(profile).length}</span>
@@ -459,7 +465,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
                 onClick={onOpenCalm}
                 aria-label={translate('emo.calm.button', language)}
                 data-testid="calm-button"
-                className="flex items-center justify-center px-2 py-1 sm:py-1.5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 border border-[#E8E4FF]/25 rounded-full transition-colors active:scale-95"
+                className="flex items-center justify-center min-h-12 min-w-12 px-2 py-1 sm:py-1.5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 border border-[#E8E4FF]/25 rounded-full transition-colors active:scale-95"
               >
                 <CloudGlyph className="w-9 h-7 sm:w-10 sm:h-8" />
               </button>
@@ -473,19 +479,19 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
               data-green={tonightCards.green}
               data-yellow={tonightCards.yellow}
               data-red={tonightCards.red}
-              className="flex items-center gap-1 px-2.5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full transition-all active:scale-95"
+              className="flex items-center justify-center gap-1 min-h-12 min-w-12 px-2.5 py-2 sm:py-2.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-full transition-all active:scale-95"
             >
               {/* Phones: the green slot only once a green card is given (the header is tight) */}
               <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.green > 0 ? 'bg-emerald-400 shadow shadow-emerald-500/50' : 'hidden sm:block border border-emerald-300/40'}`} />
-              {tonightCards.green > 1 && <span className="text-[10px] font-black text-emerald-300">×{tonightCards.green}</span>}
+              {tonightCards.green > 1 && <span className="text-xs font-black text-emerald-300">×{tonightCards.green}</span>}
               <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.yellow > 0 ? 'bg-yellow-400 shadow shadow-yellow-500/50' : 'border border-yellow-300/40'}`} />
-              {tonightCards.yellow > 1 && <span className="text-[10px] font-black text-yellow-300">×{tonightCards.yellow}</span>}
+              {tonightCards.yellow > 1 && <span className="text-xs font-black text-yellow-300">×{tonightCards.yellow}</span>}
               <span className={`w-3 h-4 sm:w-3.5 sm:h-5 rounded-[3px] ${tonightCards.red > 0 ? 'bg-red-500 shadow shadow-red-500/50' : 'border border-red-400/40'}`} />
             </button>
             <button
               onClick={handleResetClick}
               aria-label={translate('board.reset', language)}
-              className={`flex items-center gap-2 px-3 py-2 border rounded-full transition-all duration-300 active:scale-95 text-xs font-bold ${
+              className={`flex items-center justify-center gap-2 min-h-12 min-w-12 px-3 py-2 border rounded-full transition-all duration-300 active:scale-95 text-xs font-bold ${
                 confirmReset
                   ? 'bg-amber-600/30 border-amber-500/50 text-amber-200 hover:bg-amber-600/40 animate-pulse'
                   : 'bg-white/5 border-white/10 text-white/60 hover:text-white/95 hover:bg-white/15'
@@ -500,7 +506,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
             <button
               onClick={onEnterParentMode}
               aria-label={translate('btn.parent_mode', language)}
-              className="p-2 sm:p-3 bg-white/5 hover:bg-white/15 text-white/60 hover:text-white/95 border border-white/10 rounded-full transition-all active:scale-95"
+              className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white/5 hover:bg-white/15 text-white/70 hover:text-white/95 border border-white/10 rounded-full transition-all active:scale-95"
             >
               <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>

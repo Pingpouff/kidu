@@ -25,7 +25,7 @@ const DOT_CLASS = {
   todo: 'bg-white/20',
 } as const;
 
-const chip = 'px-2.5 py-1 rounded-full border border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/15';
+const chip = 'tap-target min-h-[36px] px-3 py-1 rounded-full border border-white/15 bg-white/5 text-white/80 hover:text-white hover:bg-white/15';
 
 /** "Step 2/4: After school", one dot per step, and the parent's skip / resume buttons. */
 export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ phases, currentIndex, language, onSkip, onResume }) => {
@@ -68,7 +68,7 @@ export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ phases, currentI
             : translate('board.last_step', language)}
         </span>
       </div>
-      <div className="flex flex-wrap justify-center gap-2 text-[11px] sm:text-xs font-bold">
+      <div className="flex flex-wrap justify-center gap-2 text-xs sm:text-sm font-bold">
         {!current.isCompleted && !current.isSkipped && (
           <button type="button" data-testid="skip-phase" onClick={() => onSkip(current.category)} className={chip}>
             ⏭ {translate('board.skip_phase', language)}

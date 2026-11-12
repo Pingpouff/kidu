@@ -43,7 +43,7 @@ export const TimeWindowInputs: React.FC<TimeWindowInputsProps> = ({ start, end, 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
-        <label className="flex flex-col text-[10px] font-bold text-sky-300/80 uppercase tracking-wide" title={translate('parent.tasks.start_time_hint', language)}>
+        <label className="flex flex-col text-xs font-bold text-sky-300/80 uppercase tracking-wide" title={translate('parent.tasks.start_time_hint', language)}>
           🚀 {translate('parent.tasks.start_short', language)}
           <input
             type="time"
@@ -54,8 +54,8 @@ export const TimeWindowInputs: React.FC<TimeWindowInputsProps> = ({ start, end, 
             className={`${inputClassName} ${invalid ? '!border-rose-500' : ''}`}
           />
         </label>
-        <span className="text-white/30 pt-4">→</span>
-        <label className="flex flex-col text-[10px] font-bold text-amber-300/80 uppercase tracking-wide" title={translate('parent.tasks.due_time_hint', language)}>
+        <span className="text-white/60 pt-4">→</span>
+        <label className="flex flex-col text-xs font-bold text-amber-300/80 uppercase tracking-wide" title={translate('parent.tasks.due_time_hint', language)}>
           ⏰ {translate('parent.tasks.end_short', language)}
           <input
             type="time"
@@ -126,7 +126,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({ value, onChange, l
   const invalid = value !== '' && !isValidDuration(Number(value));
   return (
     <label
-      className="flex flex-col text-[10px] font-bold text-emerald-300/80 uppercase tracking-wide"
+      className="flex flex-col text-xs font-bold text-emerald-300/80 uppercase tracking-wide"
       title={translate('parent.tasks.duration_hint', language)}
     >
       ⏳ {translate('parent.tasks.duration_short', language)}

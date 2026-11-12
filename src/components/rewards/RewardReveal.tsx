@@ -73,7 +73,7 @@ export const RewardReveal: React.FC<RewardRevealProps> = ({
         )}
       </div>
 
-      <p className="mt-4 text-white/40 text-sm md:text-base font-bold uppercase tracking-wide">
+      <p className="mt-4 text-white/60 text-sm md:text-base font-bold uppercase tracking-wide">
         {position ? `${position} · ` : ''}
         {translate('rewards.tap_continue', language)}
       </p>

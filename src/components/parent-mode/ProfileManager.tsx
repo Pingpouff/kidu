@@ -207,7 +207,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({
                     <h4 className="font-extrabold text-white text-lg">
                       {profile.name}
                     </h4>
-                    <div className="flex flex-wrap gap-2 text-xs text-white/40 mt-1">
+                    <div className="flex flex-wrap gap-2 text-xs text-white/60 mt-1">
                       {profile.age && (
                         <span className="bg-white/5 px-2 py-0.5 rounded border border-white/5">
                           {profile.age} {translate('parent.profiles.years', language)}

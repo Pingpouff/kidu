@@ -79,7 +79,7 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
       {(definition?.dueTime || definition?.startTime) && task.status !== 'done' && (
         <span
           data-testid={isLate ? 'task-late' : definition.dueTime ? 'task-due' : 'task-start'}
-          className={`absolute top-1.5 left-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow ${
+          className={`absolute top-1.5 left-1.5 z-10 text-xs md:text-xs font-black rounded-full px-2 py-0.5 shadow ${
             isLate ? 'bg-rose-500 text-white animate-wiggle' : 'bg-slate-900/85 text-white/80'
           }`}
         >
@@ -99,7 +99,7 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
             <span
               data-testid="task-duration"
               title={translate('timer.duration', language, { minutes: definition.durationMinutes! })}
-              className="absolute top-1.5 right-1.5 z-10 text-[10px] md:text-xs font-black rounded-full px-2 py-0.5 shadow bg-slate-900/85 text-emerald-200"
+              className="absolute top-1.5 right-1.5 z-10 text-xs md:text-xs font-black rounded-full px-2 py-0.5 shadow bg-slate-900/85 text-emerald-200"
             >
               ⏳ {translate('timer.left', language, { minutes: definition.durationMinutes! })}
             </span>
@@ -121,7 +121,7 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
 
       {/* Small helper text label */}
       {task.status !== 'done' && (
-        <span className="text-[11px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
+        <span className="text-[13px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
           {taskLabel(definition, language)}
         </span>
       )}

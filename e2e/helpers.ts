@@ -99,3 +99,14 @@ export const keepOnlyTasks = async (page: Page, ids: string[]) => {
   }), ids)).toBeGreaterThan(0);
   await page.reload();
 };
+
+/** Opens a Parent Mode tab: in the bar, or under "Plus" on phones (bottom bar of 5 at most). */
+export const openParentTab = async (page: Page, name: string) => {
+  const direct = page.getByRole('button', { name, exact: true });
+  if (await direct.isVisible()) {
+    await direct.click();
+    return;
+  }
+  await page.getByTestId('parent-more').click();
+  await page.getByTestId('parent-more-sheet').getByRole('button', { name }).click();
+};
