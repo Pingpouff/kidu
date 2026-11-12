@@ -3,6 +3,8 @@ import { translate, Language } from '../../i18n/dictionary';
 import { ChildProfile, TaskDefinition, ParentSettings, HistoryEntry, CalendarPeriod } from '../../domain/models';
 import { TaskManager } from './TaskManager';
 import { CalendarPanel } from './CalendarPanel';
+import { NotificationOffer } from './NotificationOffer';
+import { shouldOfferNotifications } from '../../services/notificationOffer';
 import { ProfileManager } from './ProfileManager';
 import { HistoryPanel } from './HistoryPanel';
 import { SettingsPanel } from './SettingsPanel';
@@ -88,6 +90,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTab, setActiveTab] = useState<TabId>('tasks');
   // Phones / tablets: a bottom bar of 5 destinations at most (Material); the others go in "Plus"
   const [showMore, setShowMore] = useState(false);
+  // After saving a timed task: offer system notifications once (permission asked in context)
+  const [offerNotifications, setOfferNotifications] = useState(false);
+  const afterTimedTask = (task: Partial<TaskDefinition>) => {
+    if (shouldOfferNotifications(task, settings)) setOfferNotifications(true);
+  };
   const [backupReminderHidden, setBackupReminderHidden] = useState(false);
   const [now] = useState(() => Date.now());
   const showBackupReminder = !backupReminderHidden && isBackupDue(settings.lastBackupAt, history.length, now);
@@ -223,6 +230,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </nav>
 
+        {offerNotifications && (
+          <NotificationOffer settings={settings} language={language} onSaveSettings={onSaveSettings} onClose={() => setOfferNotifications(false)} />
+        )}
+
         {/* "Plus": a bottom sheet with the other destinations */}
         {showMore && (
           <Overlay
@@ -268,8 +279,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   tasks={tasks}
                   profiles={profiles}
                   language={language}
-                  onAddTask={onAddTask}
-                  onUpdateTask={onUpdateTask}
+                  onAddTask={async (task) => {
+                    await onAddTask(task);
+                    afterTimedTask(task);
+                  }}
+                  onUpdateTask={async (task) => {
+                    await onUpdateTask(task);
+                    afterTimedTask(task);
+                  }}
                   onReorderTasks={onReorderTasks}
                   onDeleteTask={onDeleteTask}
                 />
