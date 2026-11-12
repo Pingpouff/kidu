@@ -18,6 +18,9 @@ import { translate } from './i18n/dictionary';
 import { RewardReveal } from './components/rewards/RewardReveal';
 import { MedalChoice } from './components/rewards/MedalChoice';
 import { dayContext } from './domain/calendar';
+import { useBackHandler } from './services/backStack';
+import { childTheme } from './ui/theme';
+import { onReminderAction } from './services/notifications';
 import { ReminderBanner } from './components/child-board/ReminderBanner';
 import { useTaskReminders } from './hooks/useTaskReminders';
 import { readLastSeenVersion, saveLastSeenVersion, useAppUpdate } from './services/appUpdate';
@@ -142,6 +145,42 @@ export default function App() {
     }
   }, [dbSeeded, activeProfileId, activeSession, todayStr]);
 
+  // Buttons of a reminder notification (app in the background): snooze now, PIN for "stop tonight"
+  const snoozeRef = useRef<(childId: string) => void>(() => {});
+  useEffect(
+    () =>
+      onReminderAction(({ action, childId }) => {
+        if (action === 'snooze') snoozeRef.current(childId);
+        else setMuteAsk({ childIds: [childId] });
+      }),
+    []
+  );
+
+  // App shortcuts (long press on the Android icon): ?open=calm / ?open=parent
+  const shortcutRef = useRef(new URLSearchParams(window.location.search).get('open'));
+
+  useEffect(() => {
+    const open = shortcutRef.current;
+    if (!open || !dbSeeded || !settings) return;
+    shortcutRef.current = null;
+    window.history.replaceState(window.history.state, '', window.location.pathname);
+    if (open === 'calm' && emotionSettings(settings).enabled) setCalm({});
+    else if (open === 'parent') setPinPrompt(true);
+  }, [dbSeeded, settings]);
+
+  // Android status bar follows the screen (the child's color on their board); page language for TalkBack
+  const statusBarColor = parentMode ? '#0f172a' : activeProfile ? childTheme(activeProfile.color).statusBar : '#1e1b4b';
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', statusBarColor);
+  }, [statusBarColor]);
+  useEffect(() => {
+    document.documentElement.lang = settings?.language ?? 'fr';
+  }, [settings?.language]);
+
+  // Android Back: Parent Mode → home, a child's board → home
+  useBackHandler(parentMode, () => setParentMode(false));
+  useBackHandler(!parentMode && activeProfileId !== null, () => setActiveProfileId(null));
+
   // Reminders for tasks past their due time (all children, on every screen)
   const reminders = useTaskReminders({
     settings,
@@ -151,6 +190,7 @@ export default function App() {
     language: settings?.language ?? 'fr',
     paused: parentMode || calm !== null || emotionsHub !== null, // no reminder in the emotions space
   });
+  snoozeRef.current = reminders.snooze;
   const lateCounts: Record<string, number> = {};
   for (const task of reminders.overdue) lateCounts[task.childId] = (lateCounts[task.childId] ?? 0) + 1;
   const activeLateIds = new Set(

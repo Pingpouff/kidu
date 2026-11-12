@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
-import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
+import { completeTask, enterParentMode, removeMorningTasks, openParentTab } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
@@ -67,7 +67,7 @@ test.describe('Phone layout', () => {
     await page.getByTestId('about').getByRole('button', { name: 'Fermer' }).click();
 
     await enterParentMode(page);
-    await page.getByRole('button', { name: 'Paramètres', exact: true }).click();
+    await openParentTab(page, 'Paramètres');
     await page.getByTestId('app-version').getByRole('button', { name: 'Historique des versions' }).click();
     await expectScrollableList('whats-new', 'whats-new-list');
   });
@@ -76,10 +76,20 @@ test.describe('Phone layout', () => {
     await page.goto('/');
     await enterParentMode(page);
     await expectNoHorizontalScroll(page);
-    for (const tab of ['Enfants', 'Boutique', 'Historique', 'Émotions', 'Paramètres', 'Routine & Tâches']) {
+    // Bottom bar: 4 destinations + "Plus" (Material: 5 at most); the others are in a bottom sheet
+    for (const tab of ['Enfants', 'Boutique', 'Historique', 'Routine & Tâches']) {
       const button = page.getByRole('button', { name: tab, exact: true });
       await expect(button).toBeInViewport({ ratio: 1 });
       await button.click();
+      await expectNoHorizontalScroll(page);
+    }
+    for (const tab of ['Émotions', 'Paramètres']) {
+      await page.getByTestId('parent-more').click();
+      const sheet = page.getByTestId('parent-more-sheet');
+      await sheet.getByRole('button', { name: tab }).click();
+      await expect(sheet).toHaveCount(0);
+      await expect(page.getByTestId('parent-more')).toHaveAttribute('aria-label', 'Plus');
+      await expect(page.getByTestId('parent-more')).toContainText(tab === 'Paramètres' ? 'Réglages' : tab);
       await expectNoHorizontalScroll(page);
     }
     await expect(page.getByRole('button', { name: 'Quitter le Mode Parent' })).toBeInViewport();

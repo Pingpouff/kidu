@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    /* Pinch zoom stays possible (accessibility); double-tap zoom is off, so quick taps stay taps */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Pressed state on every button (Material "state layer"): a short lighten while pressed */
+  button:not(:disabled):active,
+  [role='button']:active {
+    filter: brightness(1.18);
+  }
   body {
     @apply bg-slate-950 text-slate-50 font-sans antialiased overflow-hidden select-none;
     height: 100vh;
@@ -312,6 +322,22 @@
 }
 .animate-treasure-rise {
   animation: treasure-rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Touch target of at least 48 × 48 (Material / Android), even when the control looks smaller */
+@layer utilities {
+  .tap-target:not(.absolute):not(.fixed):not(.sticky) {
+    position: relative;
+  }
+  .tap-target::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 48px);
+    height: max(100%, 48px);
+    transform: translate(-50%, -50%);
+  }
 }
 
 /* Referee card (green / yellow / red) */

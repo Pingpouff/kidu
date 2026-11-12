@@ -296,7 +296,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
                     {current.spentOn.length > 0 && `🎁 ${translate('treasure.spent_for', language)} ${current.spentOn.join(', ')}`}
                   </p>
                 )}
-                <p className="text-xs font-bold text-white/30 mt-1">
+                <p className="text-xs font-bold text-white/60 mt-1">
                   {Math.min(index, items.length - 1) + 1} / {items.length}
                 </p>
               </div>
@@ -326,7 +326,7 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
                       {t.icon}
                     </span>
                     <span className="text-xs font-extrabold text-white leading-tight">{translate(`trophy.${t.id}.name`, language)}</span>
-                    <span className="text-[10px] font-bold text-white/50">{dateFormat.format(t.earnedAt)}</span>
+                    <span className="text-xs font-bold text-white/50">{dateFormat.format(t.earnedAt)}</span>
                   </button>
                 ) : (
                   <div
@@ -337,9 +337,9 @@ export const TreasureView: React.FC<TreasureViewProps> = ({ profile, language, o
                   >
                     <span className="relative w-14 h-14 rounded-full bg-white/5 flex items-center justify-center text-3xl" aria-hidden="true">
                       <span className="grayscale opacity-25">{t.icon}</span>
-                      <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-white/40">?</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-white/60">?</span>
                     </span>
-                    <span className="text-[11px] font-bold text-white/55 leading-tight">{translate(`trophy.${t.id}.hint`, language)}</span>
+                    <span className="text-xs font-bold text-white/55 leading-tight">{translate(`trophy.${t.id}.hint`, language)}</span>
                   </div>
                 )
               )}

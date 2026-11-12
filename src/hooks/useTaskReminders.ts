@@ -211,10 +211,17 @@ export function useTaskReminders({
           void showSystemNotification(`⏰ ${child?.avatar ?? ''} ${child?.name ?? ''}`.trim(), {
             body: text,
             tag: `kidu-${announcement.childId}`,
+            data: { childId: announcement.childId },
+            // Same choices as the in-app banner
+            actions: [
+              { action: 'snooze', title: translate('reminders.snooze', lang, { minutes: SNOOZE_MINUTES }) },
+              { action: 'mute', title: translate('reminders.mute_tonight', lang) },
+            ],
           });
         }
 
         reminderService.playReminderSound();
+        reminderService.haptic('alert');
         await new Promise((resolve) => setTimeout(resolve, 900));
         await reminderService.speakAndWait(text, lang);
         // Keep the banner readable even without voice

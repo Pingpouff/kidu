@@ -116,7 +116,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="text-white/40 hover:text-white transition-colors"
+          className="text-white/60 hover:text-white transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -124,21 +124,21 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({
 
       {/* Search Input */}
       <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
         <input
           type="text"
           autoFocus
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={translate('emoji.search', language)}
-          className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/20"
+          className="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white placeholder:text-white/40"
         />
       </div>
 
       {/* Emojis Grid */}
       <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto scrollbar-thin pr-1">
         {filteredEmojis.length === 0 ? (
-          <div className="col-span-5 text-center py-4 text-xs text-white/30">
+          <div className="col-span-5 text-center py-4 text-xs text-white/60">
             {translate('emoji.none', language)}
           </div>
         ) : (

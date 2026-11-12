@@ -123,7 +123,7 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
             type="button"
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white/80 transition-colors touch-none"
+            className="tap-target cursor-grab active:cursor-grabbing p-2.5 hover:bg-white/5 rounded-lg text-white/60 hover:text-white/80 transition-colors touch-none"
             aria-label={translate('parent.tasks.drag', language)}
           >
             <GripVertical className="w-5 h-5" />
@@ -196,7 +196,7 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
               <p className="font-bold text-white text-sm md:text-base line-clamp-2 break-words">
                 {taskLabel(task, language)}
               </p>
-              <span className="text-[10px] text-indigo-400/70 font-semibold tracking-wider uppercase">
+              <span className="text-xs text-indigo-400/70 font-semibold tracking-wider uppercase">
                 {task.startTime && <span className="mr-2 text-sky-300" data-testid="task-start-time">🚀 {task.startTime}</span>}
                 {task.dueTime && <span className="mr-2 text-amber-300">⏰ {task.dueTime}</span>}
                 {task.durationMinutes ? (
@@ -217,7 +217,7 @@ export const SortableTaskRow: React.FC<SortableTaskRowProps> = ({
                 const assignees = profiles.filter((p) => task.assignedTo?.includes(p.id));
                 return assignees.length > 0 ? (
                   <span
-                    className="ml-2 text-[11px] font-bold text-pink-200"
+                    className="ml-2 text-xs font-bold text-pink-200"
                     data-testid="task-assignees"
                     title={`${translate('parent.tasks.only_for', language)} ${assignees.map((p) => p.name).join(', ')}`}
                   >

@@ -16,6 +16,28 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.12.0',
+    date: '2026-11-12',
+    changes: {
+      fr: [
+        'Bouton Retour d’Android : il ferme la fenêtre ouverte, puis revient à l’accueil (depuis le plateau d’un enfant ou le Mode Parent), au lieu de quitter l’app.',
+        'Notifications système : boutons « Dans 10 min » et « Arrêter pour ce soir » directement sous la notification.',
+        'Appui long sur l’icône de l’app : accès direct au coin calme ou au Mode Parent.',
+        'Plus facile à toucher et à lire : boutons d’au moins 48 px, textes plus grands et plus contrastés, zoom possible avec deux doigts.',
+        'Mode Parent sur téléphone et tablette : barre de navigation en bas, les autres onglets sous « Plus ».',
+        'Petites vibrations quand une tâche est finie, une carte donnée ou un rappel annoncé (désactivables dans Réglages).',
+      ],
+      en: [
+        'Android Back button: it closes the open window, then goes back to the home screen (from a child’s board or Parent Mode), instead of leaving the app.',
+        'System notifications: "In 10 min" and "Stop for tonight" buttons right under the notification.',
+        'Long press on the app icon: straight to the calm corner or Parent Mode.',
+        'Easier to tap and read: buttons of at least 48 px, bigger and higher-contrast text, two-finger zoom allowed.',
+        'Parent Mode on phones and tablets: navigation bar at the bottom, the other tabs under "More".',
+        'Short vibrations when a task is done, a card is given or a reminder is announced (can be turned off in Settings).',
+      ],
+    },
+  },
+  {
     version: '1.11.0',
     date: '2026-11-12',
     changes: {

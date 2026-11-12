@@ -194,7 +194,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               type="checkbox"
               checked={reminders.enabled}
               onChange={(e) => setReminderField('enabled', e.target.checked)}
-              className="w-4 h-4 accent-indigo-500"
+              className="w-5 h-5 accent-indigo-500"
             />
             {translate('parent.reminders.enabled', language)}
           </label>
@@ -249,7 +249,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 type="checkbox"
                 checked={reminders.systemNotifications}
                 onChange={(e) => handleSystemNotifications(e.target.checked)}
-                className="w-4 h-4 accent-indigo-500"
+                className="w-5 h-5 accent-indigo-500"
               />
               {translate('parent.reminders.system', language)}
             </label>
@@ -287,7 +287,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {notifStatus === 'unsupported' && (
               <p className="text-xs text-amber-300 leading-relaxed">{translate('parent.reminders.unsupported_help', language)}</p>
             )}
-            <p className="text-[11px] text-white/40 leading-relaxed">
+            <p className="text-xs text-white/60 leading-relaxed">
               {translate('parent.reminders.limits', language)}
             </p>
           </div>
@@ -304,7 +304,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               type="checkbox"
               checked={emotions.enabled}
               onChange={(e) => setEmotions((em) => ({ ...em, enabled: e.target.checked }))}
-              className="w-4 h-4 accent-indigo-500"
+              className="w-5 h-5 accent-indigo-500"
             />
             {translate('parent.emotions.enabled', language)}
           </label>
@@ -314,7 +314,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               checked={emotions.eveningCheckIn}
               disabled={!emotions.enabled}
               onChange={(e) => setEmotions((em) => ({ ...em, eveningCheckIn: e.target.checked }))}
-              className="w-4 h-4 accent-indigo-500"
+              className="w-5 h-5 accent-indigo-500"
               data-testid="settings-evening-checkin"
             />
             {translate('parent.emotions.evening', language)}
@@ -345,13 +345,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             ['sounds', 'parent.feedback.sounds'],
             ['voice', 'parent.feedback.voice'],
             ['songs', 'parent.feedback.songs'],
+            ['haptics', 'parent.feedback.haptics'],
           ] as const).map(([key, labelKey]) => (
-            <label key={key} className="flex items-center gap-3 text-sm text-white/85 cursor-pointer w-fit">
+            <label key={key} className="flex items-center gap-3 min-h-[44px] text-sm text-white/85 cursor-pointer w-fit">
               <input
                 type="checkbox"
-                checked={feedback[key]}
+                checked={feedback[key] !== false}
                 onChange={(e) => setFeedbackField(key, e.target.checked)}
-                className="w-4 h-4 accent-indigo-500"
+                className="w-5 h-5 accent-indigo-500"
               />
               {translate(labelKey, language)}
             </label>

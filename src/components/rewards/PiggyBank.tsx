@@ -146,7 +146,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
                       </p>
                     </div>
                     {missing > 0 ? (
-                      <span className="text-xs font-bold text-white/40 text-right">
+                      <span className="text-xs font-bold text-white/60 text-right">
                         {translate('piggy.missing', language)} {missing}
                       </span>
                     ) : (
@@ -178,7 +178,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
                   <div key={owned.uid} className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
                     <MedalDisc badgeId={owned.badgeId} />
                     <span className="text-sm font-extrabold text-white leading-tight">{badge.name[language]}</span>
-                    <span className="text-[11px] text-white/45 leading-snug">
+                    <span className="text-xs text-white/45 leading-snug">
                       {owned.spentAt
                         ? `${translate('piggy.spent_on', language)}${sep}${owned.spentOn ?? ''}`
                         : dateFormat.format(owned.earnedAt)}
@@ -216,7 +216,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
                   <span className={`text-sm font-extrabold ${isEarned ? 'text-yellow-200' : 'text-white/50'}`}>
                     {translate(`trophy.${id}.name`, language)}
                   </span>
-                  <span className="text-[11px] leading-snug text-white/50">
+                  <span className="text-xs leading-snug text-white/50">
                     {isEarned
                       ? `✓ ${dateFormat.format(earnedAt)}`
                       : `${translate('trophies.locked', language)}${sep}${translate(`trophy.${id}.hint`, language)}`}

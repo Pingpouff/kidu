@@ -205,6 +205,7 @@ export interface FeedbackSettings {
   sounds: boolean; // Short chimes and jingles
   voice: boolean; // Spoken encouragements and announcements
   songs: boolean; // Longer songs (bedtime song)
+  haptics?: boolean; // Short vibrations (Android), missing = on
   volume: number; // 0 .. 1
   animations: 'full' | 'reduced'; // reduced: no confetti, particles or spinning rays
   /** Visual effects: 'lite' drops blur and looping animations (weak devices); 'auto' detects it. Missing = 'auto' */
@@ -250,6 +251,7 @@ export const DEFAULT_FEEDBACK: FeedbackSettings = {
   sounds: true,
   voice: true,
   songs: true,
+  haptics: true,
   volume: 0.7,
   animations: 'full',
   visuals: 'auto',

@@ -84,6 +84,20 @@ class ReminderService {
     return this.settings;
   }
 
+  /**
+   * Short vibration (Android; ignored where unsupported, e.g. iPhone):
+   * `tap` a light tick, `success` a task done / a green card, `alert` a reminder or a card.
+   */
+  public haptic(kind: 'tap' | 'success' | 'alert') {
+    if (this.settings.haptics === false || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    const pattern = { tap: 10, success: [20, 40, 30], alert: [60, 80, 60] }[kind];
+    try {
+      navigator.vibrate(pattern);
+    } catch {
+      /* not allowed before a user gesture: ignore */
+    }
+  }
+
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (!this.ctx) {

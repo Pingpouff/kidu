@@ -35,6 +35,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason
     const lang = language === 'fr' ? 'fr-FR' : 'en-US';
     if (outcome === 'green') {
       reminderService.playStarSound();
+      reminderService.haptic('success');
       const spoken = reason
         ? translate('cards.spoken_green_reason', language, { name: profile.name, reason })
         : translate('cards.spoken_green', language, { name: profile.name });
@@ -50,6 +51,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason
     }
     const key = outcome === 'yellow' ? 'cards.spoken_yellow' : outcome === 'red' ? 'cards.spoken_red' : 'cards.spoken_second';
     reminderService.playWhistleSound(outcome === 'yellow' ? 1 : 2);
+    reminderService.haptic('alert');
     reminderService.triggerVoiceReminder(translate(key, language).replace('{name}', profile.name), lang);
     if (outcome !== 'second_yellow') return;
     const timer = setTimeout(() => setShowRed(true), richMotion() ? 1300 : 0);
@@ -100,7 +102,7 @@ export const CardReveal: React.FC<CardRevealProps> = ({ profile, outcome, reason
           ? `${translate('cards.lost_progress', language)}${lostProgress > 0 ? ` (−${lostProgress} ⭐)` : ''}. ${translate('cards.kept', language)}`
           : translate('cards.warning', language)}
       </p>
-      <p className="mt-2 text-white/40 text-sm font-bold uppercase tracking-wide">{translate('rewards.tap_continue', language)}</p>
+      <p className="mt-2 text-white/60 text-sm font-bold uppercase tracking-wide">{translate('rewards.tap_continue', language)}</p>
     </Overlay>
   );
 };
