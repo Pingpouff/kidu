@@ -16,6 +16,20 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.12.1',
+    date: '2026-11-12',
+    changes: {
+      fr: [
+        'Quand vous enregistrez une première tâche avec une heure ou une durée, l’app propose d’activer les notifications système (une seule fois), au lieu d’avoir à les chercher dans les réglages.',
+        'Mes émotions : la lune derrière les chouettes de la grille est de nouveau claire, et non plus gris sombre.',
+      ],
+      en: [
+        'When you save a first task with a time or a duration, the app offers to turn on system notifications (once), instead of having to find them in the settings.',
+        'My feelings: the moon behind the owls of the grid is light again, no longer dark grey.',
+      ],
+    },
+  },
+  {
     version: '1.12.0',
     date: '2026-11-12',
     changes: {

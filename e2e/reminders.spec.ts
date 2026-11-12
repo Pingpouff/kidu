@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
-import { completeTask, enterParentMode, removeMorningTasks } from './helpers';
+import { completeTask, enterParentMode, openParentTab, removeMorningTasks } from './helpers';
 
 // "00:00" is always in the past during the day: the tasks are immediately late
 const setDueTime = async (page: Page, taskLabel: string, time: string) => {
@@ -190,3 +190,39 @@ test.describe('Reminder banner, like an Android notification', () => {
   });
 });
 
+
+test.describe('Asking for notifications when they become useful', () => {
+  test.use({ notificationOffer: true });
+
+  test('the first timed task offers system notifications, once', async ({ page }) => {
+    // Headless Chromium always reports "denied": stand in for a browser that hasn't asked yet
+    await page.addInitScript(() => {
+      let permission: NotificationPermission = 'default';
+      class FakeNotification {
+        static get permission() { return permission; }
+        static async requestPermission() { permission = 'granted'; return permission; }
+      }
+      Object.defineProperty(window, 'Notification', { value: FakeNotification, configurable: true });
+    });
+    await page.goto('/');
+    await removeMorningTasks(page);
+    await enterParentMode(page);
+    const row = page.locator('[data-testid^="task-group-"] > div > div').filter({ hasText: 'Vider son cartable' }).first();
+    await row.getByRole('button', { name: 'edit task' }).click();
+    await page.getByLabel('Heure de fin').last().fill('18:00');
+    await page.getByRole('button', { name: 'save task' }).click();
+
+    const offer = page.getByTestId('notification-offer');
+    await expect(offer).toBeVisible();
+    await offer.getByTestId('notification-offer-enable').click();
+    await expect(offer.getByTestId('notification-offer-done')).toBeVisible();
+    await offer.getByRole('button', { name: 'Fermer' }).last().click();
+    await expect(offer).toHaveCount(0);
+
+    // Now on in the settings; another timed task doesn't ask again
+    await setDueTime(page, 'Prendre son goûter', '18:30');
+    await expect(offer).toHaveCount(0);
+    await openParentTab(page, 'Paramètres');
+    await expect(page.getByLabel(/Notifications système/)).toBeChecked();
+  });
+});
