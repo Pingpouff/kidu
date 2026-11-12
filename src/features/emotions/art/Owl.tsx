@@ -177,7 +177,7 @@ export const Owl: React.FC<OwlProps> = ({ family, color, moon = 'full', classNam
     {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
     data-family={family}
   >
-    {moon !== 'none' && <circle cx="100" cy="122" r="98" fill={MOON} opacity={moon === 'full' ? 0.92 : 0.3} />}
+    {moon !== 'none' && <circle cx="100" cy="122" r="98" fill={MOON} opacity={moon === 'full' ? 0.92 : 0.85} />}
     {expression(family, color)}
   </svg>
 );
