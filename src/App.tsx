@@ -8,6 +8,7 @@ import { RoutineBoard } from './components/child-board/RoutineBoard';
 import { PinModal } from './components/parent-mode/PinModal';
 import { reminderService } from './services/ReminderService';
 import { isLowEndDevice, resolveVisuals } from './services/performance';
+import { applyDisplayStyle, BASE_STATUS_BAR, resolveStyle } from './services/displayStyle';
 import { emotionSettings } from './features/emotions/domain/settings';
 import { dismissEveningInvite, eveningInviteDismissed } from './features/emotions/eveningInvite';
 import { getRoutinePhases } from './domain/routine';
@@ -107,6 +108,12 @@ export default function App() {
     // Lite display on weak devices: no blur, no looping animations
     document.documentElement.classList.toggle('lite', resolveVisuals(feedback?.visuals, isLowEndDevice()) === 'lite');
   }, [feedback]);
+  // Display style (glass / paper), only once settings are loaded so the remembered one isn't undone
+  const displayStyle = resolveStyle(feedback?.style);
+  const settingsLoaded = settings !== undefined;
+  useEffect(() => {
+    if (settingsLoaded) applyDisplayStyle(displayStyle);
+  }, [settingsLoaded, displayStyle]);
 
   // Get current date string (YYYY-MM-DD local timezone)
   const getTodayStr = () => {
@@ -169,7 +176,11 @@ export default function App() {
   }, [dbSeeded, settings]);
 
   // Android status bar follows the screen (the child's color on their board); page language for TalkBack
-  const statusBarColor = parentMode ? '#0f172a' : activeProfile ? childTheme(activeProfile.color).statusBar : '#1e1b4b';
+  const statusBarColor = parentMode
+    ? BASE_STATUS_BAR[displayStyle].parent
+    : activeProfile
+      ? childTheme(activeProfile.color)[displayStyle === 'paper' ? 'paperStatusBar' : 'statusBar']
+      : BASE_STATUS_BAR[displayStyle].home;
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', statusBarColor);
   }, [statusBarColor]);

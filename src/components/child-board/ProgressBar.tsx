@@ -57,7 +57,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         }}
         className="absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-none"
       >
-        <div className="w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-3xl border-2 border-white animate-float ring-4 ring-black/10 select-none">
+        <div className="w-12 h-12 rounded-full bg-snow shadow-xl flex items-center justify-center text-3xl border-2 border-snow animate-float ring-4 ring-black/10 select-none">
           {avatar}
         </div>
       </div>
