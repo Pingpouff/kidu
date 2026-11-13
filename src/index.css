@@ -376,6 +376,24 @@ html.paper {
 
 /* Touch target of at least 48 × 48 (Material / Android), even when the control looks smaller */
 @layer utilities {
+  /*
+   * Screen heights: dvh follows the mobile browser bars, but Chrome < 108
+   * (old tablets that can't update) doesn't know it. Without the vh line the
+   * full-screen views had no height there, and nothing could scroll.
+   * Use these instead of h-[100dvh] / max-h-[90dvh].
+   */
+  .screen-h {
+    height: 100vh;
+    height: 100dvh;
+  }
+  .screen-max-h-90 {
+    max-height: 90vh;
+    max-height: 90dvh;
+  }
+  .screen-max-h-94 {
+    max-height: 94vh;
+    max-height: 94dvh;
+  }
   .tap-target:not(.absolute):not(.fixed):not(.sticky) {
     position: relative;
   }

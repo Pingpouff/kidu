@@ -25,7 +25,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ entries, language,
       closeLabel={translate('btn.close', language)}
       onClose={onClose}
       testId="whats-new"
-      panelClassName="max-w-lg p-6 sm:p-8 flex flex-col gap-5 max-h-[90dvh]"
+      panelClassName="max-w-lg p-6 sm:p-8 flex flex-col gap-5 screen-max-h-90"
     >
       <h2 className="flex items-center gap-2 text-2xl font-extrabold text-white pr-8 shrink-0">
         <Sparkles className="w-6 h-6 text-amber-300 shrink-0" />

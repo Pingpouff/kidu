@@ -44,7 +44,7 @@ const EmotionsHub: React.FC<EmotionsHubProps> = ({ language, profile, settings, 
       layer="dialog"
       aria-label={translate('emo.hub.title', language)}
       onClose={close}
-      className="emo-twilight flex flex-col h-[100dvh] overflow-y-auto overflow-x-hidden select-none"
+      className="emo-twilight flex flex-col screen-h overflow-y-auto overflow-x-hidden select-none"
       data-testid="emotions-hub"
       data-screen={screen}
     >
