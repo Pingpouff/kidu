@@ -375,7 +375,7 @@ export default function App() {
   if (parentMode) {
     return (
       <>
-      <Suspense fallback={<div className="w-full h-[100dvh] bg-slate-950" />}>
+      <Suspense fallback={<div className="w-full screen-h bg-slate-950" />}>
       <ParentDashboard
         profiles={profiles}
         tasks={tasks}

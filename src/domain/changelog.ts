@@ -16,6 +16,18 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.13.1',
+    date: '2026-11-13',
+    changes: {
+      fr: [
+        'Les écrans défilent de nouveau sur les tablettes anciennes (navigateur qui ne se met plus à jour) : les listes longues, les paramètres et le Mode Parent restaient bloqués.',
+      ],
+      en: [
+        'Screens scroll again on older tablets (browsers that no longer update): long lists, settings and Parent Mode were stuck.',
+      ],
+    },
+  },
+  {
     version: '1.13.0',
     date: '2026-11-13',
     changes: {
