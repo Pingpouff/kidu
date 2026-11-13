@@ -131,7 +131,7 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
 
 // Status-based card styles
 const STATUS_STYLES = {
-  todo: 'bg-white/10 border-white/20 hover:border-yellow-400/50 text-white shadow-md active:bg-white/15',
+  todo: 'bg-white/10 border-white/20 hover:border-yellow-400/50 text-white shadow-md active:bg-white/15 paper:bg-snow/85 paper:active:bg-snow',
   doing: 'bg-amber-500/20 border-amber-400/30 hover:border-amber-400 text-amber-100 shadow-lg shadow-amber-950/20 active:bg-amber-500/30 animate-pulse-slow',
   done: 'bg-emerald-500/10 border-emerald-400/20 text-emerald-100/70 shadow-sm border-dashed opacity-75 active:bg-emerald-500/20 scale-[0.90] hover:scale-[0.95] hover:opacity-100',
 };

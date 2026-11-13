@@ -98,7 +98,7 @@ export const Celebration: React.FC<CelebrationProps> = ({
         <ChildAvatar avatar={profile.avatar} size="lg" tone="gold" className="animate-pulse-slow" />
 
         {/* Large congratulations heading */}
-        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-yellow-300 drop-shadow animate-bounce">
+        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-yellow-300 paper:from-amber-500 paper:via-pink-600 paper:to-amber-500 drop-shadow animate-bounce">
           {translate('reward.congratulations', language)}
         </h1>
 

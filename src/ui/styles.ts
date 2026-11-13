@@ -7,7 +7,7 @@ import { cx } from './cx';
 export type FieldSize = 'lg' | 'md' | 'sm';
 
 const FIELD_BASE =
-  'bg-slate-900 border text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500 [color-scheme:dark] disabled:opacity-40';
+  'bg-slate-900 border text-white placeholder:text-white/40 focus:outline-none focus:border-indigo-500 [color-scheme:dark] paper:[color-scheme:light] disabled:opacity-40';
 
 const FIELD_SIZES: Record<FieldSize, string> = {
   lg: 'min-h-[48px] px-4 py-3 rounded-xl', // main creation forms

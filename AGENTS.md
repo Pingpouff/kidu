@@ -40,6 +40,7 @@ This documentation helps developers and agentic AI systems understand the codeba
     │   ├── effects.ts      # Confetti / rich-motion helpers (respects reduced animations)
     │   ├── ReminderQueue.ts # Serial queue of reminder announcements
     │   ├── storage.ts      # Persistent storage request / status
+    │   ├── displayStyle.ts # Glass / paper style: <html> class, remembered for the next start
     │   ├── install.ts      # Install invitation: beforeinstallprompt, iOS detection, dismissal
     │   ├── swUpdate.ts     # Applying a service worker update (reload logic)
     │   └── appUpdate.ts    # Service worker registration, update prompt, last seen version
@@ -253,6 +254,16 @@ A separate module in `src/features/emotions/` (domain, persistence, art, compone
 `settings.feedback` (`FeedbackSettings`, default `DEFAULT_FEEDBACK`): `sounds`, `voice`, `songs`, `volume` (0–1) and `animations` (`full` | `reduced`). `App.tsx` passes it to `reminderService.configure()` and toggles the `reduce-motion` class on `<html>`; CSS and `services/effects.ts` (`richMotion`, `fireConfetti`) then skip confetti, particles, rays and looping animations. The OS "reduce motion" preference is honoured too.
 
 **Lite display** (`feedback.visuals`: `auto` | `rich` | `lite`, missing = `auto`): `services/performance.ts` — `isLowEndDevice()` (`navigator.deviceMemory` ≤ 2 GB, fallback ≤ 2 cores) and `resolveVisuals()`. `App.tsx` toggles the `lite` class on `<html>`; the `.lite` block at the end of `index.css` removes every `backdrop-filter`, stops looping animations (`animate-pulse`, `animate-bounce`, `bedtime-sky`…), clears drop shadows (`--tw-drop-shadow`, other filters kept) and gives dialogs a solid background; `fireConfetti` throws a third of the particles. Built for old tablets (Galaxy Tab A 9.7, Adreno 306), where blur and endless animations kept the GPU repainting. New looping decorations must be added to the `.lite` (and `.reduce-motion`) lists. The Outfit font is self-hosted (`@fontsource/outfit`, imported in `main.tsx`, `woff2` precached by the service worker).
+
+
+**Display style — paper** (1.13.0, `feedback.style`: `glass` | `paper`, missing = `glass`; Settings → Style, kept in backups). `App.tsx` calls `applyDisplayStyle` (`services/displayStyle.ts`), which toggles the `paper` class on `<html>` and remembers it in `localStorage['kidu.style']`; `main.tsx` restores it before the first frame. It works with color tokens, not per-component copies:
+
+- `tailwind.config.js` makes `white`, `black` and `slate` read CSS variables (`--k-fg`, `--k-shade`, `--k-slate-*`; background tints have their own `--k-surface` / `--k-recess`), plus `textColor` 50–400 and `backgroundColor` 800–950 of every colored family (`--k-t-*`, `--k-b-*`). Glass values are Tailwind's own (no visual change); `html.paper` swaps them: `text-white/60` becomes ink, `bg-white/10` a sepia tint, `bg-black/20` a lighter sheet, `text-indigo-300` indigo-700, `bg-indigo-950/40` a light wash. Solid fills (500–700), gradients and borders keep their colors.
+- Solid colored fills (`SOLID_FILLS` in the config: `bg-indigo-600`, `bg-rose-500`…) reset the text tokens, so white text on a colored button stays white. Add a fill there if a new one carries `text-white`.
+- **Night areas** keep the dark look inside paper: `.treasure-bg`, `.emo-twilight` (the emotions space keeps its approved art direction) and any element with `k-night` (`RewardReveal`). Listed in `NIGHT_AREAS` (config) and at the top of `index.css`.
+- `paper:` variant (`paper:bg-snow/85`) for the few places tokens can't express: `CHILD_THEMES` (`paper:` washes, `paperStatusBar`), task cards, the home greeting / emotions buttons, the celebration title. `snow` is a white that never changes.
+- The `.paper` block at the end of `index.css` adds the grain (static SVG), cut-sheet `glass-panel` / `glass-card` (no blur), watercolor `.theme-*` boards and a dusk `bedtime-sky`. Nothing there animates, so lite display is unaffected.
+- e2e: `e2e/paper.spec.ts`.
 
 ---
 

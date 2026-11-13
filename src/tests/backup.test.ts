@@ -72,6 +72,19 @@ describe('Configuration backup', () => {
     expect(errorCode(() => parseBackup(JSON.stringify(invalid)))).toBe('invalid_settings');
   });
 
+  it('keeps the display style (glass / paper) and rejects unknown values', () => {
+    const feedback = { sounds: true, voice: false, songs: true, volume: 0.5, animations: 'full' as const };
+    const paper = createBackup({ settings: { ...settings, feedback: { ...feedback, style: 'paper' } }, tasks, profiles });
+    expect(parseBackup(JSON.stringify(paper)).data.settings.feedback?.style).toBe('paper');
+
+    // Backups made before the setting existed stay valid
+    const older = createBackup({ settings: { ...settings, feedback }, tasks, profiles });
+    expect(parseBackup(JSON.stringify(older)).data.settings.feedback).not.toHaveProperty('style');
+
+    const invalid = createBackup({ settings: { ...settings, feedback: { ...feedback, style: 'kraft' as 'paper' } }, tasks, profiles });
+    expect(errorCode(() => parseBackup(JSON.stringify(invalid)))).toBe('invalid_settings');
+  });
+
   it('keeps "Mes émotions": settings, the child toolbox and the emotion logs (version 2)', () => {
     const withEmotions = createBackup({
       settings: { ...settings, emotions: { enabled: true, adultName: 'Maman', eveningCheckIn: false, customStrategies: [{ id: 'cat', icon: '🐈', label: 'Voir le chat' }] } },

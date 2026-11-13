@@ -8,6 +8,7 @@ import {
   ReminderSettings,
   TIMER_WARNING_CHOICES,
   VisualsSetting,
+  DisplayStyle,
   EmotionSettings,
 } from '../../domain/models';
 import { emotionSettings } from '../../features/emotions/domain/settings';
@@ -379,6 +380,18 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             >
               <option value="full">{translate('parent.feedback.animations_full', language)}</option>
               <option value="reduced">{translate('parent.feedback.animations_reduced', language)}</option>
+            </select>
+          </label>
+          <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">
+            <span>{translate('parent.feedback.style', language)}</span>
+            <select
+              value={feedback.style ?? 'glass'}
+              onChange={(e) => setFeedbackField('style', e.target.value as DisplayStyle)}
+              className={fieldClass('md', 'px-3')}
+              data-testid="settings-style"
+            >
+              <option value="glass">{translate('parent.feedback.style_glass', language)}</option>
+              <option value="paper">{translate('parent.feedback.style_paper', language)}</option>
             </select>
           </label>
           <label className="flex flex-wrap items-center gap-3 text-sm text-white/85">

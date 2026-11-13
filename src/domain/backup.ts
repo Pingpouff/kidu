@@ -15,6 +15,8 @@ import {
   ShopItem,
   FeedbackSettings,
   VISUALS_SETTINGS,
+  DISPLAY_STYLES,
+  DisplayStyle,
   VisualsSetting,
   EmotionLog,
   EmotionSettings,
@@ -131,7 +133,8 @@ function parseSettings(raw: unknown): ParentSettings {
       typeof feedback.songs !== 'boolean' ||
       !isNumber(feedback.volume) || feedback.volume < 0 || feedback.volume > 1 ||
       (feedback.animations !== 'full' && feedback.animations !== 'reduced') ||
-      (feedback.visuals !== undefined && !VISUALS_SETTINGS.includes(feedback.visuals as VisualsSetting)))
+      (feedback.visuals !== undefined && !VISUALS_SETTINGS.includes(feedback.visuals as VisualsSetting)) ||
+      (feedback.style !== undefined && !DISPLAY_STYLES.includes(feedback.style as DisplayStyle)))
   ) {
     throw new BackupError('invalid_settings');
   }
@@ -189,6 +192,7 @@ function parseSettings(raw: unknown): ParentSettings {
             volume: feedback.volume as number,
             animations: feedback.animations as FeedbackSettings['animations'],
             ...(feedback.visuals !== undefined ? { visuals: feedback.visuals as VisualsSetting } : {}),
+            ...(feedback.style !== undefined ? { style: feedback.style as DisplayStyle } : {}),
             ...(typeof feedback.haptics === 'boolean' ? { haptics: feedback.haptics } : {}),
           },
         }
