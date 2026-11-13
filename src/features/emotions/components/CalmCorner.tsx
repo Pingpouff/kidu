@@ -172,7 +172,7 @@ const CalmCorner: React.FC<CalmCornerProps> = ({ language, profile, settings, on
       layer="dialog"
       aria-label={translate('emo.calm.title', language)}
       onClose={finish}
-      className="emo-twilight flex flex-col h-[100dvh] overflow-y-auto overflow-x-hidden select-none"
+      className="emo-twilight flex flex-col screen-h overflow-y-auto overflow-x-hidden select-none"
       data-testid="calm-corner"
       data-stage={stage}
     >

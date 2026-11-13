@@ -115,7 +115,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const moreActive = overflow && navigationItems.findIndex((i) => i.id === activeTab) >= BAR_MAX - 1;
 
   return (
-    <div className="w-full h-[100dvh] bg-slate-950 flex flex-col overflow-hidden text-slate-100 select-none relative">
+    <div className="w-full screen-h bg-slate-950 flex flex-col overflow-hidden text-slate-100 select-none relative">
       {/* Visual glowing decorations */}
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-purple-500/10 blur-[120px] pointer-events-none" />

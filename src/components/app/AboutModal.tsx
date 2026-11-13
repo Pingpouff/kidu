@@ -25,7 +25,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ language, install, appUp
       closeLabel={translate('btn.close', language)}
       onClose={onClose}
       testId="about"
-      panelClassName="max-w-lg p-6 sm:p-8 flex flex-col gap-5 max-h-[90dvh]"
+      panelClassName="max-w-lg p-6 sm:p-8 flex flex-col gap-5 screen-max-h-90"
     >
       <div className="flex items-center gap-4 pr-8">
         <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" className="w-14 h-14 rounded-2xl shadow-lg" />

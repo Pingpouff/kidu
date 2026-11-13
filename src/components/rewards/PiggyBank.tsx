@@ -77,7 +77,7 @@ export const PiggyBank: React.FC<PiggyBankProps> = ({
         onClose={onClose}
         closeLabel={translate('btn.close', language)}
         closeSize="lg"
-        panelClassName="max-w-3xl max-h-[94dvh] overflow-y-auto p-4 sm:p-5 md:p-8 flex flex-col gap-5"
+        panelClassName="max-w-3xl screen-max-h-94 overflow-y-auto p-4 sm:p-5 md:p-8 flex flex-col gap-5"
       >
 
         <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 pr-10">

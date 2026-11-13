@@ -323,7 +323,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={`w-full h-[100dvh] flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
+      <div className={`w-full screen-h flex flex-col justify-between ${bgTheme} overflow-hidden relative select-none`}>
         {/* Night sky overlay during the bedtime phase */}
         <div
           aria-hidden="true"

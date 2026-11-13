@@ -284,7 +284,7 @@ Styles live in Tailwind classes, shared through `src/ui/` instead of being copie
 
 ## Responsive Layout
 
-Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-screen views use `100dvh` so mobile browser bars don't hide content.
+Breakpoints are Tailwind's (`sm` 640, `md` 768, `lg` 1024, `xl` 1280). Full-screen views use `.screen-h` (and modals `.screen-max-h-90` / `-94`, in `index.css`): `100vh` then `100dvh`, so mobile browser bars don't hide content. Never write `h-[100dvh]`: Chrome < 108 (the old test tablet can't update past it) ignores it, the view gets no height and nothing scrolls (1.13.1). `src/tests/screenHeight.test.ts` fails on any bare `dvh` class.
 
 - **Child board**: below `sm`, the three columns stack in one vertical scroll with "doing" first (`order-first`), to-do cards in a 2-column grid and done tasks as small tiles; from `sm`, three side-by-side columns (one card per row), and from `lg` two cards per row inside each column. Emoji sizes are set per breakpoint in `TaskCard`; labels wrap on two lines. `e2e/mobile.spec.ts` checks there is no horizontal scroll at phone width.
 - **Parent Mode**: below `lg`, a 5-tab bar (icons + short labels, full names as `aria-label`); from `lg`, the sidebar. The "new task" form is folded behind a button; deleting a task takes a second tap.
