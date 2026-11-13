@@ -51,7 +51,7 @@ export const RewardReveal: React.FC<RewardRevealProps> = ({
       onClose={onDismiss}
       aria-label={heading}
       data-testid="reward-reveal"
-      className="flex flex-col items-center justify-center gap-6 bg-slate-950/85 backdrop-blur-sm cursor-pointer select-none p-6"
+      className="k-night flex flex-col items-center justify-center gap-6 bg-slate-950/85 backdrop-blur-sm cursor-pointer select-none p-6"
     >
       <p className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-amber-300">
         {heading}

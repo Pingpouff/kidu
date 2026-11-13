@@ -210,10 +210,15 @@ export interface FeedbackSettings {
   animations: 'full' | 'reduced'; // reduced: no confetti, particles or spinning rays
   /** Visual effects: 'lite' drops blur and looping animations (weak devices); 'auto' detects it. Missing = 'auto' */
   visuals?: VisualsSetting;
+  /** Look of the whole app: 'glass' (dark, default) or 'paper' (ink on cream paper). Missing = 'glass' */
+  style?: DisplayStyle;
 }
 
 export type VisualsSetting = 'auto' | 'rich' | 'lite';
 export const VISUALS_SETTINGS: VisualsSetting[] = ['auto', 'rich', 'lite'];
+
+export type DisplayStyle = 'glass' | 'paper';
+export const DISPLAY_STYLES: DisplayStyle[] = ['glass', 'paper'];
 
 /**
  * Reminders for tasks that are not done by their due time.
@@ -255,6 +260,7 @@ export const DEFAULT_FEEDBACK: FeedbackSettings = {
   volume: 0.7,
   animations: 'full',
   visuals: 'auto',
+  style: 'glass',
 };
 
 export interface ParentSettings {

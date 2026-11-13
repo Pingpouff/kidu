@@ -32,7 +32,7 @@ export const StarMeter = React.forwardRef<HTMLDivElement, StarMeterProps>(functi
         />
       )}
       {Array.from({ length: starsPerMedal }, (_, i) => (
-        <span key={i} aria-hidden="true" className={`transition-all duration-300 ${i < starProgress ? '' : 'grayscale opacity-30'}`}>
+        <span key={i} aria-hidden="true" className={`transition-all duration-300 ${i < starProgress ? '' : 'grayscale opacity-30 paper:opacity-50'}`}>
           ⭐
         </span>
       ))}

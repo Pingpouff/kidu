@@ -16,6 +16,18 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.13.0',
+    date: '2026-11-13',
+    changes: {
+      fr: [
+        'Nouveau style « Papier » : un écran clair couleur cahier, des cartes comme des feuilles posées et les couleurs des enfants en aquarelle. À choisir dans Paramètres → Style ; le style sombre reste celui par défaut.',
+      ],
+      en: [
+        'New “Paper” style: a light, notebook-colored screen, cards like sheets of paper and the children’s colors as watercolor. Choose it in Settings → Style; the dark style stays the default.',
+      ],
+    },
+  },
+  {
     version: '1.12.1',
     date: '2026-11-12',
     changes: {

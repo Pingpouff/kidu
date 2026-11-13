@@ -109,7 +109,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
             <button
               onClick={onOpenCalm}
               data-testid="calm-button"
-              className="flex items-center gap-2 h-[66px] pl-3 pr-5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 text-[#F4F1FF] border border-[#E8E4FF]/25 rounded-full font-bold text-base sm:text-lg transition-colors"
+              className="flex items-center gap-2 h-[66px] pl-3 pr-5 bg-[#E8E4FF]/10 hover:bg-[#E8E4FF]/20 text-[#F4F1FF] border border-[#E8E4FF]/25 paper:bg-[#E8E4FF] paper:hover:bg-[#DCD6FA] paper:text-[#3B3170] paper:border-[#6E5BA8]/30 rounded-full font-bold text-base sm:text-lg transition-colors"
             >
               <CloudGlyph className="w-11 h-9" />
               <span className="hidden sm:inline">{translate('emo.calm.button', language)}</span>
@@ -139,7 +139,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
       {banner}
 
       <div className="flex-1 flex flex-col items-center w-full max-w-5xl mx-auto z-10 gap-8">
-        <h1 className="text-3xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-indigo-300 drop-shadow">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-indigo-300 paper:from-amber-600 paper:via-pink-600 paper:to-indigo-600 drop-shadow">
           {translate(greetingKey(new Date(now).getHours()), language)}
         </h1>
 
@@ -161,7 +161,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                   <button
                     onClick={() => onOpenEmotions(profile.id)}
                     data-testid={`emotions-button-${profile.id}`}
-                    className="flex items-center justify-center gap-2 h-14 rounded-full bg-[#6E5BA8]/25 hover:bg-[#6E5BA8]/40 border border-[#E9E4FA]/25 text-[#F4F1FF] font-bold text-base transition-colors"
+                    className="flex items-center justify-center gap-2 h-14 rounded-full bg-[#6E5BA8]/25 hover:bg-[#6E5BA8]/40 border border-[#E9E4FA]/25 text-[#F4F1FF] paper:bg-[#E8E4FF] paper:hover:bg-[#DCD6FA] paper:text-[#3B3170] paper:border-[#6E5BA8]/30 font-bold text-base transition-colors"
                   >
                     <OwlGlyph className="w-9 h-10" />
                     {translate('emo.hub.button', language)}
