@@ -16,6 +16,26 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.14.0',
+    date: '2026-11-16',
+    changes: {
+      fr: [
+        'Écran « Qui se prépare ? » plus simple : chaque carte montre seulement la tâche en cours (ou la suivante), les retards et les prochains horaires.',
+        'Le temps qui reste sur une tâche chronométrée s\'affiche aussi sur la carte de l\'enfant.',
+        'Des images pour les enfants qui ne lisent pas encore : 👉 à faire, 🏃 en cours, ✅ terminé, les mêmes sur le tableau et sur l\'écran d\'accueil.',
+        'Les tâches terminées gardent leur nom, en petit, sous leur image.',
+        'Étoiles, médailles, tirelire et séries ne sont plus sur cet écran : elles restent sur le tableau de chaque enfant.',
+      ],
+      en: [
+        'Simpler "Who is getting ready?" screen: each card only shows the task in progress (or the next one), late tasks and upcoming times.',
+        'The time left on a timed task now shows on the child\'s card too.',
+        'Pictures for children who can\'t read yet: 👉 to do, 🏃 doing, ✅ done, the same on the board and on the home screen.',
+        'Finished tasks keep their name, in small print, under their picture.',
+        'Stars, medals, piggy bank and streaks are no longer on this screen: they stay on each child\'s board.',
+      ],
+    },
+  },
+  {
     version: '1.13.1',
     date: '2026-11-13',
     changes: {

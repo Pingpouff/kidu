@@ -4,7 +4,7 @@ import { dayContext, isTaskForSchedule, isValidPeriod, periodApplies, prunePerio
 import { initSession, syncSessionWithDefinitions } from '../domain/routine';
 import { dueTimeToEpoch, findReminderTasks } from '../domain/reminders';
 import { computeTrophyStats, currentStreak } from '../domain/trophies';
-import { childSummary, liveStreak } from '../domain/summary';
+import { childSummary } from '../domain/summary';
 import { parseBackup } from '../domain/backup';
 
 const leo: ChildProfile = { id: 'leo', name: 'Léo', avatar: '🦊', color: 'indigo', stars: 0 };
@@ -52,8 +52,6 @@ describe('Holidays and rest days', () => {
     const isOff = (d: string) => d === '2026-11-10';
     expect(currentStreak(['2026-11-09', '2026-11-11'])).toBe(1);
     expect(currentStreak(['2026-11-08', '2026-11-09', '2026-11-11'], isOff)).toBe(3);
-    expect(liveStreak(['2026-11-09'], '2026-11-11', isOff)).toBe(1);
-    expect(liveStreak(['2026-11-09'], '2026-11-11')).toBe(0);
     const done = (date: string): RoutineSession => ({ id: `${date}_leo`, childId: 'leo', date, tasks: [], isCompleted: true });
     expect(computeTrophyStats([done('2026-11-08'), done('2026-11-09'), done('2026-11-11')], defs, undefined, isOff).currentStreak).toBe(3);
   });

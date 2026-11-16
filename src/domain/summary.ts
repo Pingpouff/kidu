@@ -1,15 +1,15 @@
 import { ChildProfile, ParentSettings, RoutineSession, TaskCategory, TaskDefinition } from './models';
 import { getCurrentPhaseIndex, getRoutinePhases, initSession, isSessionCompleted, isTaskForChild, sortDefinitions } from './routine';
 import { dueTimeToEpoch, findOverdueTasks, isMuted, isValidDueTime } from './reminders';
-import { starsPerMedal, unspentBadges } from './rewards';
-import { NeutralDay, currentStreak, onlyNeutralBetween } from './trophies';
+import { minutesLeft, timerState } from './timer';
 import { tonightCardState, TonightCardState } from './cards';
 import { dayContext } from './calendar';
 import { CalendarPeriod } from './models';
 
 /**
  * Overview shown on the child selection screen: where each child is in
- * tonight's routine, what is late, what comes next, and their rewards.
+ * tonight's routine, what is in progress or comes next, what is late, and the
+ * time left on a timed task. Rewards are not shown there (they live on the board).
  */
 
 export type RoutineStatus = 'no_tasks' | 'not_started' | 'in_progress' | 'completed';
@@ -29,12 +29,9 @@ export interface ChildSummary {
   late: string[];
   /** Next expected start or end time still ahead */
   upcoming?: UpcomingEvent;
+  /** Countdown of the first timed task in progress */
+  timer?: { definitionId: string; minutesLeft: number; expired: boolean };
   completedAt?: number;
-  starsToMedal: number;
-  pendingBadgeChoices: number;
-  piggyBadges: number;
-  /** Evenings in a row with a completed routine, still alive (last one today or yesterday) */
-  streak: number;
   /** Green / yellow / red cards given tonight */
   cards: TonightCardState;
   /** Today is a holiday or a rest day for this child */
@@ -84,16 +81,6 @@ function sessionOrPreview(childId: string, date: string, sessions: RoutineSessio
   return { session: session ?? initSession(childId, date, definitions, periods), started: session !== undefined };
 }
 
-/**
- * Streak that is still alive: the last completed routine is today's or
- * yesterday's (rest days in between don't count).
- */
-export function liveStreak(completedDates: string[], today: string, isNeutral?: NeutralDay): number {
-  if (completedDates.length === 0) return 0;
-  const last = [...completedDates].sort()[completedDates.length - 1];
-  return last <= today && onlyNeutralBetween(last, today, isNeutral) ? currentStreak(completedDates, isNeutral) : 0;
-}
-
 export function childSummary(
   now: number,
   date: string,
@@ -131,8 +118,10 @@ export function childSummary(
     .filter((e): e is UpcomingEvent => e !== undefined)
     .sort((a, b) => a.at - b.at)[0];
 
-  const perMedal = starsPerMedal(settings);
-  const completedDates = sessions.filter((s) => s.childId === profile.id && s.isCompleted).map((s) => s.date);
+  const defById = new Map(definitions.map((d) => [d.id, d]));
+  const timer = tasks
+    .map((t) => ({ definitionId: t.definitionId, state: timerState(defById.get(t.definitionId), t, now) }))
+    .find((t) => t.state !== undefined);
 
   return {
     childId: profile.id,
@@ -156,10 +145,9 @@ export function childSummary(
     late,
     ...(upcoming ? { upcoming } : {}),
     ...(session.completedAt ? { completedAt: session.completedAt } : {}),
-    starsToMedal: perMedal - ((profile.starProgress ?? 0) % perMedal),
-    pendingBadgeChoices: profile.badgeOffers?.length ?? 0,
-    piggyBadges: unspentBadges(profile).length,
-    streak: liveStreak(completedDates, date, (d) => dayContext(periods, d, profile.id).off),
+    ...(timer?.state
+      ? { timer: { definitionId: timer.definitionId, minutesLeft: minutesLeft(timer.state.remainingMs), expired: timer.state.expired } }
+      : {}),
     cards: tonightCardState(profile, date),
     ...(isMuted(settings?.mutedReminders, date, profile.id) ? { muted: true } : {}),
     ...(today.off ? { period: 'off' as const } : today.holidays ? { period: 'holidays' as const } : {}),

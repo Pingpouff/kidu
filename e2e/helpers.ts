@@ -31,13 +31,13 @@ export const dismissRewards = async (page: Page) => {
 
 /** Taps a card twice: todo → doing → done, then closes any reward screen */
 export const completeTask = async (page: Page, label: string, { dismiss = true } = {}) => {
-  const card = page.locator('main').getByRole('button').filter({ hasText: label });
-  await card.click();
+  await page.locator('[data-column="todo"]').getByRole('button').filter({ hasText: label }).click();
   const doingCard = page.locator('[data-column="doing"]').getByRole('button').filter({ hasText: label });
   await expect(doingCard).toHaveCount(1);
   // The "doing" card pulses continuously, so it never becomes "stable" for Playwright
   await doingCard.click({ force: true });
-  await expect(card).toHaveCount(0); // label is hidden once done
+  // Done: the card leaves "doing" (for the "done" column, or the step is over and the board moves on)
+  await expect(doingCard).toHaveCount(0);
   if (dismiss) await dismissRewards(page);
 };
 

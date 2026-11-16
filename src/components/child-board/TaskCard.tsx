@@ -4,6 +4,7 @@ import { RoutineTask, TaskDefinition } from '../../domain/models';
 import { taskLabel, translate, Language } from '../../i18n/dictionary';
 import { isValidDuration } from '../../domain/timer';
 import { TaskTimer } from './TaskTimer';
+import { TIME_ICONS } from '../../ui/statusIcons';
 
 interface TaskCardProps {
   task: RoutineTask;
@@ -67,7 +68,7 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
 }) {
   const emojiClass =
     task.status === 'done'
-      ? 'text-[28px] sm:text-[36px] lg:text-[44px]'
+      ? 'text-[26px] sm:text-[32px] lg:text-[40px]'
       : 'text-[56px] sm:text-[64px] md:text-[80px] lg:text-[64px] xl:text-[88px]';
   return (
     <>
@@ -86,8 +87,8 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
           {definition.startTime && definition.dueTime && !isLate
             ? `🕒 ${definition.startTime}–${definition.dueTime}`
             : definition.dueTime
-              ? `⏰ ${definition.dueTime}`
-              : `🚀 ${definition.startTime}`}
+              ? `${TIME_ICONS.due} ${definition.dueTime}`
+              : `${TIME_ICONS.start} ${definition.startTime}`}
         </span>
       )}
       {/* Timed task: the countdown once started, the time allowed before */}
@@ -101,12 +102,12 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
               title={translate('timer.duration', language, { minutes: definition.durationMinutes! })}
               className="absolute top-1.5 right-1.5 z-10 text-xs md:text-xs font-black rounded-full px-2 py-0.5 shadow bg-slate-900/85 text-emerald-200"
             >
-              ⏳ {translate('timer.left', language, { minutes: definition.durationMinutes! })}
+              {TIME_ICONS.timer} {translate('timer.left', language, { minutes: definition.durationMinutes! })}
             </span>
           )
         )
       ) : (
-        task.status === 'doing' && <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">⏰</span>
+        task.status === 'doing' && <span className="absolute top-2 right-2 text-sm text-amber-400 font-bold animate-pulse">{TIME_ICONS.due}</span>
       )}
 
       {celebration && <CompletionBurst key={celebration.key} cheer={celebration.cheer} />}
@@ -120,7 +121,12 @@ const TaskCardView: React.FC<TaskCardViewProps> = React.memo(function TaskCardVi
       </span>
 
       {/* Small helper text label */}
-      {task.status !== 'done' && (
+      {task.status === 'done' ? (
+        // Done tiles are small: a short label, still there for parents and readers
+        <span data-testid="task-done-label" className="text-xs leading-tight font-bold opacity-90 mt-1 text-center line-clamp-2 break-words w-full px-0.5">
+          {taskLabel(definition, language)}
+        </span>
+      ) : (
         <span className="text-[13px] sm:text-sm xl:text-base leading-tight font-extrabold opacity-80 tracking-wide mt-1.5 sm:mt-2 text-center uppercase line-clamp-2 break-words w-full px-1">
           {taskLabel(definition, language)}
         </span>

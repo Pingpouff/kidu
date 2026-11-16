@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ChildProfile, RoutineSession, TaskDefinition } from '../domain/models';
 import { definitionsForChild, initSession, isTaskForChild, syncSessionWithDefinitions, unassignChild } from '../domain/routine';
 import { dueTimeToEpoch, findOverdueTasks } from '../domain/reminders';
-import { childSummary, liveStreak, upcomingDeadlines } from '../domain/summary';
+import { childSummary, upcomingDeadlines } from '../domain/summary';
 import { parseBackup } from '../domain/backup';
 
 const DATE = '2026-11-09';
@@ -74,7 +74,6 @@ describe('Selection screen summary', () => {
     expect(s).toMatchObject({ status: 'not_started', done: 0, total: 3, next: 'snack', late: [], doing: [] });
     expect(s.phase).toMatchObject({ category: 'after_school', done: 0, total: 2, index: 0, count: 2 });
     expect(s.upcoming).toMatchObject({ definitionId: 'bath', dueTime: '19:00' });
-    expect(s.starsToMedal).toBe(3);
   });
 
   it('describes a child in progress, with late and doing tasks', () => {
@@ -82,21 +81,23 @@ describe('Selection screen summary', () => {
     const s = childSummary(at('18:45'), DATE, leo, [session], defs);
     expect(s).toMatchObject({ status: 'in_progress', done: 1, total: 4, doing: ['bath'], next: 'homework', late: ['homework'] });
     expect(s.upcoming).toMatchObject({ definitionId: 'bath', dueTime: '19:00' });
-    expect(s.starsToMedal).toBe(2); // starProgress 1 of 3
   });
 
-  it('describes a completed routine and a live streak', () => {
+  it('describes a completed routine', () => {
     const done = withStatus(initSession('emma', DATE, defs), { snack: 'done', bath: 'done', teeth: 'done' });
     const yesterday = { ...done, id: 'y', date: '2026-11-08' };
     const s = childSummary(at('20:30'), DATE, emma, [{ ...done, isCompleted: true, completedAt: at('19:50') }, { ...yesterday, isCompleted: true }], defs);
-    expect(s).toMatchObject({ status: 'completed', done: 3, total: 3, late: [], streak: 2, completedAt: at('19:50') });
+    expect(s).toMatchObject({ status: 'completed', done: 3, total: 3, late: [], completedAt: at('19:50') });
     expect(s.upcoming).toBeUndefined();
   });
 
-  it('only counts a streak that is still alive', () => {
-    expect(liveStreak(['2026-11-07', '2026-11-08'], DATE)).toBe(2);
-    expect(liveStreak(['2026-11-05', '2026-11-06'], DATE)).toBe(0);
-    expect(liveStreak([], DATE)).toBe(0);
+  it('gives the time left on a timed task in progress, then time up', () => {
+    const timed = defs.map((d) => (d.id === 'bath' ? { ...d, durationMinutes: 20 } : d));
+    const session = withStatus(initSession('leo', DATE, timed), { bath: 'doing' });
+    session.tasks.find((t) => t.definitionId === 'bath')!.startedAt = at('18:30');
+    expect(childSummary(at('18:41'), DATE, leo, [session], timed).timer).toEqual({ definitionId: 'bath', minutesLeft: 9, expired: false });
+    expect(childSummary(at('18:55'), DATE, leo, [session], timed).timer).toEqual({ definitionId: 'bath', minutesLeft: 0, expired: true });
+    expect(childSummary(at('18:41'), DATE, leo, [session], defs).timer).toBeUndefined(); // not timed
   });
 
   it('lists the next deadlines of the evening, children grouped', () => {

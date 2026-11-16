@@ -3,6 +3,7 @@ import { RoutineTask, TaskDefinition } from '../../domain/models';
 import { minutesLeft, timerState } from '../../domain/timer';
 import { translate, Language } from '../../i18n/dictionary';
 import { cx } from '../../ui/cx';
+import { TIME_ICONS } from '../../ui/statusIcons';
 
 const TICK_MS = 5_000; // the disc moves in small steps: cheap on old tablets
 const R = 15;
@@ -35,7 +36,7 @@ export const TaskTimer: React.FC<{ task: RoutineTask; definition: TaskDefinition
         title={translate('timer.time_up', language)}
         className="absolute top-1 right-1 z-10 w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center bg-rose-500 text-lg md:text-xl shadow-lg ring-2 ring-white/70 animate-wiggle"
       >
-        ⌛
+        {TIME_ICONS.timeUp}
       </span>
     );
   }

@@ -111,12 +111,12 @@ test.describe('Yellow and red cards', () => {
     await expect(page.getByTestId('star-meter-card')).toBeVisible();
     await expect(page.getByTestId('card-reset-hint')).toBeVisible();
 
-    // Home: card stuck on the avatar, reason shown
+    // Home: card stuck on the avatar, reason in its tooltip
     await page.locator('header').getByRole('button').first().click();
     const leo = page.getByTestId('child-card-leo');
     await expect(leo).toHaveAttribute('data-card-level', 'red');
     await expect(leo.getByTestId('home-card')).toBeVisible();
-    await expect(leo.getByTestId('home-card-reason')).toContainText("Carton rouge aujourd'hui · Comportement dangereux");
+    await expect(leo.getByTestId('home-card')).toHaveAttribute('title', "Carton rouge aujourd'hui · Comportement dangereux");
 
     // Reopening the board: reminder first, which closes by itself
     await leo.click();
@@ -171,7 +171,8 @@ test.describe('Yellow and red cards', () => {
     await expect(page.getByTestId('card-banner')).toHaveCount(0);
 
     await page.locator('header').getByRole('button').first().click();
-    await expect(page.getByTestId('child-card-leo').getByTestId('home-green-card')).toBeVisible();
+    // The selection screen stays simple: no green card there
+    await expect(page.getByTestId('child-card-leo').getByTestId('home-card')).toHaveCount(0);
     await page.getByTestId('child-card-leo').click();
     await expect(reveal).toHaveCount(0);
   });
