@@ -1,15 +1,33 @@
 import React from 'react';
-import { ChildProfile, CATEGORY_ICONS } from '../../domain/models';
+import { ChildProfile } from '../../domain/models';
 import { ChildSummary } from '../../domain/summary';
 import { translate, Language } from '../../i18n/dictionary';
 import { childTheme } from '../../ui/theme';
 import { Pill } from '../../ui/Pill';
 import { cx } from '../../ui/cx';
 import { ChildAvatar } from '../common/ChildAvatar';
+import { STATUS_ICONS, STATUS_TONES, TIME_ICONS } from '../../ui/statusIcons';
+
+/** A line of the card: a picture first (for children who can't read yet), then the text. */
+const Line: React.FC<{ icon: string; tone: string; testId: string; className?: string; children: React.ReactNode }> = ({
+  icon,
+  tone,
+  testId,
+  className,
+  children,
+}) => (
+  <p className={cx('flex items-center gap-2 min-w-0', className)} data-testid={testId}>
+    <span aria-hidden="true" className={cx('shrink-0 w-10 h-10 rounded-full border flex items-center justify-center text-2xl leading-none', tone)}>
+      {icon}
+    </span>
+    {children}
+  </p>
+);
 
 /**
- * A child's card on the selection screen: avatar, stars, tonight's progress,
- * what is in progress / next / late / due, and rewards.
+ * A child's card on the selection screen, kept simple: avatar and name, what
+ * the child is doing (or does next) with the time left on a timed task, what
+ * is late or due soon, and a thin progress bar. Rewards live on the board.
  */
 export interface ChildCardProps {
   profile: ChildProfile;
@@ -22,29 +40,12 @@ export interface ChildCardProps {
 }
 
 export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCount, language, label, formatTime, onSelect }) => {
-  const theme = childTheme(profile.color).card;
+  const theme = childTheme(profile.color);
   const cardLevel = summary?.cards.level ?? 'none';
   const percent = summary && summary.total > 0 ? Math.round((summary.done / summary.total) * 100) : 0;
   const isDone = summary?.status === 'completed';
   const sep = language === 'fr' ? ' :' : ':';
-
-  const statusLine = () => {
-    if (!summary) return null;
-    switch (summary.status) {
-      case 'no_tasks':
-        return translate('home.no_tasks', language);
-      case 'completed':
-        return summary.completedAt
-          ? `🌙 ${translate('home.completed_at', language)} ${formatTime(summary.completedAt)}`
-          : `🌙 ${translate('home.completed', language)}`;
-      case 'not_started':
-        return `🚀 ${translate('home.not_started', language)}`;
-      default:
-        return summary.phase
-          ? `${CATEGORY_ICONS[summary.phase.category]} ${translate('board.step', language)} ${summary.phase.index + 1}/${summary.phase.count} · ${translate(`category.${summary.phase.category}`, language)}`
-          : null;
-    }
-  };
+  const timer = summary?.timer;
 
   return (
     <button
@@ -53,7 +54,7 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
       data-card-level={cardLevel}
       className={cx(
         'relative w-full sm:w-[22rem] rounded-3xl border bg-gradient-to-b backdrop-blur-md shadow-xl flex flex-col p-5 gap-3 text-left transform active:scale-95 transition-all duration-300 group',
-        theme,
+        theme.card,
         cardLevel === 'yellow' && 'ring-4 ring-yellow-400 shadow-yellow-500/30',
         cardLevel === 'red' && 'ring-4 ring-red-500 shadow-red-500/40'
       )}
@@ -64,22 +65,24 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
           data-testid="profile-late"
           className="absolute -top-3 -right-3 flex items-center gap-1 bg-rose-500 text-white font-black text-sm px-3 py-1.5 rounded-full shadow-lg animate-wiggle"
         >
-          ⏰ {lateCount}
+          {TIME_ICONS.due} {lateCount}
         </span>
       )}
 
-      {/* Avatar, name, stars */}
+      {/* Avatar and name */}
       <div className="flex items-center gap-4">
         <div className="relative shrink-0">
           <ChildAvatar avatar={profile.avatar} className="group-hover:scale-110 transition-transform duration-300" />
-          {/* Tonight's card, stuck on the avatar */}
+          {/* Tonight's yellow / red card, stuck on the avatar */}
           {summary && cardLevel !== 'none' && (
             <span
               data-testid="home-card"
               data-level={cardLevel}
               data-yellow={summary.cards.yellow}
               data-red={summary.cards.red}
-              title={translate('cards.tonight', language)}
+              title={[translate(cardLevel === 'red' ? 'cards.banner_red' : 'cards.banner_yellow', language), summary.cards.lastReason]
+                .filter(Boolean)
+                .join(' · ')}
               className="absolute -bottom-1 -right-2 flex items-end"
             >
               <span className={cx('referee-card size-md rotate-12 animate-card-sticker ring-2 ring-white/70', cardLevel === 'red' ? 'is-red' : 'is-yellow')} />
@@ -93,124 +96,98 @@ export const ChildCard: React.FC<ChildCardProps> = ({ profile, summary, lateCoun
           <span className="text-2xl md:text-3xl font-extrabold tracking-wide drop-shadow text-white group-hover:text-yellow-200 transition-colors duration-300 truncate">
             {profile.name}
           </span>
-          <div className="flex flex-wrap gap-1.5">
-            <Pill className="py-0.5 text-sm font-semibold text-yellow-300 border border-yellow-500/20">⭐ {profile.stars}</Pill>
-            {summary?.muted && (
-              <Pill className="py-0.5 text-sm font-semibold text-white/70 border border-white/20" data-testid="home-child-muted" title={translate('home.muted_child', language)}>
-                🔕
-              </Pill>
-            )}
-            {summary?.period && (
-              <Pill className="py-0.5 text-sm font-semibold text-cyan-200 border border-cyan-400/30" data-testid="home-period" data-period={summary.period}>
-                {translate(`day.${summary.period}`, language)}
-              </Pill>
-            )}
-            {(summary?.cards.green ?? 0) > 0 && (
-              <Pill
-                className="py-0.5 text-sm font-semibold text-emerald-300 border border-emerald-500/30 gap-1"
-                title={translate('cards.banner_green', language)}
-                data-testid="home-green-card"
-              >
-                <span className="referee-card size-sm is-green -rotate-12" aria-hidden="true" />
-                {summary!.cards.green > 1 && `×${summary!.cards.green}`}
-              </Pill>
-            )}
-            {(summary?.streak ?? 0) >= 2 && (
-              <Pill
-                className="py-0.5 text-sm font-semibold text-orange-300 border border-orange-500/20"
-                title={`${summary!.streak} ${translate('home.streak', language)}`}
-                data-testid="home-streak"
-              >
-                🔥 {summary!.streak}
-              </Pill>
-            )}
-          </div>
+          {(summary?.muted || summary?.period) && (
+            <div className="flex flex-wrap gap-1.5">
+              {summary.muted && (
+                <Pill className="py-0.5 text-sm font-semibold text-white/70 border border-white/20" data-testid="home-child-muted" title={translate('home.muted_child', language)}>
+                  🔕
+                </Pill>
+              )}
+              {summary.period && (
+                <Pill className="py-0.5 text-sm font-semibold text-cyan-200 border border-cyan-400/30" data-testid="home-period" data-period={summary.period}>
+                  {translate(`day.${summary.period}`, language)}
+                </Pill>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {summary && (
-        <>
-          {cardLevel !== 'none' && (
-            <p
-              data-testid="home-card-reason"
-              className={cx(
-                'px-3 py-1.5 rounded-xl text-sm font-black truncate',
-                cardLevel === 'red' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-yellow-950'
-              )}
-            >
-              {cardLevel === 'red' ? '🟥' : '🟨'} {translate(cardLevel === 'red' ? 'cards.banner_red' : 'cards.banner_yellow', language)}
-              {summary.cards.lastReason && ` · ${summary.cards.lastReason}`}
-            </p>
-          )}
-
-          {/* Progress */}
-          <div className="flex flex-col gap-1.5" data-testid="home-progress">
-            <div className="flex items-center justify-between gap-2 text-sm font-bold">
-              <span className={isDone ? 'text-emerald-300' : 'text-white/80'}>{statusLine()}</span>
-              {summary.total > 0 && (
-                <span className="text-white/60 tabular-nums shrink-0">
-                  {summary.done}/{summary.total}
+        <div className="flex flex-col gap-2 text-sm" data-testid="home-progress">
+          {/* Now: done, doing (with the time left) or next */}
+          {summary.status === 'no_tasks' ? (
+            <p className="text-white/70 font-semibold">{translate('home.no_tasks', language)}</p>
+          ) : isDone ? (
+            <Line icon={STATUS_ICONS.done} tone={STATUS_TONES.done} testId="home-done" className="text-emerald-300 font-bold">
+              {summary.completedAt ? `${translate('home.completed_at', language)} ${formatTime(summary.completedAt)}` : translate('home.completed', language)}
+            </Line>
+          ) : summary.doing.length > 0 ? (
+            <Line icon={STATUS_ICONS.doing} tone={STATUS_TONES.doing} testId="home-doing" className="text-white/90 font-semibold">
+              <span className="min-w-0 line-clamp-2">
+                <span className="text-orange-300 font-bold">{translate('home.doing', language)}{sep}</span> {summary.doing.map(label).join(', ')}
+              </span>
+              {timer && (
+                <span
+                  data-testid="home-timer"
+                  data-expired={timer.expired ? 'true' : undefined}
+                  data-minutes={timer.minutesLeft}
+                  className={cx(
+                    'shrink-0 ml-auto px-2 py-0.5 rounded-full font-black tabular-nums',
+                    timer.expired ? 'bg-rose-500 text-white' : timer.minutesLeft <= 5 ? 'bg-amber-400 text-amber-950' : 'bg-white/15 text-white'
+                  )}
+                >
+                  {timer.expired
+                    ? `${TIME_ICONS.timeUp} ${translate('timer.time_up', language)}`
+                    : `${TIME_ICONS.timer} ${translate('timer.left', language, { minutes: timer.minutesLeft })}`}
                 </span>
               )}
-            </div>
-            {summary.total > 0 && (
-              <div className="h-2.5 w-full rounded-full bg-black/30 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${isDone ? 'bg-emerald-400' : childTheme(profile.color).bar}`}
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* What's happening now */}
-          {!isDone && summary.total > 0 && (
-            <div className="flex flex-col gap-1 text-sm">
-              {summary.doing.length > 0 ? (
-                <p className="text-white/80 font-semibold truncate" data-testid="home-doing">
-                  <span className="text-orange-300 font-bold">▶ {translate('home.doing', language)}{sep}</span>{' '}
-                  {summary.doing.map(label).join(', ')}
-                </p>
-              ) : (
-                summary.next && (
-                  <p className="text-white/80 font-semibold truncate" data-testid="home-next">
-                    <span className="text-white/50 font-bold">{translate('home.next', language)}{sep}</span> {label(summary.next)}
-                  </p>
-                )
-              )}
-              {summary.late.length > 0 && (
-                <p className="text-rose-300 font-bold truncate" data-testid="home-late">
-                  ⏰ {translate('home.late', language)}{sep} {summary.late.map(label).join(', ')}
-                </p>
-              )}
-              {summary.upcoming && (
-                <p className="text-amber-200/90 font-semibold truncate" data-testid="home-upcoming">
-                  {summary.upcoming.kind === 'start'
-                    ? `🚀 ${translate('home.starts_at', language)} ${summary.upcoming.time}`
-                    : `🔔 ${translate('home.due', language)} ${summary.upcoming.time}`}
-                  {sep} {label(summary.upcoming.definitionId)}
-                </p>
-              )}
-            </div>
+            </Line>
+          ) : (
+            summary.next && (
+              <Line icon={STATUS_ICONS.todo} tone={STATUS_TONES.todo} testId="home-next" className="text-white/90 font-semibold">
+                <span className="min-w-0 line-clamp-2">
+                  <span className="text-yellow-300 font-bold">{translate('home.next', language)}{sep}</span> {label(summary.next)}
+                </span>
+              </Line>
+            )
           )}
 
-          {/* Rewards */}
-          <div className="flex flex-wrap gap-1.5 text-xs font-bold">
-            <Pill className="text-yellow-200">
-              🏅 {translate('home.medal_in', language)} {summary.starsToMedal} ⭐
-            </Pill>
-            {summary.piggyBadges > 0 && (
-              <Pill className="text-pink-200" title={translate('home.piggy', language)}>
-                🐷 {summary.piggyBadges}
-              </Pill>
-            )}
-            {summary.pendingBadgeChoices > 0 && (
-              <Pill className="bg-yellow-400 text-amber-950 animate-pulse" data-testid="home-badge-pending">
-                🎁 {translate('home.badge_to_choose', language)}
-              </Pill>
-            )}
-          </div>
-        </>
+          {/* Reminders */}
+          {!isDone && summary.late.length > 0 && (
+            <Line icon={TIME_ICONS.due} tone="bg-rose-500 border-rose-400 animate-wiggle" testId="home-late" className="text-rose-300 font-bold">
+              <span className="min-w-0 line-clamp-2">
+                {translate('home.late', language)}{sep} {summary.late.map(label).join(', ')}
+              </span>
+            </Line>
+          )}
+          {!isDone && summary.upcoming && (
+            <Line
+              icon={summary.upcoming.kind === 'start' ? TIME_ICONS.start : TIME_ICONS.due}
+              tone={summary.upcoming.kind === 'start' ? 'bg-sky-500/20 border-sky-500/40' : 'bg-amber-500/15 border-amber-500/30'}
+              testId="home-upcoming"
+              className="text-amber-200/90 font-semibold"
+            >
+              <span className="min-w-0 line-clamp-2">
+                {translate(summary.upcoming.kind === 'start' ? 'home.starts_at' : 'home.due', language)} {summary.upcoming.time}
+                {sep} {label(summary.upcoming.definitionId)}
+              </span>
+            </Line>
+          )}
+
+          {summary.total > 0 && (
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={summary.total}
+              aria-valuenow={summary.done}
+              aria-label={`${summary.done}/${summary.total}`}
+              className="mt-1 h-1.5 w-full rounded-full bg-black/30 overflow-hidden"
+            >
+              <div className={cx('h-full rounded-full transition-all duration-700', isDone ? 'bg-emerald-400' : theme.bar)} style={{ width: `${percent}%` }} />
+            </div>
+          )}
+        </div>
       )}
     </button>
   );

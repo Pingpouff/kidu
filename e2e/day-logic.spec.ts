@@ -24,7 +24,7 @@ test.describe('Day logic', () => {
 
     // The selection screen follows
     await page.locator('header').getByRole('button').first().click();
-    await expect(page.getByTestId('child-card-leo').getByTestId('home-progress')).toContainText("Après l'école");
+    await expect(page.getByTestId('child-card-leo').getByTestId('home-next')).toContainText('Vider son cartable');
     await page.getByTestId('child-card-leo').click();
 
     await page.getByTestId('resume-phase').click();
@@ -46,7 +46,7 @@ test.describe('Day logic', () => {
     await expect(page.getByText('Tu as terminé toute ta journée', { exact: false })).toBeVisible();
     await page.goto('/');
     await dismissRewards(page);
-    await expect(page.getByTestId('child-card-leo').getByTestId('home-progress')).toContainText('Routine finie');
+    await expect(page.getByTestId('child-card-leo').getByTestId('home-done')).toContainText('Routine finie');
   });
 
   test('school tasks are not planned on Saturday', async ({ page }) => {

@@ -44,9 +44,9 @@ test.describe('Personal tasks and selection screen summary', () => {
     await removeMorningTasks(page);
     const leo = page.getByTestId('child-card-leo');
     const emma = page.getByTestId('child-card-emma');
-    await expect(leo.getByTestId('home-progress')).toContainText('Pas encore commencé');
-    await expect(leo.getByTestId('home-progress')).toContainText('0/18');
-    await expect(emma.getByTestId('home-progress')).toContainText('0/17'); // no homework for Emma
+    await expect(leo.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+    await expect(leo.getByRole('progressbar')).toHaveAttribute('aria-valuemax', '18');
+    await expect(emma.getByRole('progressbar')).toHaveAttribute('aria-valuemax', '17'); // no homework for Emma
     await expect(leo.getByTestId('home-next')).toContainText('Vider son cartable');
     await expect(page.getByTestId('home-tonight')).toBeVisible();
 
@@ -55,13 +55,19 @@ test.describe('Personal tasks and selection screen summary', () => {
     await completeTask(page, 'Vider son cartable');
     await page.locator('main').getByRole('button').filter({ hasText: 'Prendre son goûter' }).click();
     await expect(page.locator('[data-column="doing"]')).toContainText('Prendre son goûter');
+    // Same pictures on the board columns and on the selection screen
+    await expect(page.locator('[data-column="todo"]')).toContainText('👉');
+    await expect(page.locator('[data-column="doing"]')).toContainText('🏃');
     await page.locator('header').getByRole('button').first().click();
 
-    await expect(leo.getByTestId('home-progress')).toContainText('Étape 1/3');
-    await expect(leo.getByTestId('home-progress')).toContainText('1/18');
+    await expect(leo.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     await expect(leo.getByTestId('home-doing')).toContainText('Prendre son goûter');
-    await expect(leo).toContainText('Médaille dans 2');
-    await expect(emma.getByTestId('home-progress')).toContainText('Pas encore commencé');
+    await expect(leo.getByTestId('home-doing')).toContainText('🏃');
+    await expect(emma.getByTestId('home-next')).toContainText('👉');
+    await expect(leo.getByTestId('home-timer')).toHaveCount(0); // not a timed task
+    // No rewards on the selection screen: they live on the board
+    await expect(leo).not.toContainText(/Médaille|⭐|🐷|🔥/);
+    await expect(emma.getByTestId('home-next')).toContainText('Vider son cartable');
   });
 
   test('due times show up in the evening overview', async ({ page }) => {
