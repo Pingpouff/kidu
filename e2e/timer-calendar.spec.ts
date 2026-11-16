@@ -24,6 +24,13 @@ test.describe('Timed tasks', () => {
     const timer = page.locator('[data-column="doing"]').getByTestId('task-timer');
     await expect(timer).toHaveAttribute('data-minutes', '10');
 
+    // The selection screen shows the time left too
+    await page.locator('header').getByRole('button').first().click();
+    const homeTimer = page.getByTestId('child-card-leo').getByTestId('home-timer');
+    await expect(homeTimer).toHaveAttribute('data-minutes', '10');
+    await expect(homeTimer).toContainText('10 min');
+    await page.getByTestId('child-card-leo').click();
+
     // 5 minutes left: one warning
     await page.clock.runFor('05:30');
     await expect(timer).toHaveAttribute('data-minutes', '5');

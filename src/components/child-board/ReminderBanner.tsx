@@ -5,6 +5,7 @@ import { Language, taskLabel, translate } from '../../i18n/dictionary';
 import { ReminderAnnouncement, SNOOZE_MINUTES } from '../../hooks/useTaskReminders';
 import { useSwipeDismiss } from '../../ui/useSwipeDismiss';
 import { mergeHandlers } from '../../ui/mergeHandlers';
+import { TIME_ICONS } from '../../ui/statusIcons';
 
 interface ReminderBannerProps {
   announcement: ReminderAnnouncement;
@@ -50,7 +51,7 @@ export const ReminderBanner: React.FC<ReminderBannerProps> = ({
         <div className="flex items-start">
           <button type="button" onClick={onDismiss} className="flex-1 min-w-0 flex items-start gap-3 sm:gap-4 p-3 sm:p-4 pr-1 pb-2 text-left">
             <span className="text-3xl sm:text-5xl animate-wiggle inline-block" aria-hidden="true">
-              ⏰
+              {TIME_ICONS.due}
             </span>
             <span className="flex-1 min-w-0 flex flex-col gap-1">
               <span className="font-black text-base sm:text-lg md:text-xl">
@@ -64,12 +65,12 @@ export const ReminderBanner: React.FC<ReminderBannerProps> = ({
                     <span className="truncate">{taskLabel(def, language)}</span>
                     <span className="ml-auto shrink-0 text-sm font-black bg-amber-950/15 rounded-full px-2 py-0.5" data-testid={`reminder-${task.kind ?? 'late'}`}>
                       {task.kind === 'start'
-                        ? `🚀 ${translate('reminders.start', language)} ${task.dueTime}`
+                        ? `${TIME_ICONS.start} ${translate('reminders.start', language)} ${task.dueTime}`
                         : task.kind === 'warning'
-                          ? `⏳ ${translate('reminders.minutes_left', language, { minutes: task.minutesLeft ?? 0 })}`
+                          ? `${TIME_ICONS.timer} ${translate('reminders.minutes_left', language, { minutes: task.minutesLeft ?? 0 })}`
                           : task.kind === 'timeup'
-                            ? `⌛ ${translate('reminders.time_up', language)}`
-                            : `⏰ ${task.dueTime}`}
+                            ? `${TIME_ICONS.timeUp} ${translate('reminders.time_up', language)}`
+                            : `${TIME_ICONS.due} ${task.dueTime}`}
                     </span>
                   </span>
                 );

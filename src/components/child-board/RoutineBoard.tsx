@@ -23,6 +23,7 @@ import { unspentBadges } from '../../domain/rewards';
 import { fireConfetti, richMotion } from '../../services/effects';
 import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
 import { childTheme } from '../../ui/theme';
+import { STATUS_ICONS } from '../../ui/statusIcons';
 import { CONFETTI_Z } from '../../ui/layers';
 import { useConfirmTap } from '../../ui/useConfirmTap';
 import { CardColor } from '../../domain/models';
@@ -543,7 +544,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           <BoardColumn
             id="todo"
             title={translate('col.todo', language)}
-            icon="💤"
+            icon={STATUS_ICONS.todo}
             colorTheme="yellow"
             count={todoTasks.length}
             isDragging={isDragging}
@@ -565,7 +566,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           <BoardColumn
             id="doing"
             title={translate('col.doing', language)}
-            icon="☀️"
+            icon={STATUS_ICONS.doing}
             colorTheme="orange"
             count={doingTasks.length}
             isDragging={isDragging}
@@ -588,7 +589,7 @@ export const RoutineBoard: React.FC<RoutineBoardProps> = ({
           <BoardColumn
             id="done"
             title={translate('col.done', language)}
-            icon="🌟"
+            icon={STATUS_ICONS.done}
             colorTheme="emerald"
             count={doneTasks.length}
             isDragging={isDragging}

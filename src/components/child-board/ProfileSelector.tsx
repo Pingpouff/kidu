@@ -7,6 +7,7 @@ import { translate, taskLabel, Language } from '../../i18n/dictionary';
 import { Info, Settings } from 'lucide-react';
 import { CloudGlyph } from '../../features/emotions/art/CloudGlyph';
 import { OwlGlyph } from '../../features/emotions/art/OwlGlyph';
+import { TIME_ICONS } from '../../ui/statusIcons';
 
 interface ProfileSelectorProps {
   profiles: ChildProfile[];
@@ -235,7 +236,7 @@ export const ProfileSelector: React.FC<ProfileSelectorProps> = ({
                       className={`font-black tabular-nums w-20 shrink-0 ${d.kind === 'start' ? 'text-sky-300' : 'text-amber-300'}`}
                       title={translate(d.kind === 'start' ? 'parent.tasks.start_time' : 'parent.tasks.due_time', language)}
                     >
-                      {d.kind === 'start' ? '🚀' : '⏰'} {d.time}
+                      {d.kind === 'start' ? TIME_ICONS.start : TIME_ICONS.due} {d.time}
                     </span>
                     <span className="flex-1 min-w-0 truncate font-bold text-white">
                       {label(d.definitionId)}
